@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renn.AI - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .gradient-border {
+            background: linear-gradient(135deg, #000 0%, #333 100%);
+            padding: 2px;
+        }
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen flex items-center justify-center">
+    <div class="fade-in w-full max-w-md p-8">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-black mb-2">RENN.AI</h1>
+            <p class="text-gray-600 text-sm">Intelligent Lead Generation Platform</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="gradient-border rounded-lg">
+            <div class="bg-white rounded-lg p-8">
+                <h2 class="text-2xl font-semibold text-black mb-6">Welcome Back</h2>
+                
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <input type="hidden" name="_csrf" id="csrf-token" value="">
+                    
+                    <div class="mb-6">
+                        <label for="email" class="block text-gray-700 text-sm font-medium mb-2">Email</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-black transition"
+                            placeholder="agency@example.com"
+                            autocomplete="username"
+                            aria-describedby="email-help"
+                        >
+                    </div>
+                    
+                    <div class="mb-6 relative">
+                        <label for="password" class="block text-gray-700 text-sm font-medium mb-2">Password</label>
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                id="password" 
+                                required
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-black transition pr-10"
+                                placeholder="••••••••"
+                                autocomplete="current-password"
+                            >
+                            <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-3 text-gray-500 hover:text-black" aria-label="Toggle password visibility">
+                                <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <svg id="eye-off-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6 flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="mr-2" id="remember-me">
+                            <span class="text-sm text-gray-600">Remember me</span>
+                        </label>
+                        <a href="#" class="text-sm text-gray-600 hover:text-black transition">Forgot password?</a>
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition font-medium flex items-center justify-center"
+                        aria-label="Sign in to your account"
+                        id="submit-btn"
+                    >
+                        Sign In
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600">
+                        Don't have an account? 
+                        <a href="#" class="text-black font-medium hover:underline">Contact Sales</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Demo Credentials -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-xs text-gray-600 text-center">
+                Demo: email: <strong>demo@renn.ai</strong> | password: <strong>demo123</strong>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Set CSRF token (in a real app, this would come from your server)
+        document.getElementById('csrf-token').value = 'demo-csrf-token-12345';
+        
+        // Pre-fill email if remembered
+        document.addEventListener('DOMContentLoaded', function() {
+            const rememberedEmail = localStorage.getItem('rememberEmail');
+            if (rememberedEmail) {
+                document.getElementById('email').value = rememberedEmail;
+                document.getElementById('remember-me').checked = true;
+            }
+        });
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            const eyeOffIcon = document.getElementById('eye-off-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeOffIcon.classList.remove('hidden');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeOffIcon.classList.add('hidden');
+            }
+        }
+
+        // Handle login form submission
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
+            const submitBtn = document.getElementById('submit-btn');
+            
+            // Clear previous error states
+            document.getElementById('email').classList.remove('border-red-500');
+            document.getElementById('password').classList.remove('border-red-500');
+            const existingError = document.querySelector('.text-red-600');
+            if (existingError) existingError.remove();
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Signing in...
+            `;
+            
+            // Simulate API call delay
+            setTimeout(() => {
+                // Simple demo authentication
+                if (email === 'demo@renn.ai' && password === 'demo123') {
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('userEmail', email);
+                    
+                    if (rememberMe) {
+                        localStorage.setItem('rememberEmail', email);
+                    } else {
+                        localStorage.removeItem('rememberEmail');
+                    }
+                    
+                    window.location.href = '/dashboard.html';
+                } else {
+                    // Reset submit button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Sign In';
+                    
+                    // Add error styling
+                    document.getElementById('email').classList.add('border-red-500');
+                    document.getElementById('password').classList.add('border-red-500');
+                    
+                    // Show error message
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'mt-4 text-red-600 text-sm';
+                    errorDiv.textContent = 'Invalid credentials. Use demo@renn.ai / demo123';
+                    
+                    const form = document.getElementById('loginForm');
+                    if (!form.querySelector('.text-red-600')) {
+                        form.appendChild(errorDiv);
+                    }
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

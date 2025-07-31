@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RENN.AI - Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap">
+    <link rel="stylesheet" href="styles/assets/shared.css">
+    <script src="https://cdn.tailwindcss.com">
+// === DARK MODE TOGGLE ===
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+}
+
+// Apply saved theme on load
+document.addEventListener('DOMContentLoaded', function () {
+    const prefersDark = localStorage.getItem('darkMode') === 'true';
+    if (prefersDark) {
+        document.body.classList.add('dark-mode');
+    }
+});
+
+
+// === SEARCH FILTER FOR CAMPAIGNS ===
+function filterCampaigns() {
+    const input = document.getElementById("campaignSearch").value.toLowerCase();
+    const rows = document.querySelectorAll("#campaigns-table tr");
+    rows.forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        row.style.display = rowText.includes(input) ? "" : "none";
+    });
+}
+
+
+// === PWA Service Worker Registration ===
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("service-worker.js").then(
+      function (registration) {
+        console.log("ServiceWorker registration successful:", registration.scope);
+      },
+      function (err) {
+        console.log("ServiceWorker registration failed:", err);
+      }
+    );
+  });
+}
+
+
+// === EXPORT TO CSV ===
+function exportTableToCSV() {
+    let csv = [];
+    const rows = document.querySelectorAll("#campaigns-table tr");
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("td, th");
+        let rowData = [];
+        cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
+        csv.push(rowData.join(","));
+    });
+    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "campaigns.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// === EXPORT TO PDF ===
+function exportTableToPDF() {
+    const element = document.querySelector("#campaigns-table").parentElement;
+    const opt = {
+        margin:       0.5,
+        filename:     'campaigns.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    html2pdf().from(element).set(opt).save();
+}
+
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js">
+// === DARK MODE TOGGLE ===
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+}
+
+// Apply saved theme on load
+document.addEventListener('DOMContentLoaded', function () {
+    const prefersDark = localStorage.getItem('darkMode') === 'true';
+    if (prefersDark) {
+        document.body.classList.add('dark-mode');
+    }
+});
+
+
+// === SEARCH FILTER FOR CAMPAIGNS ===
+function filterCampaigns() {
+    const input = document.getElementById("campaignSearch").value.toLowerCase();
+    const rows = document.querySelectorAll("#campaigns-table tr");
+    rows.forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        row.style.display = rowText.includes(input) ? "" : "none";
+    });
+}
+
+
+// === PWA Service Worker Registration ===
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("service-worker.js").then(
+      function (registration) {
+        console.log("ServiceWorker registration successful:", registration.scope);
+      },
+      function (err) {
+        console.log("ServiceWorker registration failed:", err);
+      }
+    );
+  });
+}
+
+
+// === EXPORT TO CSV ===
+function exportTableToCSV() {
+    let csv = [];
+    const rows = document.querySelectorAll("#campaigns-table tr");
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("td, th");
+        let rowData = [];
+        cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
+        csv.push(rowData.join(","));
+    });
+    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "campaigns.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// === EXPORT TO PDF ===
+function exportTableToPDF() {
+    const element = document.querySelector("#campaigns-table").parentElement;
+    const opt = {
+        margin:       0.5,
+        filename:     'campaigns.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    html2pdf().from(element).set(opt).save();
+}
+
+</script>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+// === EXPORT TO CSV ===
+function exportTableToCSV() {
+    let csv = [];
+    const rows = document.querySelectorAll("#campaigns-table tr");
+    rows.forEach(row => {
+        const cols = row.querySelectorAll("td, th");
+        let rowData = [];
+        cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
+        csv.push(rowData.join(","));
+    });
+    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "campaigns.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// === EXPORT TO PDF ===
+function exportTableToPDF() {
+    const element = document.querySelector("#campaigns-table").parentElement;
+    const opt = {
+        margin:       0.5,
+        filename:     'campaigns.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+    };
+    html2pdf().from(element).set(opt).save();
+}
+
+</script>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="p-6 border-b border-gray-800">
+            <h1 class="text-2xl font-bold text-white">RENN.AI</h1>
+            <p class="text-gray-400 text-xs mt-1">Lead Generation Platform</p>
+        </div>
+        
+        <nav class="mt-6">
+            <a href="#" onclick="showSection('overview')" class="nav-item active block px-6 py-3 text-white flex items-center">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                Overview
+            </a>
+            
+            <a href="#" onclick="showSection('lead-gen')" class="nav-item block px-6 py-3 text-white flex items-center">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                Lead Generation
+            </a>
+            
+            <a href="#" onclick="showSection('drip')" class="nav-item block px-6 py-3 text-white flex items-center">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                Drip Campaigns
+            </a>
+            
+            <a href="#" onclick="showSection('clients')" class="nav-item block px-6 py-3 text-white flex items-center">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                Client Manager
+            </a>
+            
+            <a href="#" onclick="showSection('analytics')" class="nav-item block px-6 py-3 text-white flex items-center">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Analytics
+            </a>
+            
+            <a href="#" onclick="showSection('settings')" class="nav-item block px-6 py-3 text-white flex items-center">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Settings
+            </a>
+        </nav>
+        
+        <div class="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-800">
+            <div class="flex items-center text-white mb-4">
+                <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-sm font-medium">DA</span>
+                </div>
+                <div>
+                    <p class="text-sm font-medium">Demo Agency</p>
+                    <p class="text-xs text-gray-400">demo@renn.ai</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="text-gray-400 hover:text-white text-sm transition">
+                Sign Out
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button onclick="toggleSidebar()" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="bg-white border-b border-gray-200 px-8 py-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-semibold text-black" id="section-title">Overview</h2>
+                
+    <div class="flex items-center space-x-4">
+        <button onclick="toggleDarkMode()" class="bg-gray-200 dark:bg-gray-700 text-black dark:text-white px-3 py-1 rounded text-sm transition">
+            Toggle Dark Mode
+        </button>
+    
+                    <button class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm font-medium">
+                        + New Campaign
+                    </button>
+                    <button class="p-2 hover:bg-gray-100 rounded transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-8">
+            <!-- Overview Section -->
+            <div id="overview-section" class="fade-in">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="card metric-card">
+                        <p class="text-gray-600 text-sm mb-1">Total Campaigns</p>
+                        <p class="text-3xl font-bold text-black" id="total-campaigns">0</p>
+                        <p class="text-xs text-gray-500 mt-2">+12% from last month</p>
+                    </div>
+                    
+                    <div class="card metric-card">
+                        <p class="text-gray-600 text-sm mb-1">Total Leads</p>
+                        <p class="text-3xl font-bold text-black" id="total-leads">0</p>
+                        <p class="text-xs text-gray-500 mt-2">+23% from last month</p>
+                    </div>
+                    
+                    <div class="card metric-card">
+                        <p class="text-gray-600 text-sm mb-1">Average Score</p>
+                        <p class="text-3xl font-bold text-black" id="avg-score">0</p>
+                        <p class="text-xs text-gray-500 mt-2">Quality threshold: 40</p>
+                    </div>
+                    
+                    <div class="card metric-card">
+                        <p class="text-gray-600 text-sm mb-1">Active Clients</p>
+                        <p class="text-3xl font-bold text-black">12</p>
+                        <p class="text-xs text-gray-500 mt-2">3 new this week</p>
+                    </div>
+                </div>
+
+                <!-- Recent Campaigns -->
+                <div class="card">
+                    <h3 class="text-lg font-semibold text-black mb-4">Recent Campaigns</h3>
+<div class="mb-4">
+    
+<div class="mb-4 flex flex-wrap gap-2">
+    <button onclick="exportTableToCSV()" class="bg-black text-white px-4 py-2 rounded text-sm">Export to CSV</button>
+    <button onclick="exportTableToPDF()" class="bg-black text-white px-4 py-2 rounded text-sm">Export to PDF</button>
+</div>
+
+<input type="text" id="campaignSearch" onkeyup="filterCampaigns()" placeholder="Search campaigns..." 
+           class="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded focus:border-black transition" />
+</div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Campaign ID</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Client</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Leads</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Started</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaigns-table">
+                                <tr>
+                                    <td colspan="5" class="text-center py-8 text-gray-500">Loading campaigns...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lead Generation Section -->
+            <div id="lead-gen-section" class="hidden fade-in">
+                <div class="card mb-6">
+                    <h3 class="text-xl font-semibold text-black mb-4">Launch New Campaign</h3>
+                    <form class="grid grid-cols-1 md:grid-cols-2 gap-4" onsubmit="handleNewCampaign(event)">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Search Keywords</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" placeholder="e.g., dental clinic owner" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Target Location</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" placeholder="e.g., New York, NY" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                            <select class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required>
+                                <option>Healthcare</option>
+                                <option>Automotive</option>
+                                <option>Legal</option>
+                                <option>Marketing</option>
+                                <option>Restaurant</option>
+                                <option>Beauty</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Lead Goal</label>
+                            <input type="number" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="75" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="submit" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition">
+                                Launch Campaign
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Active Campaigns -->
+                <div class="card">
+                    <h3 class="text-lg font-semibold text-black mb-4">Active Lead Generation Campaigns</h3>
+                    <div class="space-y-4" id="active-campaigns">
+                        <div class="border border-gray-200 rounded p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-medium text-black">RENN_20240101_ABC123</h4>
+                                    <p class="text-sm text-gray-600">Healthcare • New York, NY</p>
+                                    <div class="flex items-center mt-2">
+                                        <div class="w-full bg-gray-200 rounded-full h-2 mr-3" style="width: 200px;">
+                                            <div class="bg-black h-2 rounded-full" style="width: 65%;"></div>
+                                        </div>
+                                        <span class="text-sm text-gray-600">65% Complete</span>
+                                    </div>
+                                </div>
+                                <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drip Campaigns Section -->
+            <div id="drip-section" class="hidden fade-in">
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-black mb-4">Email Drip Campaigns</h3>
+                    <p class="text-gray-600 mb-4">Automated email sequences for lead nurturing</p>
+                    <button class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm" onclick="createNewDripCampaign()">
+                        Create New Sequence
+                    </button>
+                    
+                    <div class="mt-6 space-y-4" id="drip-campaigns-list">
+                        <div class="border border-gray-200 rounded p-4 hover:border-black transition cursor-pointer">
+                            <h4 class="font-medium text-black">Welcome Sequence</h4>
+                            <p class="text-sm text-gray-600">3 emails • 7 day duration</p>
+                            <p class="text-xs text-gray-500 mt-2">Active for 42 contacts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Manager Section -->
+            <div id="clients-section" class="hidden fade-in">
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-black mb-4">Client Management</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="clients-grid">
+                        <div class="border border-gray-200 rounded p-4 hover:border-black transition cursor-pointer">
+                            <h4 class="font-medium text-black">Acme Corp</h4>
+                            <p class="text-sm text-gray-600">5 active campaigns</p>
+                            <p class="text-xs text-gray-500 mt-2">Last activity: 2 hours ago</p>
+                        </div>
+                        <div class="border border-gray-200 rounded p-4 hover:border-black transition cursor-pointer">
+                            <h4 class="font-medium text-black">TechStart Inc</h4>
+                            <p class="text-sm text-gray-600">3 active campaigns</p>
+                            <p class="text-xs text-gray-500 mt-2">Last activity: 1 day ago</p>
+                        </div>
+                        <div class="border border-gray-200 rounded p-4 hover:border-black transition cursor-pointer flex items-center justify-center" onclick="showAddClientModal()">
+                            <button class="text-gray-400 hover:text-black transition">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <p class="text-sm mt-2">Add Client</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div id="analytics-section" class="hidden fade-in">
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-black mb-4">Performance Analytics</h3>
+                    <canvas id="analytics-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings-section" class="hidden fade-in">
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-black mb-4">Account Settings</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Agency Name</label>
+                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="Demo Agency" id="agency-name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="demo@renn.ai" id="agency-email">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                            <div class="flex">
+                                <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-l focus:border-black transition" value="sk_live_..." readonly id="api-key">
+                                <button class="bg-gray-100 px-4 border border-l-0 border-gray-300 rounded-r hover:bg-gray-200 transition" onclick="copyApiKey()">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        <button class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition" onclick="saveSettings()">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Client Modal -->
+    <div id="add-client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-semibold text-black mb-4">Add New Client</h3>
+            <form onsubmit="addNewClient(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Client Name</label>
+                    <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required id="client-name">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                    <input type="email" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required id="client-email">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="hideAddClientModal()" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition">
+                        Add Client
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
+<script src="scripts/app.js"></script>
+
+    <button class="fab md:hidden" onclick="toggleSidebar()">☰</button>
+</body>
+
+</html>

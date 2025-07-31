@@ -1,0 +1,22 @@
+
+{
+  "name": "RENN.AI Dashboard",
+  "short_name": "RENN.AI",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "AI-powered Lead Generation Dashboard for RENN.AI",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
