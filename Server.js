@@ -13,10 +13,42 @@ const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
 const { Pool } = require('pg');
+const pino = require('pino');
+const pinoHttp = require('pino-http');
+const crypto = require('crypto');
+
 const app = express();
+app.set('trust proxy', 1);
+const logger = pino();
+app.use(
+  pinoHttp({
+    logger,
+    genReqId: (req) => req.headers['x-request-id'] || crypto.randomUUID(),
+  })
+);
 const PORT = process.env.PORT || 3002;
-const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
+const JWT_SECRET =
+  process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+let pool;
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.get('/ready', async (req, res) => {
+  if (!pool) {
+    return res.status(503).json({ status: 'error', db: 'not initialized' });
+  }
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', db: 'unreachable' });
+  }
+});
+
 // Main server logic
 async function startServer() {
     // Redis connection (disabled for now)
@@ -24,7 +56,7 @@ async function startServer() {
     console.warn('Redis connection disabled for development.');
 
     // PostgreSQL connection
-    const pool = new Pool({
+    pool = new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
@@ -123,16 +155,6 @@ async function startServer() {
     });
     // Add more endpoints for users, subscriptions, clients, campaigns, leads, etc. as in previous code
 
-    // Health check
-    app.get('/health', async (req, res) => {
-        try {
-            await pool.query('SELECT 1');
-            res.json({ status: 'ok', db: 'PostgreSQL' });
-        } catch (err) {
-            res.status(500).json({ status: 'error', db: 'PostgreSQL', error: err.message });
-        }
-    });
-
     // Start server
     const server = app.listen(PORT, () => {
         console.log('RENN.AI Ultra-Optimized Server running on http://localhost:' + PORT);
@@ -191,8 +213,8 @@ async function startServer() {
 }
 
 
-// Export the app for diagnostics and testing
-module.exports = app;
+// Export the app and server starter for diagnostics and testing
+module.exports = { app, startServer };
 
 // Start the server only if run directly
 if (require.main === module) {
