@@ -37,6 +37,7 @@ NODE_ENV=development
 JWT_SECRET=<run `node -e "crypto.randomBytes(32).toString('hex')"`>
 WEBHOOK_SECRET=<run `node -e "crypto.randomBytes(32).toString('hex')"`>
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+TEST_ORIGIN=http://localhost:3000
 ENABLE_SELF_SIGNUP=false
 ```
 
@@ -47,6 +48,7 @@ NODE_ENV=production
 JWT_SECRET=<generated-hex>
 WEBHOOK_SECRET=<generated-hex>
 ALLOWED_ORIGINS=https://app.renn.ai
+TEST_ORIGIN=https://app.renn.ai
 ENABLE_SELF_SIGNUP=false
 ```
 - If your password contains `@:/?#`, URL-encode it (e.g. `%40` for `@`).
