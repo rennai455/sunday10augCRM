@@ -13,10 +13,12 @@ const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
 const { Pool } = require('pg');
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+app.set('trust proxy', 1);
 // Main server logic
 async function startServer() {
     // Redis connection (disabled for now)
@@ -31,15 +33,50 @@ async function startServer() {
     pool.on('error', err => console.error('PostgreSQL pool error:', err));
 
     // Middleware
-    app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+    app.use((req, res, next) => {
+        res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+        next();
+    });
+    app.use(
+        helmet({
+            contentSecurityPolicy: {
+                useDefaults: true,
+                directives: {
+                    "script-src": [
+                        "'self'",
+                        (req, res) => `'nonce-${res.locals.cspNonce}'`,
+                        'https://cdn.tailwindcss.com'
+                    ]
+                }
+            },
+            crossOriginEmbedderPolicy: false
+        })
+    );
+    if (NODE_ENV === 'production') {
+        app.use(helmet.hsts());
+    }
     app.use(compression({ level: 6, threshold: 1024 }));
-    app.use(cors({
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-        credentials: true,
-        optionsSuccessStatus: 200
-    }));
+
+    const corsAllowlist = (process.env.CORS_ALLOWLIST || '')
+        .split(',')
+        .map(origin => origin.trim())
+        .filter(Boolean);
+    app.use(
+        cors({
+            origin: (origin, callback) => {
+                if (!origin || corsAllowlist.includes(origin)) {
+                    callback(null, true);
+                } else {
+                    callback(new Error('Not allowed by CORS'));
+                }
+            },
+            credentials: true,
+            optionsSuccessStatus: 200
+        })
+    );
     app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
-    app.use(express.static(path.join(__dirname), {
+    app.use(express.urlencoded({ extended: true }));
+    app.use('/static', express.static(path.join(__dirname, 'public'), {
         maxAge: NODE_ENV === 'production' ? '1y' : '0',
         etag: true,
         lastModified: true
@@ -123,13 +160,29 @@ async function startServer() {
     });
     // Add more endpoints for users, subscriptions, clients, campaigns, leads, etc. as in previous code
 
-    // Health check
+    // Health checks
     app.get('/health', async (req, res) => {
         try {
             await pool.query('SELECT 1');
             res.json({ status: 'ok', db: 'PostgreSQL' });
         } catch (err) {
             res.status(500).json({ status: 'error', db: 'PostgreSQL', error: err.message });
+        }
+    });
+    app.get('/healthz', async (req, res) => {
+        try {
+            await pool.query('SELECT 1');
+            res.json({ status: 'ok' });
+        } catch (err) {
+            res.status(500).json({ status: 'error', error: err.message });
+        }
+    });
+    app.get('/readyz', async (req, res) => {
+        try {
+            await pool.query('SELECT 1');
+            res.json({ status: 'ready' });
+        } catch (err) {
+            res.status(500).json({ status: 'error', error: err.message });
         }
     });
 
@@ -187,6 +240,13 @@ async function startServer() {
         } catch (error) {
             res.status(500).json({ error: 'Failed to fetch feature adoption' });
         }
+    });
+
+    // Centralized error handler
+    app.use((err, req, res, next) => {
+        console.error(err);
+        const errorMessage = NODE_ENV === 'production' ? 'Internal Server Error' : err.stack;
+        res.status(500).json({ error: errorMessage });
     });
 }
 
