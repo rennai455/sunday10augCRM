@@ -1,0 +1,12 @@
+/* ===== THEME VARIATIONS ===== */
+[data-theme="dark"] {
+  --color-bg-primary: #000;
+  --color-bg-secondary: #0a0a0a;
+  --color-bg-tertiary: #111;
+  --color-text-primary: #fff;
+  --color-text-secondary: #ccc;
+  --color-text-muted: #666;
+  --color-border-primary: #333;
+  --color-border-secondary: #444;
+  --color-border-focus: #fff;
+}

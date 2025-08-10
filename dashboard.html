@@ -6,242 +6,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RENN.AI - Dashboard</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap">
-    <link rel="stylesheet" href="styles/assets/shared.css">
-    <script src="https://cdn.tailwindcss.com">
-// === DARK MODE TOGGLE ===
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-}
+    <link rel="stylesheet" href="dist/main.css">
+    <!-- Tailwind is built via PostCSS, no CDN script needed -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="scripts/app.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Check authentication (handled by app.js)
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            window.location.href = '/Login.html';
+            return;
+        }
 
-// Apply saved theme on load
-document.addEventListener('DOMContentLoaded', function () {
-    const prefersDark = localStorage.getItem('darkMode') === 'true';
-    if (prefersDark) {
-        document.body.classList.add('dark-mode');
-    }
-});
-
-
-// === SEARCH FILTER FOR CAMPAIGNS ===
-function filterCampaigns() {
-    const input = document.getElementById("campaignSearch").value.toLowerCase();
-    const rows = document.querySelectorAll("#campaigns-table tr");
-    rows.forEach(row => {
-        const rowText = row.textContent.toLowerCase();
-        row.style.display = rowText.includes(input) ? "" : "none";
+        fetch('/api/campaigns', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Render campaigns in #campaigns-table
+            const tbody = document.getElementById('campaigns-table');
+            if (data.campaigns && data.campaigns.length > 0) {
+                tbody.innerHTML = data.campaigns.map(c => `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td>${c.status}</td>
+                        <td>${c.leads}</td>
+                        <td>${c.started_at}</td>
+                    </tr>
+                `).join('');
+            }
+        });
     });
-}
-
-
-// === PWA Service Worker Registration ===
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("service-worker.js").then(
-      function (registration) {
-        console.log("ServiceWorker registration successful:", registration.scope);
-      },
-      function (err) {
-        console.log("ServiceWorker registration failed:", err);
-      }
-    );
-  });
-}
-
-
-// === EXPORT TO CSV ===
-function exportTableToCSV() {
-    let csv = [];
-    const rows = document.querySelectorAll("#campaigns-table tr");
-    rows.forEach(row => {
-        const cols = row.querySelectorAll("td, th");
-        let rowData = [];
-        cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
-        csv.push(rowData.join(","));
-    });
-    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "campaigns.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-
-// === EXPORT TO PDF ===
-function exportTableToPDF() {
-    const element = document.querySelector("#campaigns-table").parentElement;
-    const opt = {
-        margin:       0.5,
-        filename:     'campaigns.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-    };
-    html2pdf().from(element).set(opt).save();
-}
-
-</script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js">
-// === DARK MODE TOGGLE ===
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-}
-
-// Apply saved theme on load
-document.addEventListener('DOMContentLoaded', function () {
-    const prefersDark = localStorage.getItem('darkMode') === 'true';
-    if (prefersDark) {
-        document.body.classList.add('dark-mode');
-    }
-});
-
-
-// === SEARCH FILTER FOR CAMPAIGNS ===
-function filterCampaigns() {
-    const input = document.getElementById("campaignSearch").value.toLowerCase();
-    const rows = document.querySelectorAll("#campaigns-table tr");
-    rows.forEach(row => {
-        const rowText = row.textContent.toLowerCase();
-        row.style.display = rowText.includes(input) ? "" : "none";
-    });
-}
-
-
-// === PWA Service Worker Registration ===
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("service-worker.js").then(
-      function (registration) {
-        console.log("ServiceWorker registration successful:", registration.scope);
-      },
-      function (err) {
-        console.log("ServiceWorker registration failed:", err);
-      }
-    );
-  });
-}
-
-
-// === EXPORT TO CSV ===
-function exportTableToCSV() {
-    let csv = [];
-    const rows = document.querySelectorAll("#campaigns-table tr");
-    rows.forEach(row => {
-        const cols = row.querySelectorAll("td, th");
-        let rowData = [];
-        cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
-        csv.push(rowData.join(","));
-    });
-    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "campaigns.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-
-// === EXPORT TO PDF ===
-function exportTableToPDF() {
-    const element = document.querySelector("#campaigns-table").parentElement;
-    const opt = {
-        margin:       0.5,
-        filename:     'campaigns.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-    };
-    html2pdf().from(element).set(opt).save();
-}
-
-</script>
-<link rel="manifest" href="manifest.json">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
-// === EXPORT TO CSV ===
-function exportTableToCSV() {
-    let csv = [];
-    const rows = document.querySelectorAll("#campaigns-table tr");
-    rows.forEach(row => {
-        const cols = row.querySelectorAll("td, th");
-        let rowData = [];
-        cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
-        csv.push(rowData.join(","));
-    });
-    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "campaigns.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-
-// === EXPORT TO PDF ===
-function exportTableToPDF() {
-    const element = document.querySelector("#campaigns-table").parentElement;
-    const opt = {
-        margin:       0.5,
-        filename:     'campaigns.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-    };
-    html2pdf().from(element).set(opt).save();
-}
-
-</script>
+    </script>
 </head>
 
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="p-6 border-b border-gray-800">
-            <h1 class="text-2xl font-bold text-white">RENN.AI</h1>
-            <p class="text-gray-400 text-xs mt-1">Lead Generation Platform</p>
+    <!-- Main Layout Container -->
+    <div class="layout">
+        <!-- Sidebar -->
+        <div class="layout__sidebar sidebar" id="sidebar">
+            <div class="p-6 border-b border-gray-800">
+                <h1 class="text-2xl font-bold text-white">RENN.AI</h1>
+                <p class="text-gray-400 text-xs mt-1">Lead Generation Platform</p>
+            <!-- Colored Role Switcher -->
+            <div id="role-switcher-container" class="mt-3">
+                <button id="role-switcher-btn" class="flex items-center px-2 py-1 text-xs rounded-full font-semibold text-white shadow transition focus:outline-none" style="background:#ef4444; min-width: 80px;">
+                    <span id="role-switcher-label">Admin</span>
+                    <svg class="ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="role-switcher-dropdown" class="hidden mt-1 w-28 bg-gray-900 rounded-lg shadow-lg z-50">
+                    <button class="w-full text-left px-3 py-1 text-xs rounded-full font-semibold text-white mb-1 transition" style="background:#3b82f6;" onclick="setUserRole('agency')">Agency</button>
+                    <button class="w-full text-left px-3 py-1 text-xs rounded-full font-semibold text-white transition" style="background:#22c55e;" onclick="setUserRole('client')">Client</button>
+                </div>
+            </div>
         </div>
-        
-        <nav class="mt-6">
-            <a href="#" onclick="showSection('overview')" class="nav-item active block px-6 py-3 text-white flex items-center">
+        <nav class="nav">
+            <a href="#" onclick="showSection('overview')" class="nav-item active">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                 </svg>
                 Overview
             </a>
             
-            <a href="#" onclick="showSection('lead-gen')" class="nav-item block px-6 py-3 text-white flex items-center">
+            <a href="#" onclick="showSection('lead-gen')" class="nav-item">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                 </svg>
                 Lead Generation
             </a>
             
-            <a href="#" onclick="showSection('drip')" class="nav-item block px-6 py-3 text-white flex items-center">
+            <a href="#" onclick="showSection('drip')" class="nav-item">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
                 Drip Campaigns
             </a>
             
-            <a href="#" onclick="showSection('clients')" class="nav-item block px-6 py-3 text-white flex items-center">
+            <a href="#" onclick="showSection('clients')" class="nav-item">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
                 Client Manager
             </a>
             
-            <a href="#" onclick="showSection('analytics')" class="nav-item block px-6 py-3 text-white flex items-center">
+            <a href="#" onclick="showSection('analytics')" class="nav-item">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
                 Analytics
             </a>
             
-            <a href="#" onclick="showSection('settings')" class="nav-item block px-6 py-3 text-white flex items-center">
+            <a href="#" onclick="showSection('settings')" class="nav-item">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -252,12 +110,12 @@ function exportTableToPDF() {
         
         <div class="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-800">
             <div class="flex items-center text-white mb-4">
-                <div class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center mr-3">
-                    <span class="text-sm font-medium">DA</span>
+                <div id="user-avatar" class="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-sm font-medium" id="user-initials">DA</span>
                 </div>
                 <div>
-                    <p class="text-sm font-medium">Demo Agency</p>
-                    <p class="text-xs text-gray-400">demo@renn.ai</p>
+                    <p class="text-sm font-medium" id="user-name">Demo Agency</p>
+                    <p class="text-xs text-gray-400" id="user-email">demo@renn.ai</p>
                 </div>
             </div>
             <button onclick="logout()" class="text-gray-400 hover:text-white text-sm transition">
@@ -267,101 +125,104 @@ function exportTableToPDF() {
     </div>
 
     <!-- Mobile Menu Button -->
-    <button onclick="toggleSidebar()" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">
+    <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
     </button>
 
-    <!-- Main Content -->
-    <div class="main-content">
-        <!-- Top Bar -->
-        <div class="bg-white border-b border-gray-200 px-8 py-4">
-            <div class="flex justify-between items-center">
-                <h2 class="text-2xl font-semibold text-black" id="section-title">Overview</h2>
-                
-    <div class="flex items-center space-x-4">
-        <button onclick="toggleDarkMode()" class="bg-gray-200 dark:bg-gray-700 text-black dark:text-white px-3 py-1 rounded text-sm transition">
-            Toggle Dark Mode
-        </button>
-    
-                    <button class="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm font-medium">
-                        + New Campaign
-                    </button>
-                    <button class="p-2 hover:bg-gray-100 rounded transition">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Content Area -->
-        <div class="p-8">
-            <!-- Overview Section -->
-            <div id="overview-section" class="fade-in">
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div class="card metric-card">
-                        <p class="text-gray-600 text-sm mb-1">Total Campaigns</p>
-                        <p class="text-3xl font-bold text-black" id="total-campaigns">0</p>
-                        <p class="text-xs text-gray-500 mt-2">+12% from last month</p>
+        <!-- Main Content -->
+        <div class="layout__main main-content">
+            <!-- Top Bar -->
+            <div class="layout__header">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex items-center space-x-4">
+                        <button class="btn btn--primary">
+                            + New Campaign
+                        </button>
+                        <button class="btn btn--secondary" id="dark-mode-toggle" onclick="toggleDarkMode()">
+                            Dark Mode
+                        </button>
                     </div>
-                    
-                    <div class="card metric-card">
-                        <p class="text-gray-600 text-sm mb-1">Total Leads</p>
-                        <p class="text-3xl font-bold text-black" id="total-leads">0</p>
-                        <p class="text-xs text-gray-500 mt-2">+23% from last month</p>
-                    </div>
-                    
-                    <div class="card metric-card">
-                        <p class="text-gray-600 text-sm mb-1">Average Score</p>
-                        <p class="text-3xl font-bold text-black" id="avg-score">0</p>
-                        <p class="text-xs text-gray-500 mt-2">Quality threshold: 40</p>
-                    </div>
-                    
-                    <div class="card metric-card">
-                        <p class="text-gray-600 text-sm mb-1">Active Clients</p>
-                        <p class="text-3xl font-bold text-black">12</p>
-                        <p class="text-xs text-gray-500 mt-2">3 new this week</p>
-                    </div>
-                </div>
-
-                <!-- Recent Campaigns -->
-                <div class="card">
-                    <h3 class="text-lg font-semibold text-black mb-4">Recent Campaigns</h3>
-<div class="mb-4">
-    
-<div class="mb-4 flex flex-wrap gap-2">
-    <button onclick="exportTableToCSV()" class="bg-black text-white px-4 py-2 rounded text-sm">Export to CSV</button>
-    <button onclick="exportTableToPDF()" class="bg-black text-white px-4 py-2 rounded text-sm">Export to PDF</button>
-</div>
-
-<input type="text" id="campaignSearch" onkeyup="filterCampaigns()" placeholder="Search campaigns..." 
-           class="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded focus:border-black transition" />
-</div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-gray-200">
-                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Campaign ID</th>
-                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Client</th>
-                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Status</th>
-                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Leads</th>
-                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-600">Started</th>
-                                </tr>
-                            </thead>
-                            <tbody id="campaigns-table">
-                                <tr>
-                                    <td colspan="5" class="text-center py-8 text-gray-500">Loading campaigns...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="flex items-center space-x-2">
+                        <button class="btn btn--secondary" id="export-csv-btn">Export to CSV</button>
+                        <button class="btn btn--secondary" id="export-pdf-btn">Export to PDF</button>
                     </div>
                 </div>
             </div>
+
+            <!-- Content Area -->
+            <div class="layout__content">
+                <!-- Overview Section -->
+                <div id="overview-section" class="fade-in">
+                    <!-- Search Bar -->
+                    <div class="mb-6">
+                        <label for="campaignSearch" class="block text-sm font-medium text-gray-700 mb-1">Search campaigns</label>
+                        <input type="text" id="campaignSearch" name="campaignSearch" placeholder="Search campaigns..." 
+                               class="w-full md:w-1/3 px-4 py-2 border border-gray-300 rounded focus:border-black transition" onkeyup="filterCampaigns()" />
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="metric-card">
+                            <div class="metric-label">Total Campaigns</div>
+                            <div class="metric-value" id="total-campaigns">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Total Leads</div>
+                            <div class="metric-value" id="total-leads">0</div>
+                            <div class="metric-trend" style="color:#3b82f6;">+23% from last month</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Average Score</div>
+                            <div class="metric-value" id="avg-score">0</div>
+                            <div class="metric-trend" style="color:#f59e0b;">Quality threshold: 40</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Active Clients</div>
+                            <div class="metric-value">12</div>
+                            <div class="metric-trend" style="color:#22c55e;">3 new this week</div>
+                        </div>
+                    </div>
+
+                    <!-- Campaigns Table -->
+                    <div class="card">
+                        <div class="card__header">
+                            <h3 class="card__title">Active Lead Generation Campaigns</h3>
+                        </div>
+                        <div class="mb-4 flex flex-wrap gap-2">
+                            <button onclick="exportTableToCSV()" class="btn btn--secondary">Export to CSV</button>
+                            <button onclick="exportTableToPDF()" class="btn btn--secondary">Export to PDF</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table">
+                                <thead class="table__header">
+                                    <tr>
+                                        <th class="table__cell table__cell--header">Campaign</th>
+                                        <th class="table__cell table__cell--header">Industry • Location</th>
+                                        <th class="table__cell table__cell--header">Progress</th>
+                                        <th class="table__cell table__cell--header">Status</th>
+                                        <th class="table__cell table__cell--header">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="campaigns-table">
+                                    <tr class="table__row">
+                                        <td class="table__cell">RENN_20240101_ABC123</td>
+                                        <td class="table__cell">Healthcare • New York, NY</td>
+                                        <td class="table__cell">65% Complete</td>
+                                        <td class="table__cell">Active</td>
+                                        <td class="table__cell">
+                                            <button class="btn btn--secondary btn--small">View</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="table__row">
+                                        <td colspan="5" class="table__cell text-center py-8 text-gray-500">Loading campaigns...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
             <!-- Lead Generation Section -->
             <div id="lead-gen-section" class="hidden fade-in">
@@ -369,16 +230,16 @@ function exportTableToPDF() {
                     <h3 class="text-xl font-semibold text-black mb-4">Launch New Campaign</h3>
                     <form class="grid grid-cols-1 md:grid-cols-2 gap-4" onsubmit="handleNewCampaign(event)">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Search Keywords</label>
-                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" placeholder="e.g., dental clinic owner" required>
+                            <label for="search-keywords" class="block text-sm font-medium text-gray-700 mb-2">Search Keywords</label>
+                            <input type="text" id="search-keywords" name="search-keywords" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" placeholder="e.g., dental clinic owner" required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Target Location</label>
-                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" placeholder="e.g., New York, NY" required>
+                            <label for="target-location" class="block text-sm font-medium text-gray-700 mb-2">Target Location</label>
+                            <input type="text" id="target-location" name="target-location" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" placeholder="e.g., New York, NY" required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
-                            <select class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required>
+                            <label for="industry" class="block text-sm font-medium text-gray-700 mb-2">Industry</label>
+                            <select id="industry" name="industry" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required>
                                 <option>Healthcare</option>
                                 <option>Automotive</option>
                                 <option>Legal</option>
@@ -388,8 +249,8 @@ function exportTableToPDF() {
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Lead Goal</label>
-                            <input type="number" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="75" required>
+                            <label for="lead-goal" class="block text-sm font-medium text-gray-700 mb-2">Lead Goal</label>
+                            <input type="number" id="lead-goal" name="lead-goal" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="75" required>
                         </div>
                         <div class="md:col-span-2">
                             <button type="submit" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 transition">
@@ -482,17 +343,17 @@ function exportTableToPDF() {
                     <h3 class="text-xl font-semibold text-black mb-4">Account Settings</h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Agency Name</label>
-                            <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="Demo Agency" id="agency-name">
+                            <label for="agency-name" class="block text-sm font-medium text-gray-700 mb-2">Agency Name</label>
+                            <input type="text" id="agency-name" name="agency-name" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="Demo Agency">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="demo@renn.ai" id="agency-email">
+                            <label for="agency-email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" id="agency-email" name="agency-email" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" value="demo@renn.ai">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                            <label for="api-key" class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
                             <div class="flex">
-                                <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-l focus:border-black transition" value="sk_live_..." readonly id="api-key">
+                                <input type="text" id="api-key" name="api-key" class="w-full px-4 py-2 border border-gray-300 rounded-l focus:border-black transition" value="sk_live_..." readonly>
                                 <button class="bg-gray-100 px-4 border border-l-0 border-gray-300 rounded-r hover:bg-gray-200 transition" onclick="copyApiKey()">
                                     Copy
                                 </button>
@@ -507,18 +368,21 @@ function exportTableToPDF() {
         </div>
     </div>
 
+    <!-- Mobile Menu Button -->
+    <button class="fab md:hidden" id="fab-sidebar-toggle-2">☰</button>
+
     <!-- Add Client Modal -->
     <div id="add-client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 class="text-xl font-semibold text-black mb-4">Add New Client</h3>
             <form onsubmit="addNewClient(event)">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Client Name</label>
-                    <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required id="client-name">
+                    <label for="client-name" class="block text-sm font-medium text-gray-700 mb-2">Client Name</label>
+                    <input type="text" id="client-name" name="client-name" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
-                    <input type="email" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required id="client-email">
+                    <label for="client-email" class="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                    <input type="email" id="client-email" name="client-email" class="w-full px-4 py-2 border border-gray-300 rounded focus:border-black transition" required>
                 </div>
                 <div class="flex justify-end space-x-3">
                     <button type="button" onclick="hideAddClientModal()" class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition">
@@ -533,9 +397,7 @@ function exportTableToPDF() {
     </div>
 
     
-<script src="scripts/app.js"></script>
-
-    <button class="fab md:hidden" onclick="toggleSidebar()">☰</button>
+    <script src="scripts/app.js"></script>
 </body>
 
 </html>

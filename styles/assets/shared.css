@@ -1,253 +1,751 @@
-/* ===== FUTURISTIC RENN.AI THEME ===== */
+/* === COLORED ROLE SWITCHER === */
+#role-switcher-btn[role="admin"],
+.role-admin {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+
+#role-switcher-btn[role="agency"],
+.role-agency {
+  background: #3b82f6 !important;
+  color: #fff !important;
+}
+
+#role-switcher-btn[role="client"],
+.role-client {
+  background: #22c55e !important;
+  color: #fff !important;
+}
+
+#role-switcher-btn {
+  min-width: 80px;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+}
+
+#role-switcher-dropdown {
+  min-width: 80px;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  z-index: 100;
+  display: none;
+}
+
+#role-switcher-dropdown.show {
+  display: block;
+}
+
+#role-switcher-dropdown button {
+  min-width: 80px;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  margin-bottom: 0.25rem;
+}
+
+#role-switcher-container {
+  position: relative;
+  align-items: flex-start !important;
+}
+
+/* === DARK MODE SUPPORT (sidebar always black) === */
+.dark body,
+body.dark {
+  background: #000;
+  color: #fff;
+}
+
+/* Tone down text boxes in dark mode */
+.dark input,
+.dark textarea,
+.dark select,
+body.dark input,
+body.dark textarea,
+body.dark select {
+  background: #18181b !important;
+  color: #e5e5e5 !important;
+  border-color: #333 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark select::placeholder,
+.body.dark input::placeholder,
+body.dark textarea::placeholder,
+body.dark select::placeholder {
+  color: #888 !important;
+}
+
+.dark .main-content,
+body.dark .main-content {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.dark .bg-white,
+body.dark .bg-white {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.dark .border-gray-200,
+body.dark .border-gray-200 {
+  border-color: #333 !important;
+}
+
+.dark .text-black,
+body.dark .text-black {
+  color: #fff !important;
+}
+
+.dark .card,
+body.dark .card {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: #333 !important;
+}
+
+.dark .module,
+body.dark .module {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: #333 !important;
+}
+
+.dark table,
+body.dark table {
+  background: #000 !important;
+  color: #fff !important;
+}
+
+.dark th,
+body.dark th {
+  color: #fff !important;
+  background: #000 !important;
+}
+
+.dark td,
+body.dark td {
+  color: #fff !important;
+}
+
+.dark .btn,
+body.dark .btn,
+.dark button,
+body.dark button {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: #333 !important;
+}
+
+.dark .btn-secondary,
+body.dark .btn-secondary {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: #333 !important;
+}
+
+.dark .text-secondary,
+body.dark .text-secondary {
+  color: #ccc !important;
+}
+
+.dark .text-muted,
+body.dark .text-muted {
+  color: #666 !important;
+}
+
+/* Sidebar stays black always */
+
+/* ===== CLEAN WHITE RENN.AI THEME ===== */
 :root {
-  /* Color Palette */
-  --black: #000000;
-  --dark: #0a0a0a;
-  --light: #ffffff;
-  --accent: #00f0ff; /* Futuristic teal accent */
-  
+  /* Color Palette - Clean White Theme */
+  --primary-bg: #fff;
+  --secondary-bg: #fafafa;
+  --card-bg: #fff;
+  --text-primary: #000;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --border-color: #e5e5e5;
+  --border-hover: #ccc;
+  --accent: #000;
+  --accent-hover: #333;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+
   /* Typography */
-  --font-main: 'Orbitron', 'Inter', sans-serif;
-  --font-secondary: 'Inter', sans-serif;
+  --font-main:
+    "Inter", -apple-system, blinkmacsystemfont, "Segoe UI", roboto, sans-serif;
+  --font-secondary: "Inter", sans-serif;
+
+  /* Spacing */
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 10%);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%);
 }
 
-/* ===== BASE STYLES ===== */
-body {
-  background-color: var(--black);
-  color: var(--light);
-  font-family: var(--font-secondary);
+/* === UNIVERSAL RESET === */
+* {
   margin: 0;
-  line-height: 1.6;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ===== FUTURISTIC LOGO ===== */
-.logo {
+body {
+  font-family: var(--font-main);
+  background: var(--secondary-bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === RENN.AI LOGO === */
+.logo,
+h1 {
   font-family: var(--font-main);
   font-weight: 700;
   font-size: 2.5rem;
-  background: linear-gradient(90deg, var(--light), var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text-primary);
   letter-spacing: -1px;
-  text-transform: uppercase;
   text-align: center;
   margin-bottom: 1rem;
 }
 
-.logo::after {
-  content: ".ai";
-  font-size: 1.8rem;
-  vertical-align: super;
-  margin-left: -0.3rem;
-}
-
-/* ===== WHITE MODULES ===== */
-.module {
-  background: var(--light);
-  color: var(--black);
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 240, 255, 0.1);
-  margin-bottom: 2rem;
-}
-
-/* ===== DASHBOARD SPECIFIC ===== */
-.sidebar {
-  background: var(--dark);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.nav-item {
-  color: var(--light);
-  transition: all 0.3s ease;
-  border-left: 3px solid transparent;
-}
-
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-left: 3px solid var(--accent);
-}
-
-/* ===== LOGIN PAGE SPECIFIC ===== */
-.login-container {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.login-module {
-  background: var(--light);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-}
-
-/* ===== FUTURISTIC FORM ELEMENTS ===== */
-input, button {
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
-  transition: all 0.3s;
-}
-
-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.2);
-}
-
-.btn {
-  background: var(--black);
-  color: var(--light);
-  border: 1px solid var(--accent);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.btn:hover {
-  background: var(--accent);
-  color: var(--black);
-}
-
-/* ===== GLOW EFFECTS ===== */
-.glow {
-  animation: pulse 4s infinite alternate;
-}
-
-@keyframes pulse {
-  0% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.1); }
-  100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
-}
-/* === UNIVERSAL RESET === */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #fafafa;
-}
-
 /* === SIDEBAR === */
 .sidebar {
-    background: #000;
-    height: 100vh;
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 240px;
-    overflow-y: auto;
+  background: #000 !important;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 240px;
+  overflow-y: auto;
+  border-right: 1px solid #333;
+  box-shadow: var(--shadow-sm);
 }
+
 .main-content {
-    margin-left: 240px;
-    min-height: 100vh;
+  margin-left: 240px;
+  min-height: 100vh;
+  background: var(--secondary-bg);
 }
 
 /* === NAVIGATION === */
 .nav-item {
-    transition: all 0.2s;
+  color: #fff !important;
+  text-decoration: none;
+  display: block;
+  padding: 12px 24px;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  font-weight: 500;
 }
+
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+  background: rgb(255 255 255 / 10%) !important;
+  border-left-color: #fff;
+  color: #fff !important;
 }
+
 .nav-item.active {
-    background: rgba(255, 255, 255, 0.15);
-    border-left: 3px solid white;
+  background: rgb(255 255 255 / 15%) !important;
+  border-left-color: #fff;
+  color: #fff !important;
+  font-weight: 600;
 }
 
-/* === CARDS & METRICS === */
-.card {
-    background: white;
-    border: 1px solid #e5e5e5;
-    border-radius: 8px;
-    padding: 24px;
-    transition: all 0.2s;
+/* Sidebar specific text colors that should stay white */
+.sidebar .text-white,
+.sidebar h1,
+.sidebar h2,
+.sidebar h3,
+.sidebar p,
+.sidebar span,
+.sidebar div {
+  color: #fff !important;
 }
+
+/* === CARDS & MODULES === */
+.card,
+.module {
+  background: var(--card-bg);
+  border: 1.5px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 28px 24px 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 24px 0 rgb(0 0 0 / 8%);
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+
 .card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px 0 rgb(0 0 0 / 12%);
+  border-color: #bdbdbd;
 }
+
 .metric-card {
-    border-left: 4px solid black;
+  border-left: none;
+  position: relative;
+  color: #111 !important;
 }
 
-/* === ACTIVE TAB === */
-.tab-active {
-    border-bottom: 2px solid black;
-    color: black;
+.metric-card .metric-value {
+  color: #111 !important;
 }
 
-/* === FADE IN ANIMATION === */
-.fade-in {
-    animation: fadeIn 0.3s ease-out;
-}
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.metric-card .metric-label {
+  color: #222 !important;
 }
 
-/* === RESPONSIVE === */
-@media (max-width: 768px) {
+.metric-card .metric-trend {
+  color: #444 !important;
+}
+
+body.dark .metric-card,
+.dark .metric-card {
+  color: #fff !important;
+}
+
+.dark .metric-card .metric-value,
+.dark .metric-card .metric-label,
+.dark .metric-card .metric-trend {
+  color: #fff !important;
+}
+
+body.dark .metric-card {
+  color: #fff !important;
+}
+
+body.dark .metric-card .metric-value,
+body.dark .metric-card .metric-label,
+body.dark .metric-card .metric-trend {
+  color: #fff !important;
+}
+
+.metric-card.campaigns::before,
+.metric-card.leads::before,
+.metric-card.score::before,
+.metric-card.clients::before {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  border-radius: 6px 0 0 6px;
+}
+
+.metric-card.campaigns::before {
+  background: #ef4444;
+}
+
+.metric-card.leads::before {
+  background: #3b82f6;
+}
+
+.metric-card.score::before {
+  background: #f59e0b;
+}
+
+.metric-card.clients::before {
+  background: #22c55e;
+}
+
+.metric-card .metric-icon {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  font-size: 2.2rem;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.metric-card.campaigns {
+  border-left-color: #ef4444;
+}
+
+.metric-card.leads {
+  border-left-color: #3b82f6;
+}
+
+.metric-card.score {
+  border-left-color: #f59e0b;
+}
+
+.metric-card.clients {
+  border-left-color: #22c55e;
+}
+
+.metric-card.campaigns .metric-icon {
+  color: #ef4444;
+}
+
+.metric-card.leads .metric-icon {
+  color: #3b82f6;
+}
+
+.metric-card.score .metric-icon {
+  color: #f59e0b;
+}
+
+.metric-card.clients .metric-icon {
+  color: #22c55e;
+}
+
+/* === BUTTONS === */
+.btn,
+button {
+  background: var(--accent);
+  color: var(--primary-bg);
+  border: 1px solid var(--accent);
+  border-radius: var(--border-radius);
+  padding: 12px 24px;
+  font-weight: 500;
+  font-family: var(--font-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn:hover,
+button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--primary-bg);
+}
+
+.btn-secondary {
+  background: var(--primary-bg);
+  color: var(--accent);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-bg);
+  border-color: var(--border-hover);
+  color: var(--accent);
+}
+
+/* === FORM ELEMENTS === */
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  background: var(--primary-bg);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(0 0 0 / 10%);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+/* === LOGIN SPECIFIC === */
+.login-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--secondary-bg);
+}
+
+.login-module {
+  background: var(--primary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* === HEADER/TOP BAR === */
+header {
+  background: var(--primary-bg);
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* === TEXT STYLES === */
+.text-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.bg-primary {
+  background-color: var(--primary-bg) !important;
+}
+
+.bg-secondary {
+  background-color: var(--secondary-bg) !important;
+}
+
+/* === TABLE STYLES === */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--secondary-bg);
+
+  tr:hover {
+    background: var(--secondary-bg);
+  }
+
+  /* === STATUS INDICATORS === */
+  .status-active {
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  .status-pending {
+    color: var(--warning);
+    font-weight: 500;
+  }
+
+  .status-inactive {
+    color: var(--error);
+    font-weight: 500;
+  }
+
+  /* === ANIMATIONS === */
+  .fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* === RESPONSIVE === */
+  @media (width <= 768px) {
     .sidebar {
-        transform: translateX(-100%);
-        z-index: 50;
-        transition: transform 0.3s;
+      transform: translateX(-100%);
+      z-index: 50;
+      transition: transform 0.3s ease;
     }
+
     .sidebar.open {
-        transform: translateX(0);
+      transform: translateX(0);
     }
+
     .main-content {
-        margin-left: 0;
+      margin-left: 0;
     }
-}
 
+    .login-container {
+      padding: 1rem;
+    }
+  }
 
-/* === DARK MODE SUPPORT === */
-body.dark-mode {
-    background-color: #111;
-    color: #f1f1f1;
-}
-body.dark-mode .card {
-    background: #1a1a1a;
-    border-color: #333;
-}
-body.dark-mode .sidebar {
-    background: #000;
-}
-body.dark-mode .nav-item.active {
-    background: rgba(255, 255, 255, 0.1);
-    border-left-color: #fff;
-}
-body.dark-mode .metric-card {
-    border-left-color: white;
-}
-body.dark-mode .text-black {
-    color: white !important;
-}
-body.dark-mode .bg-white {
-    background-color: #1a1a1a !important;
-}
-body.dark-mode .text-gray-600 {
-    color: #ccc !important;
-}
-body.dark-mode .border-gray-200 {
-    border-color: #444 !important;
-}
-body.dark-mode .hover\:bg-gray-100:hover {
-    background-color: #333 !important;
-}
-body.dark-mode .text-gray-500 {
-    color: #aaa !important;
-}
+  /* === UTILITY CLASSES === */
+  .text-center {
+    text-align: center;
+  }
 
+  .text-left {
+    text-align: left;
+  }
 
-/* === FLOATING ACTION BUTTON === */
-.fab {
+  .text-right {
+    text-align: right;
+  }
+
+  .mb-0 {
+    margin-bottom: 0;
+  }
+
+  .mb-1 {
+    margin-bottom: 8px;
+  }
+
+  .mb-2 {
+    margin-bottom: 16px;
+  }
+
+  .mb-3 {
+    margin-bottom: 24px;
+  }
+
+  .mb-4 {
+    margin-bottom: 32px;
+  }
+
+  .mt-0 {
+    margin-top: 0;
+  }
+
+  .mt-1 {
+    margin-top: 8px;
+  }
+
+  .mt-2 {
+    margin-top: 16px;
+  }
+
+  .mt-3 {
+    margin-top: 24px;
+  }
+
+  .mt-4 {
+    margin-top: 32px;
+  }
+
+  .font-bold {
+    font-weight: 700;
+  }
+
+  .font-semibold {
+    font-weight: 600;
+  }
+
+  .font-medium {
+    font-weight: 500;
+  }
+
+  .rounded {
+    border-radius: var(--border-radius);
+  }
+
+  .rounded-lg {
+    border-radius: var(--border-radius-lg);
+  }
+
+  .shadow-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shadow-md {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* === DARK MODE TOGGLE === */
+  body.dark-mode {
+    --primary-bg: #000;
+    --secondary-bg: #0a0a0a;
+    --card-bg: #111;
+    --text-primary: #fff;
+    --text-secondary: #ccc;
+    --text-muted: #666;
+    --border-color: #333;
+    --border-hover: #444;
+    --accent: #fff;
+    --accent-hover: #e5e5e5;
+  }
+
+  /* Ensure sidebar ALWAYS stays black regardless of theme */
+  body.dark-mode .sidebar,
+  body.light-mode .sidebar,
+  .sidebar {
+    background: #000 !important;
+    border-right: 1px solid #333 !important;
+  }
+
+  /* Ensure sidebar navigation ALWAYS stays white text */
+  body.dark-mode .sidebar .nav-item,
+  body.light-mode .sidebar .nav-item,
+  .sidebar .nav-item {
+    color: #fff !important;
+  }
+
+  body.dark-mode .sidebar .nav-item:hover,
+  body.light-mode .sidebar .nav-item:hover,
+  .sidebar .nav-item:hover {
+    background: rgb(255 255 255 / 10%) !important;
+    color: #fff !important;
+  }
+
+  body.dark-mode .sidebar .nav-item.active,
+  body.light-mode .sidebar .nav-item.active,
+  .sidebar .nav-item.active {
+    background: rgb(255 255 255 / 15%) !important;
+    color: #fff !important;
+  }
+
+  /* Force all sidebar text to be white */
+  body.dark-mode .sidebar *,
+  body.light-mode .sidebar *,
+  .sidebar * {
+    color: #fff !important;
+  }
+
+  /* Override any conflicting styles for sidebar */
+  body.dark-mode .sidebar h1,
+  body.dark-mode .sidebar h2,
+  body.dark-mode .sidebar h3,
+  body.dark-mode .sidebar p,
+  body.dark-mode .sidebar span,
+  body.dark-mode .sidebar div,
+  body.light-mode .sidebar h1,
+  body.light-mode .sidebar h2,
+  body.light-mode .sidebar h3,
+  body.light-mode .sidebar p,
+  body.light-mode .sidebar span,
+  body.light-mode .sidebar div {
+    color: #fff !important;
+  }
+
+  /* === FLOATING ACTION BUTTON === */
+  .fab {
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: black;
-    color: white;
+    background: var(--accent);
+    color: var(--primary-bg);
     border-radius: 50%;
     width: 56px;
     height: 56px;
@@ -255,13 +753,37 @@ body.dark-mode .text-gray-500 {
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-lg);
     z-index: 100;
-}
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
 
-/* === MOBILE ENHANCEMENTS === */
-@media (max-width: 768px) {
-    body {
-        touch-action: pan-y;
-    }
+  .fab:hover {
+    background: var(--accent-hover);
+    transform: scale(1.05);
+  }
+
+  /* === REMOVE CONFLICTING STYLES === */
+
+  /* Override any dark/blue theme remnants */
+  .sidebar.dark,
+  .bg-dark {
+    background: #000 !important;
+    color: #fff !important;
+  }
+
+  /* Ensure consistent backgrounds for main content only */
+  body:not(.sidebar),
+  html:not(.sidebar) {
+    background-color: var(--secondary-bg) !important;
+  }
+
+  /* Main content area respects theme, sidebar does not */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    background: var(--secondary-bg);
+  }
 }

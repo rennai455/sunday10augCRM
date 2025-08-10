@@ -1,0 +1,85 @@
+/* Main CSS entry point for RENN.AI CRM modular system */
+@import "./01-settings/_tokens.css";
+@import "./01-settings/_themes.css";
+@import "./02-components/_navigation.css";
+@import "./02-components/_cards.css";
+@import "./02-components/_buttons.css";
+@import "./02-components/_forms.css";
+@import "./02-components/_tables.css";
+@import "./03-layout/_dashboard.css";
+@import "./04-utilities/_helpers.css";
+
+/* === UNIVERSAL RESET === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-bg-secondary);
+  min-height: 100vh;
+  display: block;
+  width: 100%;
+  opacity: 1 !important;
+  visibility: visible !important;
+  line-height: 1.6;
+}
+
+.main-content, .layout__main, #my-extension-root {
+  display: block !important;
+  min-height: 100vh;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* === DARK MODE SUPPORT === */
+body.dark-mode {
+    background-color: #111;
+    color: #f1f1f1;
+}
+body.dark-mode .card, body.dark-mode .metric-card {
+    background: #1a1a1a;
+    border-color: #333;
+    color: #f1f1f1;
+}
+body.dark-mode .layout__header {
+    background: #1a1a1a;
+    border-color: #333;
+}
+body.dark-mode .sidebar, body.dark-mode .layout__sidebar {
+    background: #000;
+}
+body.dark-mode .nav-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: #fff;
+}
+body.dark-mode .metric-card {
+    border-left-color: white;
+}
+body.dark-mode .metric-label,
+body.dark-mode .metric-value,
+body.dark-mode .metric-trend,
+body.dark-mode .card__title,
+body.dark-mode .table__cell {
+    color: #f1f1f1 !important;
+}
+body.dark-mode .table__cell--header {
+    color: #ccc !important;
+}
+body.dark-mode .border-gray-200 {
+    border-color: #444 !important;
+}
+body.dark-mode .text-gray-500,
+body.dark-mode .text-gray-600,
+body.dark-mode .text-gray-700 {
+    color: #aaa !important;
+}
+
+/* === MOBILE ENHANCEMENTS === */
+@media (max-width: 768px) {
+  body {
+    touch-action: pan-y;
+  }
+}

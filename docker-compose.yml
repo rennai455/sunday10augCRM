@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16
+    container_name: renn-ai-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: renn_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - renn-ai-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youruser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  renn-ai-db-data:
+
+# Matching DATABASE_URL:
+# postgres://youruser:yourpass@localhost:5432/renn_ai

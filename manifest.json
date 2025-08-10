@@ -1,4 +1,3 @@
-
 {
   "name": "RENN.AI Dashboard",
   "short_name": "RENN.AI",
@@ -7,16 +6,23 @@
   "background_color": "#000000",
   "theme_color": "#000000",
   "description": "AI-powered Lead Generation Dashboard for RENN.AI",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "icons/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "icons/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ]
 }
