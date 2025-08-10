@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "start": "node Server.js",
     "dev": "concurrently \"npm run css:watch\" \"npm run server:dev\" \"npm run live-server\"",
     "server:dev": "nodemon Server.js",
     "live-server": "live-server --port=3001 --no-browser",
