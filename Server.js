@@ -24,10 +24,11 @@ async function startServer() {
     console.warn('Redis connection disabled for development.');
 
     // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
+    const poolConfig = { connectionString: process.env.DATABASE_URL };
+    if (process.env.PG_SSL === 'true') {
+        poolConfig.ssl = { rejectUnauthorized: false };
+    }
+    const pool = new Pool(poolConfig);
     pool.on('error', err => console.error('PostgreSQL pool error:', err));
 
     // Middleware
