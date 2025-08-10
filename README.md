@@ -18,3 +18,11 @@ The script will:
 - create/force `main` as default branch
 - set `origin` to your repo
 - push the initial commit
+
+## Environment setup
+
+Copy the example environment file and edit as needed:
+
+```bash
+cp .env.example .env
+```

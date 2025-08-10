@@ -28,7 +28,7 @@ node -e "require('pg').Pool({connectionString:'postgres://postgres:postgres@loca
 - Ensure your DB firewall/allowlist permits your app/server IP.
 
 ## .env Setup
-
+Copy `.env.example` to `.env` and update the values as needed.
 
 ### Local dev (no SSL)
 ```
@@ -65,7 +65,7 @@ ENABLE_SELF_SIGNUP=false
 ```sh
 npm i
 npm run db:up        # (if using Docker)
-npm run migrate:db
+npm run migrate:db   # applies db/schema.sql
 npm run seed:db
 npm run diagnostics
 npm test

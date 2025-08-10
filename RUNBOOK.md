@@ -4,7 +4,7 @@
 1. Copy `.env.example` to `.env` and fill in secrets.
 2. Run `docker compose up -d postgres` to start local Postgres.
 3. Run `npm install` to install dependencies.
-4. Run `npm run migrate:db` to apply DB schema.
+4. Run `npm run migrate:db` to apply DB schema from `db/schema.sql`.
 5. Run `npm run seed:db` to insert admin/sample data.
 6. Run `npm run diagnostics` to verify config and security.
 7. Start server: `npm start`.
