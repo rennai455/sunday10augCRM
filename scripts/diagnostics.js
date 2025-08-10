@@ -22,7 +22,7 @@ function warn(msg)  { console.log(`⚠️  ${msg}`); }
 function fail(msg)  { hadFailure = true; console.error(`❌ ${msg}`); }
 
 function sslConfig() {
-  return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+  return process.env.PG_SSL === 'true' ? { rejectUnauthorized: false } : undefined;
 }
 
 async function checkEnv() {
@@ -42,7 +42,10 @@ async function checkDB() {
     fail('DATABASE_URL is empty. Set it in .env (see RUNBOOK.md for examples).');
     return;
   }
-  const pool = new Pool({ connectionString: url, ssl: sslConfig() });
+  const config = { connectionString: url };
+  const ssl = sslConfig();
+  if (ssl) config.ssl = ssl;
+  const pool = new Pool(config);
   try {
     const client = await pool.connect();
     const r = await client.query('SELECT 1 AS ok');
