@@ -9,6 +9,8 @@ node_modules/
 # Environment
 .env
 .env.*
+# Keep a sample env file
+!.env.example
 
 # DB migration logs
 migration-logs/
