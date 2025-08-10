@@ -6,6 +6,10 @@
 - Generate secure secrets:
   - JWT_SECRET: `node -e "crypto.randomBytes(32).toString('hex')"`
   - WEBHOOK_SECRET: `node -e "crypto.randomBytes(32).toString('hex')"`
+- In Railway's project **Environment** settings, set:
+  - `DATABASE_URL` including `?sslmode=require`
+  - `JWT_SECRET` and `WEBHOOK_SECRET` from above
+  - any other variables like `ALLOWED_ORIGINS`
 
 ## Scenario A: Local Postgres (Docker)
 

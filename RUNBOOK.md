@@ -11,14 +11,14 @@
 
 ## Railway Deployment
 1. Create Railway project and add Railway Postgres plugin.
-2. Copy Railway `DATABASE_URL` to your Railway environment variables.
-3. Generate secrets:
-   - JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   - WEBHOOK_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-4. Set `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
-5. Run `npm run migrate:db && npm run seed:db` in Railway shell.
-6. Run `npm run diagnostics` in Railway shell (should exit 0).
-7. Deploy and visit `/health` for `{ ok: true }`.
+2. In the project's **Environment** settings define:
+   - `DATABASE_URL` from the plugin, appending `?sslmode=require`
+   - `JWT_SECRET` generated via `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - `WEBHOOK_SECRET` generated via `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - `ALLOWED_ORIGINS` including your Railway domain (e.g. `https://your-railway-app.up.railway.app`)
+3. Run `npm run migrate:db && npm run seed:db` in Railway shell.
+4. Run `npm run diagnostics` in Railway shell (should exit 0).
+5. Deploy and visit `/health` for `{ ok: true }`.
 
 ## Environment Variables
 - DATABASE_URL
