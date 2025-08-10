@@ -53,13 +53,15 @@ ENABLE_SELF_SIGNUP=false
 
 ## DB User Mismatch
 - If you see `role "postgres" does not exist`:
-  - Option 1: Change `DATABASE_URL` to match your actual DB user.
-  - Option 2: Create the user and DB:
+  - The official Postgres image already creates a `postgres` superuser; you do not need to recreate it.
+  - Option 1: If you changed `POSTGRES_USER`, update `DATABASE_URL` to match your custom user.
+  - Option 2: Create a custom user and DB:
     ```sql
-    CREATE ROLE youruser WITH LOGIN PASSWORD 'yourpass';
-    CREATE DATABASE yourdb OWNER youruser;
+    CREATE ROLE myuser WITH LOGIN PASSWORD 'mypassword';
+    CREATE DATABASE mydb OWNER myuser;
     ```
-  - Then set `DATABASE_URL=postgres://youruser:yourpass@localhost:5432/yourdb`
+    Replace `myuser`, `mypassword`, and `mydb` with your values.
+  - Then set `DATABASE_URL=postgres://myuser:mypassword@localhost:5432/mydb` (with your custom values)
 
 ## Run Order
 ```sh
