@@ -18,21 +18,10 @@
     "test:all": "npm-run-all css:lint css:build test:lighthouse test:visual",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "migrate:db": "node db/run-migrations.js",
-    "seed:db": "node db/seed.js",
+    "db:migrate": "node db/run-migrations.js",
+    "db:seed": "node db/seed.js",
     "diagnostics": "node scripts/diagnostics.js"
   },
-  "dev": "concurrently \"npm run css:watch\" \"npm run server:dev\" \"npm run live-server\"",
-  "server:dev": "nodemon Server.js",
-  "live-server": "live-server --port=3001 --no-browser",
-  "css:watch": "postcss styles/main.css -o dist/main.css --watch",
-  "css:build": "postcss styles/main.css -o dist/main.css",
-  "css:lint": "stylelint 'styles/**/*.css' --fix",
-  "format": "prettier --write 'styles/**/*.css'",
-  "build": "npm run css:build",
-  "test:lighthouse": "lhci autorun",
-  "test:visual": "backstop test",
-  "test:all": "npm-run-all css:lint css:build test:lighthouse test:visual",
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -75,5 +64,6 @@
     "rimraf": "^6.0.1",
     "stylelint": "^16.23.0",
     "stylelint-config-standard": "^39.0.0"
-  }
+  },
+  "engines": { "node": ">=20 <23" }
 }
