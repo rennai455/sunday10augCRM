@@ -28,11 +28,7 @@ async function startServer() {
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
-    pool.on('error', err => console.error('PostgreSQL pool error:', err));
-
-    // Middleware
-    app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-    app.use(compression({ level: 6, threshold: 1024 }));
+const { pool } = require('./db');
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -44,10 +40,7 @@ async function startServer() {
         etag: true,
         lastModified: true
     }));
-
-    // Rate limiting
-    const createRateLimit = (windowMs, max, message) => rateLimit({
-        windowMs,
+    // Use shared pool from db/index.js
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
         standardHeaders: true,

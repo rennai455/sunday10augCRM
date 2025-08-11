@@ -1,3 +1,13 @@
+// Restore checkEnv function
+async function checkEnv() {
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
+  const missing = required.filter(k => !process.env[k] || !String(process.env[k]).trim());
+  if (missing.length) {
+    fail('Missing required env vars: ' + missing.join(', '));
+  } else {
+    pass('Required env vars present.');
+  }
+}
 'use strict';
 
 /**
@@ -25,14 +35,39 @@ function sslConfig() {
   return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 }
 
-async function checkEnv() {
-  const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
-  const missing = required.filter(k => !process.env[k] || !String(process.env[k]).trim());
-  if (missing.length) {
-    fail(`Missing required env vars: ${missing.join(', ')}`);
-    info(`Add them to your .env (see .env.example).`);
-  } else {
-    pass('Required env vars present.');
+async function checkAPI() {
+  // Import the Express app for diagnostics (should export `app`)
+  let app = null;
+  try {
+    app = require('../Server');
+  } catch (e) {
+    warn('Could not import Express app from Server.js: ' + e.message);
+    return;
+  }
+
+  if (!app || typeof app.handle !== 'function') {
+    warn('Express app not found or invalid export. Ensure Server.js exports `app`.');
+    return;
+  }
+
+  let request;
+  try {
+    request = require('supertest');
+  } catch (e) {
+    warn('supertest not installed. Skipping API checks.');
+    return;
+  }
+
+  // Example API probe: health endpoint
+  try {
+    const res = await request(app).get('/health');
+    if (res.status === 200 && res.body.status === 'ok') {
+      pass('API /health endpoint OK');
+    } else {
+      fail('API /health endpoint failed: ' + JSON.stringify(res.body));
+    }
+  } catch (e) {
+    fail('API /health probe error: ' + e.message);
   }
 }
 
