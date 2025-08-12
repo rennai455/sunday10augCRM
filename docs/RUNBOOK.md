@@ -6,6 +6,7 @@
 - Generate secure secrets:
   - JWT_SECRET: `node -e "crypto.randomBytes(32).toString('hex')"`
   - WEBHOOK_SECRET: `node -e "crypto.randomBytes(32).toString('hex')"`
+- If `dallas0904` or `dallas0904.pub` ever existed in Git history, run `git filter-repo --path dallas0904 --path dallas0904.pub` or use `bfg --delete-files` to remove them.
 
 ## Scenario A: Local Postgres (Docker)
 
