@@ -1,7 +1,8 @@
 // db/index.js: PostgreSQL connection and helpers
-const { Pool } = require('pg');
+const { Pool } = require("pg");
 const connectionString = process.env.DATABASE_URL;
-const ssl = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+const ssl =
+  process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : false;
 
 const pool = new Pool({ connectionString, ssl });
 
@@ -10,12 +11,12 @@ module.exports = {
   withTransaction: async (fn) => {
     const client = await pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
       const result = await fn(client);
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return result;
     } catch (err) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw err;
     } finally {
       client.release();
@@ -23,6 +24,6 @@ module.exports = {
   },
   pool,
   smokeTest: async () => {
-    return pool.query('SELECT 1');
+    return pool.query("SELECT 1");
   },
 };
