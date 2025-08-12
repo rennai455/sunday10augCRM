@@ -20,7 +20,10 @@
     "db:down": "docker compose down",
     "migrate:db": "node db/run-migrations.js",
     "seed:db": "node db/seed.js",
-    "diagnostics": "node scripts/diagnostics.js"
+    "diagnostics": "node scripts/diagnostics.js",
+    "build:hash": "node scripts/hash.js",
+    "test:playwright": "npx playwright test",
+    "test:axe": "axe http://localhost:3002/healthz http://localhost:3002/readyz http://localhost:3002/static/Login.html http://localhost:3002/static/dashboard.html -q"
   },
   "dev": "concurrently \"npm run css:watch\" \"npm run server:dev\" \"npm run live-server\"",
   "server:dev": "nodemon Server.js",

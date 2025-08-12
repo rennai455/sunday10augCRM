@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 1
+          CHROMEDRIVER_SKIP_DOWNLOAD: true
+      - run: npm run build
+      - run: npm run build:hash
+      - name: Start server
+        run: node scripts/test-server.js &
+      - name: Wait for server
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:3002/healthz > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to start" && exit 1
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:playwright
+      - run: npm run test:axe
+      - run: npx lhci autorun
