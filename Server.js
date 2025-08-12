@@ -35,6 +35,11 @@ const { pool } = require('./db');
         optionsSuccessStatus: 200
     }));
     app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
+    app.use('/dist', express.static(path.join(__dirname, 'dist'), {
+        etag: true,
+        immutable: true,
+        maxAge: '1y'
+    }));
     app.use(express.static(path.join(__dirname), {
         maxAge: NODE_ENV === 'production' ? '1y' : '0',
         etag: true,
