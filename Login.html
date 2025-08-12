@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renn.AI - Login</title>
+    <link rel="preload" as="image" href="logo.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
 * {
@@ -13,9 +14,10 @@
 }
     </style>
 </head>
-<body>
+<body data-theme="light">
     <div class="min-h-screen flex items-center justify-center bg-gray-100">
         <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
+            <img src="logo.svg" alt="Renn.AI logo" width="120" height="40" class="brand-logo mx-auto mb-6">
             <form id="loginForm" onsubmit="handleLogin(event)">
                 <input type="hidden" name="_csrf" id="csrf-token" value="">
                 <div class="mb-6">
