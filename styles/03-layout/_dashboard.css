@@ -45,6 +45,18 @@
   padding: var(--space-xl);
 }
 
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  display: none;
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .sidebar, .layout__sidebar {
@@ -57,5 +69,8 @@
   }
   .main-content, .layout__main {
     margin-left: 0;
+  }
+  body.sidebar-open {
+    overflow: hidden;
   }
 }

@@ -27,11 +27,11 @@
     <!-- Main Layout Container -->
     <div class="layout">
         <aside class="layout__sidebar sidebar" id="sidebar">
-            <nav class="nav">
-                <a href="#" class="nav__item nav-item active" id="nav-dashboard">Dashboard</a>
-                <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
-                <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
-                <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
+            <nav class="nav" id="sidebar-nav">
+                <a href="#" class="nav__item nav-item" data-path="/dashboard.html" id="nav-dashboard" aria-current="page">Dashboard</a>
+                <a href="#" class="nav__item nav-item" data-path="/campaigns.html" id="nav-campaigns">Campaigns</a>
+                <a href="#" class="nav__item nav-item" data-path="/leads.html" id="nav-leads">Leads</a>
+                <a href="#" class="nav__item nav-item" data-path="/settings.html" id="nav-settings">Settings</a>
                 <button class="btn btn--secondary w-full mt-4" onclick="window.logout()">Logout</button>
             </nav>
         </aside>
@@ -47,8 +47,8 @@
     </div>
 
     <!-- Mobile Menu Button -->
-    <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">☰</button>
-    <button class="fab md:hidden" id="fab-sidebar-toggle-2">☰</button>
+    <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded" aria-controls="sidebar" aria-expanded="false">☰</button>
+    <button class="fab md:hidden" id="fab-sidebar-toggle-2" aria-controls="sidebar" aria-expanded="false">☰</button>
 
     <!-- Add Client Modal -->
     <div id="add-client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -78,14 +78,6 @@
                 }
             })
             .catch(() => window.location.href = '/Login.html');
-
-        // Sidebar toggle for mobile
-        document.getElementById('sidebar-toggle-btn').addEventListener('click', function () {
-            document.getElementById('sidebar').classList.toggle('open');
-        });
-        document.getElementById('fab-sidebar-toggle-2').addEventListener('click', function () {
-            document.getElementById('sidebar').classList.toggle('open');
-        });
 
         // Navigation logic
         document.getElementById('nav-dashboard').addEventListener('click', function () {
@@ -121,7 +113,8 @@
         };
     });
     </script>
+    <script src="js/sidebar.js"></script>
     <script src="scripts/app.js"></script>
-</body>
+  </body>
 
 </html>
