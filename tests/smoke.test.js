@@ -12,7 +12,7 @@ describe('RENN.AI CRM Security & Auth', () => {
     expect(res.headers['content-security-policy']).toMatch(/cdn\.tailwindcss\.com/);
   });
   it('should enforce CORS allowlist', async () => {
-    const res = await request(app).get('/health').set('Origin', 'http://localhost:3000');
+    const res = await request(app).get('/healthz').set('Origin', 'http://localhost:3000');
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
   });
   it('should block unauthorized API access', async () => {
