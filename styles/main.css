@@ -34,49 +34,6 @@ body {
   visibility: visible !important;
 }
 
-/* === DARK MODE SUPPORT === */
-body.dark-mode {
-    background-color: #111;
-    color: #f1f1f1;
-}
-body.dark-mode .card, body.dark-mode .metric-card {
-    background: #1a1a1a;
-    border-color: #333;
-    color: #f1f1f1;
-}
-body.dark-mode .layout__header {
-    background: #1a1a1a;
-    border-color: #333;
-}
-body.dark-mode .sidebar, body.dark-mode .layout__sidebar {
-    background: #000;
-}
-body.dark-mode .nav-item.active {
-    background: rgba(255, 255, 255, 0.1);
-    border-left-color: #fff;
-}
-body.dark-mode .metric-card {
-    border-left-color: white;
-}
-body.dark-mode .metric-label,
-body.dark-mode .metric-value,
-body.dark-mode .metric-trend,
-body.dark-mode .card__title,
-body.dark-mode .table__cell {
-    color: #f1f1f1 !important;
-}
-body.dark-mode .table__cell--header {
-    color: #ccc !important;
-}
-body.dark-mode .border-gray-200 {
-    border-color: #444 !important;
-}
-body.dark-mode .text-gray-500,
-body.dark-mode .text-gray-600,
-body.dark-mode .text-gray-700 {
-    color: #aaa !important;
-}
-
 /* === MOBILE ENHANCEMENTS === */
 @media (max-width: 768px) {
   body {

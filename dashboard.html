@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RENN.AI - Dashboard</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap">
-    <link rel="stylesheet" href="dist/main.css">
+    <link rel="stylesheet" href="styles/main.css">
     <!-- Tailwind is built via PostCSS, no CDN script needed -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="scripts/app.js"></script>
+    <script src="/theme.js" defer></script>
+    <script src="scripts/app.js" defer></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Check authentication (handled by app.js)
@@ -44,12 +45,13 @@
 </head>
 
 <body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
     <!-- Main Layout Container -->
     <div class="layout">
         <!-- Sidebar -->
         <div class="layout__sidebar sidebar" id="sidebar">
             <div class="p-6 border-b border-gray-800">
-                <h1 class="text-2xl font-bold text-white">RENN.AI</h1>
+                <img src="/static/img/logo.svg" alt="Renn.AI logo" class="logo mb-2">
                 <p class="text-gray-400 text-xs mt-1">Lead Generation Platform</p>
             <!-- Colored Role Switcher -->
             <div id="role-switcher-container" class="mt-3">
@@ -64,7 +66,7 @@
             </div>
         </div>
         <nav class="nav">
-            <a href="#" onclick="showSection('overview')" class="nav-item active">
+            <a href="#" onclick="showSection('overview')" class="nav-item active" aria-current="page">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                 </svg>
@@ -125,14 +127,14 @@
     </div>
 
     <!-- Mobile Menu Button -->
-    <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">
+    <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded" aria-controls="sidebar" aria-expanded="false">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
     </button>
 
         <!-- Main Content -->
-        <div class="layout__main main-content">
+        <div class="layout__main main-content" id="main-content">
             <!-- Top Bar -->
             <div class="layout__header">
                 <div class="flex justify-between items-center w-full">
@@ -140,7 +142,7 @@
                         <button class="btn btn--primary">
                             + New Campaign
                         </button>
-                        <button class="btn btn--secondary" id="dark-mode-toggle" onclick="toggleDarkMode()">
+                        <button class="btn btn--secondary" id="theme-toggle" onclick="toggleTheme()">
                             Dark Mode
                         </button>
                     </div>
@@ -369,7 +371,7 @@
     </div>
 
     <!-- Mobile Menu Button -->
-    <button class="fab md:hidden" id="fab-sidebar-toggle-2">☰</button>
+    <button class="fab md:hidden" id="fab-sidebar-toggle-2" aria-controls="sidebar" aria-expanded="false">☰</button>
 
     <!-- Add Client Modal -->
     <div id="add-client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">

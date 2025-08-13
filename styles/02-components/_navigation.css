@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   padding: var(--space-md) var(--space-lg);
-  color: var(--color-text-inverse);
+  color: var(--color-text-primary);
   text-decoration: none;
   font-weight: var(--font-weight-medium);
   border-left: 3px solid transparent;
@@ -15,14 +15,15 @@
   margin-bottom: var(--space-xs);
 }
 
-.nav__item:hover, .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-left-color: var(--color-text-inverse);
+.nav__item:hover, .nav-item:hover,
+.nav__item:focus-visible, .nav-item:focus-visible {
+  background-color: var(--color-bg-tertiary);
+  border-left-color: var(--color-border-primary);
 }
 
 .nav__item--active, .nav-item.active {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-left-color: var(--color-text-inverse);
+  background-color: var(--color-bg-secondary);
+  border-left-color: var(--color-border-primary);
   font-weight: var(--font-weight-semibold);
 }
 
