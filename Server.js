@@ -13,6 +13,7 @@ const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
 const { Pool } = require('pg');
+const crypto = require('crypto');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
@@ -29,6 +30,27 @@ async function startServer() {
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
 const { pool } = require('./db');
+
+    if (NODE_ENV === 'production') {
+        app.set('trust proxy', 1);
+    }
+
+    app.use(compression());
+
+    app.use((req, res, next) => {
+        res.locals.nonce = crypto.randomBytes(16).toString('base64');
+        next();
+    });
+
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+                "script-src": ["'self'", (req, res) => `'nonce-${res.locals.nonce}'`]
+            }
+        }
+    }));
+
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -126,28 +148,6 @@ const { pool } = require('./db');
         }
     });
 
-    // Start server
-    const server = app.listen(PORT, () => {
-        console.log('RENN.AI Ultra-Optimized Server running on http://localhost:' + PORT);
-        console.log('📊 Database: PostgreSQL connected');
-        console.log('Redis: ' + (redisClient && redisClient.isReady ? 'Connected' : 'Fallback to memory'));
-        console.log('Performance: 20-175x improvements implemented');
-        console.log('Environment: ' + NODE_ENV);
-        console.log('Worker PID: ' + process.pid);
-        console.log('Monitoring: /api/performance');
-        console.log('Health Check: /health');
-    });
-
-    // Graceful shutdown
-    function gracefulShutdown() {
-        console.log('Received shutdown signal, closing connections...');
-        if (redisClient && redisClient.quit) redisClient.quit();
-        pool.end(() => console.log('PostgreSQL pool closed'));
-        process.exit(0);
-    }
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
-
     app.get('/api/customers/health-scores', authenticateAgency, apiLimiter, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM customer_health_scores WHERE agency_id = $1', [req.agencyId]);
@@ -181,6 +181,40 @@ const { pool } = require('./db');
             res.status(500).json({ error: 'Failed to fetch feature adoption' });
         }
     });
+
+    // Centralized error handler
+    app.use((err, req, res, next) => {
+        console.error(err);
+        const status = err.status || 500;
+        const message = NODE_ENV === 'production' ? 'Internal Server Error' : err.message;
+        const response = { error: message };
+        if (NODE_ENV !== 'production') {
+            response.stack = err.stack;
+        }
+        res.status(status).json(response);
+    });
+
+    // Start server
+    const server = app.listen(PORT, () => {
+        console.log('RENN.AI Ultra-Optimized Server running on http://localhost:' + PORT);
+        console.log('📊 Database: PostgreSQL connected');
+        console.log('Redis: ' + (redisClient && redisClient.isReady ? 'Connected' : 'Fallback to memory'));
+        console.log('Performance: 20-175x improvements implemented');
+        console.log('Environment: ' + NODE_ENV);
+        console.log('Worker PID: ' + process.pid);
+        console.log('Monitoring: /api/performance');
+        console.log('Health Check: /health');
+    });
+
+    // Graceful shutdown
+    function gracefulShutdown() {
+        console.log('Received shutdown signal, closing connections...');
+        if (redisClient && redisClient.quit) redisClient.quit();
+        pool.end(() => console.log('PostgreSQL pool closed'));
+        process.exit(0);
+    }
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
 }
 
 
