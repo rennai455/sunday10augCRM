@@ -18,10 +18,11 @@
 4. Set `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
 5. Run `npm run migrate:db && npm run seed:db` in Railway shell.
 6. Run `npm run diagnostics` in Railway shell (should exit 0).
-7. Deploy and visit `/health` for `{ ok: true }`.
+7. Deploy and visit `/healthz` for `{ ok: true }`.
 
 ## Environment Variables
 - DATABASE_URL
+- PG_SSL
 - JWT_SECRET
 - WEBHOOK_SECRET
 - ALLOWED_ORIGINS
@@ -37,6 +38,8 @@
 - [ ] Security middleware enabled
 - [ ] Diagnostics script passes
 - [ ] /health returns { ok: true }
+- [ ] /healthz returns { ok: true }
+- [ ] /readyz returns { ready: true }
 - [ ] No SQLite code or dependencies
 - [ ] All /api/* unauthorized without cookie
 - [ ] CSV protected with ownership

@@ -1,20 +1,20 @@
 /* === COLORED ROLE SWITCHER === */
 #role-switcher-btn[role="admin"],
 .role-admin {
-  background: #ef4444 !important;
-  color: #fff !important;
+  background: var(--role-admin) !important;
+  color: var(--brand-contrast) !important;
 }
 
 #role-switcher-btn[role="agency"],
 .role-agency {
-  background: #3b82f6 !important;
-  color: #fff !important;
+  background: var(--role-agency) !important;
+  color: var(--brand-contrast) !important;
 }
 
 #role-switcher-btn[role="client"],
 .role-client {
-  background: #22c55e !important;
-  color: #fff !important;
+  background: var(--role-client) !important;
+  color: var(--brand-contrast) !important;
 }
 
 #role-switcher-btn {
@@ -189,6 +189,10 @@ body.dark .text-muted {
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 10%);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%);
+}
+
+img.logo {
+  height: var(--logo-h);
 }
 
 /* === UNIVERSAL RESET === */
