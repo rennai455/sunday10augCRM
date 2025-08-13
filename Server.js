@@ -12,7 +12,6 @@ const slowDown = require('express-slow-down');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
-const { Pool } = require('pg');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
@@ -24,11 +23,7 @@ async function startServer() {
     console.warn('Redis connection disabled for development.');
 
     // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
-const { pool } = require('./db');
+    const { pool } = require('./db');
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -40,16 +35,19 @@ const { pool } = require('./db');
         etag: true,
         lastModified: true
     }));
-    // Use shared pool from db/index.js
-        max,
-        message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
-        standardHeaders: true,
-        legacyHeaders: false,
-        skip: (req) => req.ip === '127.0.0.1' && NODE_ENV === 'development'
-    });
+
+    const createRateLimit = (windowMs, max, message) =>
+        rateLimit({
+            windowMs,
+            max,
+            message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
+            standardHeaders: true,
+            legacyHeaders: false,
+            skip: (req) => req.ip === '127.0.0.1' && NODE_ENV === 'development',
+        });
+
     const generalLimiter = createRateLimit(15 * 60 * 1000, 1000, 'Too many requests');
     const authLimiter = createRateLimit(15 * 60 * 1000, 10, 'Too many authentication attempts');
-    const apiLimiter = createRateLimit(60 * 1000, 100, 'API rate limit exceeded');
     const speedLimiter = slowDown({
         windowMs: 15 * 60 * 1000,
         delayAfter: 50,
@@ -148,7 +146,7 @@ const { pool } = require('./db');
     process.on('SIGTERM', gracefulShutdown);
     process.on('SIGINT', gracefulShutdown);
 
-    app.get('/api/customers/health-scores', authenticateAgency, apiLimiter, async (req, res) => {
+    app.get('/api/customers/health-scores', authenticateAgency, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM customer_health_scores WHERE agency_id = $1', [req.agencyId]);
             res.json({ health_scores: result.rows });
@@ -156,7 +154,7 @@ const { pool } = require('./db');
             res.status(500).json({ error: 'Failed to fetch health scores' });
         }
     });
-    app.post('/api/customers/health-scores/calculate', authenticateAgency, apiLimiter, async (req, res) => {
+    app.post('/api/customers/health-scores/calculate', authenticateAgency, async (req, res) => {
         try {
             // Example: recalculate health scores (dummy logic)
             // In production, implement real calculation logic
@@ -165,7 +163,7 @@ const { pool } = require('./db');
             res.status(500).json({ error: 'Failed to recalculate health scores' });
         }
     });
-    app.get('/api/customers/churn-risk', authenticateAgency, apiLimiter, async (req, res) => {
+    app.get('/api/customers/churn-risk', authenticateAgency, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM churn_risk WHERE agency_id = $1', [req.agencyId]);
             res.json({ churn_risk: result.rows });
@@ -173,7 +171,7 @@ const { pool } = require('./db');
             res.status(500).json({ error: 'Failed to fetch churn risk' });
         }
     });
-    app.get('/api/features/adoption', authenticateAgency, apiLimiter, async (req, res) => {
+    app.get('/api/features/adoption', authenticateAgency, async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM feature_adoption WHERE agency_id = $1', [req.agencyId]);
             res.json({ adoption: result.rows });
