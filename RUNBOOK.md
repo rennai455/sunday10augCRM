@@ -11,17 +11,24 @@
 
 ## Railway Deployment
 1. Create Railway project and add Railway Postgres plugin.
-2. Copy Railway `DATABASE_URL` to your Railway environment variables.
-3. Generate secrets:
-   - JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   - WEBHOOK_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-4. Set `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
-5. Run `npm run migrate:db && npm run seed:db` in Railway shell.
-6. Run `npm run diagnostics` in Railway shell (should exit 0).
-7. Deploy and visit `/health` for `{ ok: true }`.
+2. Add these Railway environment variables:
+   - `DATABASE_URL` (from Railway Postgres plugin)
+   - `PG_SSL=true`
+   - `JWT_SECRET`: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+   - `ALLOWED_ORIGINS`: include your Railway domain (e.g. `https://your-railway-app.up.railway.app`)
+3. Run `npm run migrate:db && npm run seed:db` in Railway shell.
+4. Run `npm run diagnostics` in Railway shell (should exit 0).
+5. Deploy.
+6. Post-deploy smoke checks:
+   ```bash
+   curl https://<APP_URL>/healthz
+   curl https://<APP_URL>/readyz
+   curl -I https://<APP_URL>/static/
+   ```
 
 ## Environment Variables
 - DATABASE_URL
+- PG_SSL
 - JWT_SECRET
 - WEBHOOK_SECRET
 - ALLOWED_ORIGINS
@@ -36,7 +43,7 @@
 - [ ] Admin user exists
 - [ ] Security middleware enabled
 - [ ] Diagnostics script passes
-- [ ] /health returns { ok: true }
+- [ ] /healthz returns { ok: true }
 - [ ] No SQLite code or dependencies
 - [ ] All /api/* unauthorized without cookie
 - [ ] CSV protected with ownership
