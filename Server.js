@@ -28,7 +28,7 @@ async function startServer() {
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
-const { pool } = require('./db');
+
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -40,7 +40,10 @@ const { pool } = require('./db');
         etag: true,
         lastModified: true
     }));
-    // Use shared pool from db/index.js
+
+    // Rate limiting
+    const createRateLimit = (windowMs, max, message) => rateLimit({
+        windowMs,
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
         standardHeaders: true,
@@ -116,13 +119,28 @@ const { pool } = require('./db');
     });
     // Add more endpoints for users, subscriptions, clients, campaigns, leads, etc. as in previous code
 
-    // Health check
+    // Health checks
     app.get('/health', async (req, res) => {
         try {
             await pool.query('SELECT 1');
             res.json({ status: 'ok', db: 'PostgreSQL' });
         } catch (err) {
             res.status(500).json({ status: 'error', db: 'PostgreSQL', error: err.message });
+        }
+    });
+
+    // Liveness probe
+    app.get('/healthz', (req, res) => {
+        res.status(200).json({ ok: true });
+    });
+
+    // Readiness probe
+    app.get('/readyz', async (req, res) => {
+        try {
+            await pool.query('SELECT 1');
+            res.status(200).json({ ok: true });
+        } catch (err) {
+            res.status(503).json({ ok: false });
         }
     });
 
