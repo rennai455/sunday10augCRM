@@ -12,7 +12,7 @@ const slowDown = require('express-slow-down');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
-const { Pool } = require('pg');
+const { pool } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
@@ -23,12 +23,7 @@ async function startServer() {
     let redisClient = null;
     console.warn('Redis connection disabled for development.');
 
-    // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
-const { pool } = require('./db');
+    // PostgreSQL connection handled via shared pool in db/index.js
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -40,7 +35,10 @@ const { pool } = require('./db');
         etag: true,
         lastModified: true
     }));
-    // Use shared pool from db/index.js
+
+    // Rate limiting
+    const createRateLimit = (windowMs, max, message) => rateLimit({
+        windowMs,
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
         standardHeaders: true,
@@ -123,6 +121,21 @@ const { pool } = require('./db');
             res.json({ status: 'ok', db: 'PostgreSQL' });
         } catch (err) {
             res.status(500).json({ status: 'error', db: 'PostgreSQL', error: err.message });
+        }
+    });
+
+    // Liveness probe
+    app.get('/healthz', (req, res) => {
+        res.json({ ok: true });
+    });
+
+    // Readiness probe
+    app.get('/readyz', async (req, res) => {
+        try {
+            await pool.query('SELECT 1');
+            res.json({ ready: true });
+        } catch (err) {
+            res.status(503).json({ ready: false });
         }
     });
 
