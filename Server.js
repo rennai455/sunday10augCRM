@@ -29,6 +29,24 @@ async function startServer() {
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
 const { pool } = require('./db');
+    app.use(
+        helmet({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'"],
+                    scriptSrc: [
+                        "'self'",
+                        "'unsafe-inline'",
+                        "https://cdn.tailwindcss.com",
+                        "https://cdn.jsdelivr.net",
+                        "https://cdnjs.cloudflare.com"
+                    ],
+                    styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                    fontSrc: ["'self'", "https://fonts.gstatic.com"]
+                },
+            },
+        })
+    );
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
