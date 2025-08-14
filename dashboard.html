@@ -11,36 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="scripts/app.js"></script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Check authentication (handled by app.js)
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            window.location.href = '/Login.html';
-            return;
-        }
-
-        fetch('/api/campaigns', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        })
-        .then(res => res.json())
-        .then(data => {
-            // Render campaigns in #campaigns-table
-            const tbody = document.getElementById('campaigns-table');
-            if (data.campaigns && data.campaigns.length > 0) {
-                tbody.innerHTML = data.campaigns.map(c => `
-                    <tr>
-                        <td>${c.name}</td>
-                        <td>${c.status}</td>
-                        <td>${c.leads}</td>
-                        <td>${c.started_at}</td>
-                    </tr>
-                `).join('');
-            }
-        });
-    });
-    </script>
 </head>
 
 <body>
@@ -398,6 +368,7 @@
 
     
     <script src="scripts/app.js"></script>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 
 </html>
