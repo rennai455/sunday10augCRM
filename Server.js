@@ -35,6 +35,19 @@ const { pool } = require('./db');
         optionsSuccessStatus: 200
     }));
     app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: [
+                    "'self'",
+                    "https://cdn.tailwindcss.com",
+                    "https://cdn.jsdelivr.net",
+                    "https://cdnjs.cloudflare.com"
+                ]
+            }
+        }
+    }));
     app.use(express.static(path.join(__dirname), {
         maxAge: NODE_ENV === 'production' ? '1y' : '0',
         etag: true,
