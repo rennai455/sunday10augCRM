@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_POSTGRESDB}
+      POSTGRES_USER: ${DB_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${DB_POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Optional: enable if you switch to queue mode later
+  # redis:
+  #   image: redis:7-alpine
+  #   command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+  #   restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:latest
+    depends_on:
+      - postgres
+      # - redis
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    env_file:
+      - ./.env
+    environment:
+      - N8N_USER_FOLDER=/home/node/.n8n
+      # If you enable queue mode, uncomment:
+      # - EXECUTIONS_MODE=${EXECUTIONS_MODE}
+      # - QUEUE_BULL_REDIS_HOST=${QUEUE_BULL_REDIS_HOST}
+      # - QUEUE_BULL_REDIS_PORT=${QUEUE_BULL_REDIS_PORT}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
+  pg_data:
