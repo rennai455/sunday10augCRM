@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Ultra-Optimized RENN.AI Frontend with Performance Best Practices
 class RENNApp {
     constructor() {
-        this.API_BASE_URL = 'http://localhost:3002/api';
+        this.API_BASE_URL = window.API_BASE_URL || '/api';
         this.cache = new Map();
         this.eventSource = null;
         this.observers = new Map();
