@@ -35,11 +35,12 @@ const { pool } = require('./db');
         optionsSuccessStatus: 200
     }));
     app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
-    app.use(express.static(path.join(__dirname), {
-        maxAge: NODE_ENV === 'production' ? '1y' : '0',
-        etag: true,
-        lastModified: true
-    }));
+
+    const staticOptions = NODE_ENV === 'production'
+        ? { maxAge: '1y', cacheControl: true, etag: false }
+        : { maxAge: '1h', cacheControl: true, etag: true };
+
+    app.use('/static', express.static(path.join(__dirname, 'public'), staticOptions));
     // Use shared pool from db/index.js
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
