@@ -25,5 +25,10 @@ node_modules
 .env.*
 !.env.example
 
-dallas0904
-dallas0904.pub
+# Secrets
+*.pem
+*.key
+*.pfx
+*.p12
+id_*
+.ssh/
