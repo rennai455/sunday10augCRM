@@ -1,0 +1,11 @@
+/* ===== BRAND LOGO ===== */
+.brand-logo {
+  display: block;
+  width: 120px;
+  height: 40px;
+  color: #000;
+}
+
+[data-theme="dark"] .brand-logo {
+  color: #fff;
+}

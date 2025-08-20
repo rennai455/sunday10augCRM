@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RENN.AI - Dashboard</title>
+    <link rel="preload" as="image" href="logo.svg">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap">
     <link rel="stylesheet" href="dist/main.css">
     <!-- Tailwind is built via PostCSS, no CDN script needed -->
@@ -43,13 +44,13 @@
     </script>
 </head>
 
-<body>
+<body data-theme="dark">
     <!-- Main Layout Container -->
     <div class="layout">
         <!-- Sidebar -->
         <div class="layout__sidebar sidebar" id="sidebar">
             <div class="p-6 border-b border-gray-800">
-                <h1 class="text-2xl font-bold text-white">RENN.AI</h1>
+                <img src="logo.svg" alt="RENN.AI logo" width="120" height="40" class="brand-logo mb-2">
                 <p class="text-gray-400 text-xs mt-1">Lead Generation Platform</p>
             <!-- Colored Role Switcher -->
             <div id="role-switcher-container" class="mt-3">
