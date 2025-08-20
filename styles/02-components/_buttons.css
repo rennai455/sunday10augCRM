@@ -28,8 +28,8 @@
 }
 
 .btn--primary:hover {
-  background-color: #333333;
-  border-color: #333333;
+  background-color: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
 }
 
 .btn--secondary {

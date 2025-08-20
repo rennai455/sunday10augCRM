@@ -11,7 +11,7 @@
 }
 
 .card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
   border-color: var(--color-border-secondary);
 }
 
@@ -50,7 +50,7 @@
 }
 
 .metric-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .metric-card .metric-value {
