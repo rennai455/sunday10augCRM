@@ -1,11 +1,11 @@
 // db/run-migrations.js: runs migrate.sql
 const fs = require('fs');
 const path = require('path');
-const db = require('./index');
+const { pool } = require('./index');
 
 async function runMigrations() {
   const sql = fs.readFileSync(path.join(__dirname, 'migrate.sql'), 'utf8');
-  await db.query(sql);
+  await pool.query(sql);
   console.log('Migrations applied.');
 }
 

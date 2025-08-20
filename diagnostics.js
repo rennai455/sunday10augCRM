@@ -1,6 +1,6 @@
 // diagnostics.js: checks config, DB, and security
 require('dotenv').config();
-const db = require('./db');
+const { pool } = require('./db');
 const fs = require('fs');
 
 async function diagnostics() {
@@ -23,7 +23,7 @@ async function diagnostics() {
   }
 
   try {
-    await db.query('SELECT 1');
+    await pool.query('SELECT 1');
     console.log('Database connection: OK');
   } catch (err) {
     console.error('Database connection error:', err);
@@ -31,7 +31,7 @@ async function diagnostics() {
 
   // Check migration
   try {
-    const agencies = await db.query('SELECT * FROM agencies LIMIT 1');
+    const agencies = await pool.query('SELECT * FROM agencies LIMIT 1');
     console.log('Agencies table: OK');
   } catch (err) {
     console.error('Agencies table error:', err);
@@ -39,7 +39,7 @@ async function diagnostics() {
 
   // Check for admin user
   try {
-    const admin = await db.query('SELECT * FROM users WHERE is_admin = true LIMIT 1');
+    const admin = await pool.query('SELECT * FROM users WHERE is_admin = true LIMIT 1');
     if (admin.rows.length) {
       console.log('Admin user: OK');
     } else {
