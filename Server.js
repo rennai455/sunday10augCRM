@@ -12,7 +12,7 @@ const slowDown = require('express-slow-down');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
-const { Pool } = require('pg');
+const { pool } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
@@ -23,12 +23,7 @@ async function startServer() {
     let redisClient = null;
     console.warn('Redis connection disabled for development.');
 
-    // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
-const { pool } = require('./db');
+    // PostgreSQL connection uses shared pool from db/index.js
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -40,13 +35,18 @@ const { pool } = require('./db');
         etag: true,
         lastModified: true
     }));
-    // Use shared pool from db/index.js
-        max,
-        message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
-        standardHeaders: true,
-        legacyHeaders: false,
-        skip: (req) => req.ip === '127.0.0.1' && NODE_ENV === 'development'
-    });
+
+    // Rate limiting helper
+    const createRateLimit = (windowMs, max, message) =>
+        rateLimit({
+            windowMs,
+            max,
+            message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
+            standardHeaders: true,
+            legacyHeaders: false,
+            skip: (req) =>
+                req.ip === '127.0.0.1' && NODE_ENV === 'development'
+        });
     const generalLimiter = createRateLimit(15 * 60 * 1000, 1000, 'Too many requests');
     const authLimiter = createRateLimit(15 * 60 * 1000, 10, 'Too many authentication attempts');
     const apiLimiter = createRateLimit(60 * 1000, 100, 'API rate limit exceeded');
@@ -191,3 +191,9 @@ module.exports = app;
 if (require.main === module) {
   startServer().catch(console.error);
 }
+
+// Sanity check (uncomment to test):
+// require('./db')
+//   .smokeTest()
+//   .then(() => console.log('Database connection OK'))
+//   .catch((err) => console.error('Database connection failed', err));
