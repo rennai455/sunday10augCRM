@@ -1,7 +1,7 @@
 {
   "name": "renn-ai-crm",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "Server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node Server.js",
@@ -22,17 +22,6 @@
     "seed:db": "node db/seed.js",
     "diagnostics": "node scripts/diagnostics.js"
   },
-  "dev": "concurrently \"npm run css:watch\" \"npm run server:dev\" \"npm run live-server\"",
-  "server:dev": "nodemon Server.js",
-  "live-server": "live-server --port=3001 --no-browser",
-  "css:watch": "postcss styles/main.css -o dist/main.css --watch",
-  "css:build": "postcss styles/main.css -o dist/main.css",
-  "css:lint": "stylelint 'styles/**/*.css' --fix",
-  "format": "prettier --write 'styles/**/*.css'",
-  "build": "npm run css:build",
-  "test:lighthouse": "lhci autorun",
-  "test:visual": "backstop test",
-  "test:all": "npm-run-all css:lint css:build test:lighthouse test:visual",
   "keywords": [],
   "author": "",
   "license": "ISC",
