@@ -4,11 +4,12 @@
 node_modules/
 
 # Build output
-/dist/
+dist/
 
 # Environment
 .env
 .env.*
+!.env.example
 
 # DB migration logs
 migration-logs/
@@ -19,11 +20,8 @@ reports/
 # OS/IDE
 .DS_Store
 .vscode/
-node_modules
-.DS_Store
-.env
-.env.*
-!.env.example
 
-dallas0904
-dallas0904.pub
+# TLS Certificates
+*.pem
+*.key
+*.crt
