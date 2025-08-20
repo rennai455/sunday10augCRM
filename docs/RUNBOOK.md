@@ -53,13 +53,14 @@ ENABLE_SELF_SIGNUP=false
 
 ## DB User Mismatch
 - If you see `role "postgres" does not exist`:
+  - The official `postgres` Docker image already creates the `postgres` role. If you are using this image, double-check your `DATABASE_URL` instead of recreating the role.
   - Option 1: Change `DATABASE_URL` to match your actual DB user.
-  - Option 2: Create the user and DB:
+  - Option 2: Create a user and database for a custom role:
     ```sql
-    CREATE ROLE youruser WITH LOGIN PASSWORD 'yourpass';
-    CREATE DATABASE yourdb OWNER youruser;
+    CREATE ROLE <db_user> WITH LOGIN PASSWORD '<db_pass>';
+    CREATE DATABASE <db_name> OWNER <db_user>;
     ```
-  - Then set `DATABASE_URL=postgres://youruser:yourpass@localhost:5432/yourdb`
+  - Then set `DATABASE_URL=postgres://<db_user>:<db_pass>@localhost:5432/<db_name>`
 
 ## Run Order
 ```sh
