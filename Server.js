@@ -116,7 +116,20 @@ const { pool } = require('./db');
     });
     // Add more endpoints for users, subscriptions, clients, campaigns, leads, etc. as in previous code
 
-    // Health check
+    // Health checks
+    app.get('/healthz', (req, res) => {
+        res.json({ status: 'ok' });
+    });
+
+    app.get('/readyz', async (req, res) => {
+        try {
+            await pool.query('SELECT 1');
+            res.json({ status: 'ok' });
+        } catch (err) {
+            res.status(500).json({ status: 'error', error: err.message });
+        }
+    });
+
     app.get('/health', async (req, res) => {
         try {
             await pool.query('SELECT 1');
