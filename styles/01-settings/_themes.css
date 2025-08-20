@@ -9,4 +9,5 @@
   --color-border-primary: #333;
   --color-border-secondary: #444;
   --color-border-focus: #fff;
+  --color-focus-ring: rgb(255 255 255 / 20%);
 }

@@ -3,12 +3,16 @@
   /* Brand Colors */
   --brand-primary: #000000;
   --brand-secondary: #ffffff;
+  --brand-primary-hover: #333333;
 
   /* Semantic Colors */
   --color-bg-primary: #ffffff;
   --color-bg-secondary: #fafafa;
   --color-bg-tertiary: #f5f5f5;
   --color-bg-overlay: rgb(0 0 0 / 50%);
+  --color-focus-ring: rgb(0 0 0 / 10%);
+  --color-white-alpha-10: rgb(255 255 255 / 10%);
+  --color-white-alpha-15: rgb(255 255 255 / 15%);
   --color-text-primary: #000000;
   --color-text-secondary: #666666;
   --color-text-muted: #999999;
@@ -56,6 +60,7 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 10%);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 10%);
+  --shadow-card: 0 4px 12px rgb(0 0 0 / 8%);
 
   /* Layout */
   --sidebar-width: 240px;
