@@ -21,7 +21,7 @@ async function checkEnv() {
 
 require('dotenv').config();
 
-const { Pool } = require('pg');
+const { pool } = require('../db');
 
 const EXIT = { OK: 0, FAIL: 1 };
 let hadFailure = false;
@@ -30,10 +30,6 @@ function info(msg)  { console.log(`ℹ️  ${msg}`); }
 function pass(msg)  { console.log(`✅ ${msg}`); }
 function warn(msg)  { console.log(`⚠️  ${msg}`); }
 function fail(msg)  { hadFailure = true; console.error(`❌ ${msg}`); }
-
-function sslConfig() {
-  return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
-}
 
 async function checkAPI() {
   // Import the Express app for diagnostics (should export `app`)
@@ -77,13 +73,9 @@ async function checkDB() {
     fail('DATABASE_URL is empty. Set it in .env (see RUNBOOK.md for examples).');
     return;
   }
-  const pool = new Pool({ connectionString: url, ssl: sslConfig() });
   try {
-    const client = await pool.connect();
-    const r = await client.query('SELECT 1 AS ok');
+    const r = await pool.query('SELECT 1 AS ok');
     if (!r || !r.rows || r.rows[0].ok !== 1) throw new Error('Unexpected DB result');
-    client.release();
-    await pool.end();
     pass('PostgreSQL connection OK (SELECT 1).');
   } catch (e) {
     fail(`PostgreSQL connection FAILED: ${e.message}`);
@@ -101,7 +93,6 @@ async function checkDB() {
     } else if (/database .* does not exist/i.test(m)) {
       info('Cause: DB name not created.\nFix: Create the database and grant privileges to your role.');
     }
-    try { await pool.end(); } catch (_) {}
   }
 }
 
@@ -205,6 +196,7 @@ async function checkAPI() {
   await checkEnv();
   await checkDB();
   await checkAPI();
+  try { await pool.end(); } catch (_) {}
   if (hadFailure) {
     fail('Diagnostics FAILED. See messages above and docs/RUNBOOK.md.');
     process.exit(EXIT.FAIL);
