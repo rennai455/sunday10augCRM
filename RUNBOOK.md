@@ -11,14 +11,22 @@
 
 ## Railway Deployment
 1. Create Railway project and add Railway Postgres plugin.
-2. Copy Railway `DATABASE_URL` to your Railway environment variables.
-3. Generate secrets:
-   - JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-   - WEBHOOK_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-4. Set `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
-5. Run `npm run migrate:db && npm run seed:db` in Railway shell.
-6. Run `npm run diagnostics` in Railway shell (should exit 0).
-7. Deploy and visit `/health` for `{ ok: true }`.
+2. In the Railway service, configure environment variables:
+
+   | Variable | Notes |
+   |----------|-------|
+   | `DATABASE_URL` | provided by Railway Postgres plugin |
+   | `JWT_SECRET` | `node -e "crypto.randomBytes(32).toString('hex')"` |
+   | `WEBHOOK_SECRET` | `node -e "crypto.randomBytes(32).toString('hex')"` |
+   | `ALLOWED_ORIGINS` | include your Railway domain |
+   | `ENABLE_SELF_SIGNUP` | `false` unless open registration |
+   | `ALLOWED_SIGNUP_DOMAINS` | allowed email domains |
+   | `SEED_ADMIN_EMAIL` | optional admin seed |
+   | `SEED_ADMIN_PASSWORD` | optional admin seed |
+
+3. Run `npm run migrate:db && npm run seed:db` in Railway shell.
+4. Run `npm run diagnostics` in Railway shell (should exit 0).
+5. Deploy and visit `/health` for `{ ok: true }`.
 
 ## Environment Variables
 - DATABASE_URL
@@ -29,6 +37,12 @@
 - ALLOWED_SIGNUP_DOMAINS
 - SEED_ADMIN_EMAIL
 - SEED_ADMIN_PASSWORD
+
+## Secret Rotation
+1. Generate new secrets with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
+2. Update values in Railway service env vars and any `.env` files.
+3. Redeploy the service and restart dependent processes.
+4. Revoke tokens or webhooks signed with the old secrets.
 
 ## Acceptance Checklist
 - [ ] All env vars present
