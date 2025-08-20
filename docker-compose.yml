@@ -13,7 +13,7 @@ services:
     volumes:
       - renn-ai-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U youruser"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,4 +22,4 @@ volumes:
   renn-ai-db-data:
 
 # Matching DATABASE_URL:
-# postgres://youruser:yourpass@localhost:5432/renn_ai
+# postgres://postgres:postgres@localhost:5432/renn_ai
