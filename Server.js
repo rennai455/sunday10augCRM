@@ -12,7 +12,6 @@ const slowDown = require('express-slow-down');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
-const { Pool } = require('pg');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
@@ -24,13 +23,21 @@ async function startServer() {
     console.warn('Redis connection disabled for development.');
 
     // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    const { pool } = require('./db');
+    const allowedOrigins = process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+        : [];
+
+    app.use((req, res, next) => {
+        const requestOrigin = req.headers.origin;
+        if (requestOrigin && !allowedOrigins.includes(requestOrigin)) {
+            return res.status(403).json({ error: 'Origin not allowed' });
+        }
+        next();
     });
-const { pool } = require('./db');
+
     app.use(cors({
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+        origin: allowedOrigins,
         credentials: true,
         optionsSuccessStatus: 200
     }));
