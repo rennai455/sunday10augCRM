@@ -29,6 +29,7 @@
 - ALLOWED_SIGNUP_DOMAINS
 - SEED_ADMIN_EMAIL
 - SEED_ADMIN_PASSWORD
+- TEST_ORIGIN (origin for tests; set in CI, defaults to http://localhost:3000)
 
 ## Acceptance Checklist
 - [ ] All env vars present
