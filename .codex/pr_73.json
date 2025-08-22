@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"package.json","additions":2,"deletions":2},{"path":"scripts/hash-css.js","additions":29,"deletions":0}],"headRefName":"codex/add-hash-css-script-for-css-versioning","mergeable":"MERGEABLE","number":73,"title":"Hash main CSS during build","url":"https://github.com/rennai455/sunday10augCRM/pull/73"}

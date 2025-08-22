@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":".env.example","additions":14,"deletions":4},{"path":".gitignore","additions":1,"deletions":0}],"headRefName":"codex/delete-.env-and-add-.env.example","mergeable":"CONFLICTING","number":12,"title":"Add environment example file","url":"https://github.com/rennai455/sunday10augCRM/pull/12"}

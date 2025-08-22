@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"package.json","additions":2,"deletions":2},{"path":"scripts/hash-css.js","additions":42,"deletions":0}],"headRefName":"codex/add-hash-output-for-css-files","mergeable":"MERGEABLE","number":46,"title":"feat: hash css output","url":"https://github.com/rennai455/sunday10augCRM/pull/46"}

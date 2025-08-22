@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":".gitignore","additions":1,"deletions":0},{"path":"codex.patch","additions":0,"deletions":385}],"headRefName":"codex/remove-codex.patch-or-adjust-tooling","mergeable":"MERGEABLE","number":22,"title":"chore: ignore patch files","url":"https://github.com/rennai455/sunday10augCRM/pull/22"}

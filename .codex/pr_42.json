@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":56,"deletions":22}],"headRefName":"codex/configure-app-security-and-error-handling","mergeable":"MERGEABLE","number":42,"title":"Add compression, nonce-based CSP, and centralized error handling","url":"https://github.com/rennai455/sunday10augCRM/pull/42"}

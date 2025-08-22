@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":18,"deletions":0}],"headRefName":"codex/add-helmet-middleware-for-csp","mergeable":"MERGEABLE","number":53,"title":"Add Helmet-based content security policy","url":"https://github.com/rennai455/sunday10augCRM/pull/53"}

@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":15,"deletions":16}],"headRefName":"codex/refactor-server.js-for-db-pooling-and-jwt-check","mergeable":"MERGEABLE","number":37,"title":"refactor: use shared db pool and enforce jwt secret","url":"https://github.com/rennai455/sunday10augCRM/pull/37"}

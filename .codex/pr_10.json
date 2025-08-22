@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"docker-compose.yml","additions":4,"deletions":2},{"path":"docs/RUNBOOK.md","additions":7,"deletions":5}],"headRefName":"codex/update-credentials-in-configuration-files","mergeable":"MERGEABLE","number":10,"title":"docs: replace placeholder postgres credentials","url":"https://github.com/rennai455/sunday10augCRM/pull/10"}

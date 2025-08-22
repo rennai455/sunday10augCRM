@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":13,"deletions":6}],"headRefName":"codex/parse-allowed_origins-and-reject-requests","mergeable":"MERGEABLE","number":40,"title":"Enforce explicit CORS origins","url":"https://github.com/rennai455/sunday10augCRM/pull/40"}

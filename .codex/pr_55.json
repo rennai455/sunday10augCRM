@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"scripts/diagnostics.js","additions":5,"deletions":41}],"headRefName":"codex/remove-old-checkapi-implementation","mergeable":"MERGEABLE","number":55,"title":"refactor diagnostics checkAPI to use Server export","url":"https://github.com/rennai455/sunday10augCRM/pull/55"}

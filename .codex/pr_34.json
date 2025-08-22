@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":".env","additions":0,"deletions":22}],"headRefName":"codex/remove-.env-from-repository","mergeable":"MERGEABLE","number":34,"title":"Remove committed .env file and rely on gitignore","url":"https://github.com/rennai455/sunday10augCRM/pull/34"}

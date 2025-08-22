@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":6,"deletions":5}],"headRefName":"codex/update-static-file-serving-configuration","mergeable":"MERGEABLE","number":41,"title":"Serve static assets with env-specific caching","url":"https://github.com/rennai455/sunday10augCRM/pull/41"}

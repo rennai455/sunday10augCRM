@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":13,"deletions":0}],"headRefName":"codex/add-helmet-middleware-for-csp-jbjbow","mergeable":"MERGEABLE","number":69,"title":"Add Helmet CSP for external CDN scripts","url":"https://github.com/rennai455/sunday10augCRM/pull/69"}

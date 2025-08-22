@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":".gitignore","additions":7,"deletions":2},{"path":"docs/RUNBOOK.md","additions":1,"deletions":0}],"headRefName":"codex/update-.gitignore-to-remove-secrets","mergeable":"MERGEABLE","number":33,"title":"chore: tighten gitignore and document secret history cleanup","url":"https://github.com/rennai455/sunday10augCRM/pull/33"}

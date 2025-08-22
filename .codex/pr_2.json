@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"docker-compose.yml","additions":2,"deletions":2},{"path":"docs/RUNBOOK.md","additions":5,"deletions":4}],"headRefName":"codex/replace-user-credentials-in-configs","mergeable":"MERGEABLE","number":2,"title":"Use default Postgres credentials in config and docs","url":"https://github.com/rennai455/sunday10augCRM/pull/2"}

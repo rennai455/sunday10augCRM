@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":".lighthouserc.json","additions":1,"deletions":0},{"path":"lighthouserc.js","additions":0,"deletions":27}],"headRefName":"codex/add-.lighthouserc.json-configuration","mergeable":"MERGEABLE","number":58,"title":"Use JSON config for Lighthouse CI","url":"https://github.com/rennai455/sunday10augCRM/pull/58"}

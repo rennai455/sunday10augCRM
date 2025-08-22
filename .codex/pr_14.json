@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"docker-compose.yml","additions":1,"deletions":1}],"headRefName":"codex/update-healthcheck-in-docker-compose.yml","mergeable":"MERGEABLE","number":14,"title":"Use postgres user in healthcheck","url":"https://github.com/rennai455/sunday10augCRM/pull/14"}

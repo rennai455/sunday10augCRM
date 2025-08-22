@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"package.json","additions":4,"deletions":12}],"headRefName":"codex/remove-duplicate-script-keys-and-update-configurations","mergeable":"MERGEABLE","number":45,"title":"Cleanup scripts and require Node 20+","url":"https://github.com/rennai455/sunday10augCRM/pull/45"}

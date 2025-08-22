@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":12,"deletions":14},{"path":"db/index.js","additions":4,"deletions":23}],"headRefName":"codex/update-database-connection-for-pool-export","mergeable":"MERGEABLE","number":67,"title":"refactor: centralize pg pool","url":"https://github.com/rennai455/sunday10augCRM/pull/67"}

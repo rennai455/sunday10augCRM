@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":10,"deletions":1}],"headRefName":"codex/parse-allowed_origins-and-configure-cors","mergeable":"MERGEABLE","number":68,"title":"Restrict CORS to configured origins","url":"https://github.com/rennai455/sunday10augCRM/pull/68"}

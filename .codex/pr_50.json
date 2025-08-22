@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"tests/smoke.test.js","additions":33,"deletions":3}],"headRefName":"codex/add-tests-for-csp-and-cors-headers","mergeable":"MERGEABLE","number":50,"title":"Add CSP, CORS and readiness tests","url":"https://github.com/rennai455/sunday10augCRM/pull/50"}

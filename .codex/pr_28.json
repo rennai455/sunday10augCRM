@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":210,"deletions":171},{"path":"tests/smoke.test.js","additions":1,"deletions":1}],"headRefName":"codex/refactor-server.js-and-add-new-features","mergeable":"MERGEABLE","number":28,"title":"harden server security and health endpoints","url":"https://github.com/rennai455/sunday10augCRM/pull/28"}

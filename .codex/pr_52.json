@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"Server.js","additions":5,"deletions":9}],"headRefName":"codex/remove-local-pool-import-and-serve-static-files","mergeable":"MERGEABLE","number":52,"title":"refactor: use shared db pool and static public path","url":"https://github.com/rennai455/sunday10augCRM/pull/52"}

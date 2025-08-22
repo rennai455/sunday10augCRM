@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"package.json","additions":1,"deletions":1}],"headRefName":"codex/update-start-script-in-package.json","mergeable":"MERGEABLE","number":13,"title":"Fix start script for case-sensitive filename","url":"https://github.com/rennai455/sunday10augCRM/pull/13"}

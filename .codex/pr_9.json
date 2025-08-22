@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"docker-compose.yml","additions":1,"deletions":1}],"headRefName":"ez4qr4-codex/update-pg_isready-command-in-docker-compose","mergeable":"MERGEABLE","number":9,"title":"Use env vars in docker healthcheck","url":"https://github.com/rennai455/sunday10augCRM/pull/9"}

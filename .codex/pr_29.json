@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":"db/index.js","additions":7,"deletions":6},{"path":"db/migrate.sql","additions":18,"deletions":0}],"headRefName":"codex/update-db/index.js-for-ssl-toggle","mergeable":"MERGEABLE","number":29,"title":"feat: add SSL toggle and database indexes","url":"https://github.com/rennai455/sunday10augCRM/pull/29"}

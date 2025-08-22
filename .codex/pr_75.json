@@ -1,0 +1,1 @@
+{"baseRefName":"main","files":[{"path":".github/workflows/ci.yml","additions":28,"deletions":0}],"headRefName":"codex/add-ci-workflow-for-push-and-pr","mergeable":"MERGEABLE","number":75,"title":"Add Node.js CI workflow","url":"https://github.com/rennai455/sunday10augCRM/pull/75"}
