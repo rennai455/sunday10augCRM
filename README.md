@@ -18,3 +18,7 @@ The script will:
 - create/force `main` as default branch
 - set `origin` to your repo
 - push the initial commit
+
+## Visual tests
+
+Run server locally, then `npm run test:visual`.
