@@ -12,35 +12,40 @@ const slowDown = require('express-slow-down');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
-const { Pool } = require('pg');
+const { pool } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+    : [];
 // Main server logic
 async function startServer() {
     // Redis connection (disabled for now)
     let redisClient = null;
     console.warn('Redis connection disabled for development.');
 
-    // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
-const { pool } = require('./db');
+    // PostgreSQL connection (using shared pool from db/index.js)
     app.use(cors({
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         credentials: true,
         optionsSuccessStatus: 200
     }));
     app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
-    app.use(express.static(path.join(__dirname), {
+    app.use('/static', express.static(path.join(__dirname, 'public'), {
         maxAge: NODE_ENV === 'production' ? '1y' : '0',
         etag: true,
         lastModified: true
     }));
-    // Use shared pool from db/index.js
+    const createRateLimit = (windowMs, max, message) => rateLimit({
+        windowMs,
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
         standardHeaders: true,

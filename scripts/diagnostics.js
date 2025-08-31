@@ -35,42 +35,6 @@ function sslConfig() {
   return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 }
 
-async function checkAPI() {
-  // Import the Express app for diagnostics (should export `app`)
-  let app = null;
-  try {
-    app = require('../Server');
-  } catch (e) {
-    warn('Could not import Express app from Server.js: ' + e.message);
-    return;
-  }
-
-  if (!app || typeof app.handle !== 'function') {
-    warn('Express app not found or invalid export. Ensure Server.js exports `app`.');
-    return;
-  }
-
-  let request;
-  try {
-    request = require('supertest');
-  } catch (e) {
-    warn('supertest not installed. Skipping API checks.');
-    return;
-  }
-
-  // Example API probe: health endpoint
-  try {
-    const res = await request(app).get('/health');
-    if (res.status === 200 && res.body.status === 'ok') {
-      pass('API /health endpoint OK');
-    } else {
-      fail('API /health endpoint failed: ' + JSON.stringify(res.body));
-    }
-  } catch (e) {
-    fail('API /health probe error: ' + e.message);
-  }
-}
-
 async function checkDB() {
   const url = process.env.DATABASE_URL;
   if (!url || !String(url).trim()) {
@@ -109,14 +73,14 @@ async function checkAPI() {
   // Try to import the Express app (should export `app`)
   let app = null;
   try {
-    // Common export patterns
-    app = require('../Server'); // without extension
-  } catch (_) {
-    try { app = require('../Server.js'); } catch (_) {}
+    app = require('../Server'); // case-sensitive import
+  } catch (e) {
+    warn('API checks skipped: could not import Express app from ../Server. Ensure Server.js exports `app`.');
+    return;
   }
 
   if (!app || !app.handle) {
-    warn('API checks skipped: could not import Express app. Ensure Server.js exports `app` and only listens when run directly.');
+    warn('API checks skipped: Express app invalid or not exported. Ensure Server.js exports `app` and only listens when run directly.');
     return;
   }
 

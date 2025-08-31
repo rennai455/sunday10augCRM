@@ -1,26 +1,3 @@
-// DARK MODE TOGGLE
-window.toggleDarkMode = function() {
-    const body = document.body;
-    const isDark = body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', isDark ? '1' : '0');
-    
-    // Update button text
-    const button = document.getElementById('dark-mode-toggle');
-    if (button) {
-        button.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-    }
-};
-
-// On load, apply dark mode if set
-document.addEventListener('DOMContentLoaded', function() {
-    if (localStorage.getItem('darkMode') === '1') {
-        document.body.classList.add('dark-mode');
-        const button = document.getElementById('dark-mode-toggle');
-        if (button) {
-            button.textContent = 'Light Mode';
-        }
-    }
-});
 // Sidebar toggle logic for CSP compliance
 document.addEventListener('DOMContentLoaded', function() {
   var sidebarBtn = document.getElementById('sidebar-toggle-btn');
@@ -28,7 +5,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var sidebar = document.getElementById('sidebar');
   function toggleSidebar() {
     if (sidebar) {
-      sidebar.classList.toggle('show');
+      const isOpen = sidebar.classList.toggle('open');
+      if (sidebarBtn) sidebarBtn.setAttribute('aria-expanded', isOpen);
+      if (fabBtn) fabBtn.setAttribute('aria-expanded', isOpen);
     }
   }
   if (sidebarBtn) sidebarBtn.addEventListener('click', toggleSidebar);
@@ -269,9 +248,13 @@ window.showSection = function(section) {
     // Update nav active state
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
+        item.removeAttribute('aria-current');
     });
     const nav = document.querySelector(`.nav-item[onclick*="showSection('${section}')"]`);
-    if (nav && nav.style.display !== 'none') nav.classList.add('active');
+    if (nav && nav.style.display !== 'none') {
+        nav.classList.add('active');
+        nav.setAttribute('aria-current', 'page');
+    }
     // Update section title if present
     const titleMap = {
         'overview': 'Overview',

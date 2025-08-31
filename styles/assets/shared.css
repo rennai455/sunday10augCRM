@@ -552,7 +552,7 @@ th {
 
   /* === ANIMATIONS === */
   .fade-in {
-    animation: fade-in 0.3s ease-out;
+    animation: fade-in var(--transition-base) ease-out;
   }
 
   @keyframes fade-in {
@@ -671,72 +671,6 @@ th {
 
   .shadow-lg {
     box-shadow: var(--shadow-lg);
-  }
-
-  /* === DARK MODE TOGGLE === */
-  body.dark-mode {
-    --primary-bg: #000;
-    --secondary-bg: #0a0a0a;
-    --card-bg: #111;
-    --text-primary: #fff;
-    --text-secondary: #ccc;
-    --text-muted: #666;
-    --border-color: #333;
-    --border-hover: #444;
-    --accent: #fff;
-    --accent-hover: #e5e5e5;
-  }
-
-  /* Ensure sidebar ALWAYS stays black regardless of theme */
-  body.dark-mode .sidebar,
-  body.light-mode .sidebar,
-  .sidebar {
-    background: #000 !important;
-    border-right: 1px solid #333 !important;
-  }
-
-  /* Ensure sidebar navigation ALWAYS stays white text */
-  body.dark-mode .sidebar .nav-item,
-  body.light-mode .sidebar .nav-item,
-  .sidebar .nav-item {
-    color: #fff !important;
-  }
-
-  body.dark-mode .sidebar .nav-item:hover,
-  body.light-mode .sidebar .nav-item:hover,
-  .sidebar .nav-item:hover {
-    background: rgb(255 255 255 / 10%) !important;
-    color: #fff !important;
-  }
-
-  body.dark-mode .sidebar .nav-item.active,
-  body.light-mode .sidebar .nav-item.active,
-  .sidebar .nav-item.active {
-    background: rgb(255 255 255 / 15%) !important;
-    color: #fff !important;
-  }
-
-  /* Force all sidebar text to be white */
-  body.dark-mode .sidebar *,
-  body.light-mode .sidebar *,
-  .sidebar * {
-    color: #fff !important;
-  }
-
-  /* Override any conflicting styles for sidebar */
-  body.dark-mode .sidebar h1,
-  body.dark-mode .sidebar h2,
-  body.dark-mode .sidebar h3,
-  body.dark-mode .sidebar p,
-  body.dark-mode .sidebar span,
-  body.dark-mode .sidebar div,
-  body.light-mode .sidebar h1,
-  body.light-mode .sidebar h2,
-  body.light-mode .sidebar h3,
-  body.light-mode .sidebar p,
-  body.light-mode .sidebar span,
-  body.light-mode .sidebar div {
-    color: #fff !important;
   }
 
   /* === FLOATING ACTION BUTTON === */
