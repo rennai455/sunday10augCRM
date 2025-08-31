@@ -17,6 +17,14 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Simple liveness and readiness probes
+app.get('/healthz', (req, res) => {
+    res.json({ ok: true });
+});
+app.get('/readyz', (req, res) => {
+    res.json({ ready: true });
+});
 // Main server logic
 async function startServer() {
     // Redis connection (disabled for now)
@@ -28,7 +36,6 @@ async function startServer() {
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
-const { pool } = require('./db');
     app.use(cors({
         origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
         credentials: true,
@@ -40,7 +47,8 @@ const { pool } = require('./db');
         etag: true,
         lastModified: true
     }));
-    // Use shared pool from db/index.js
+    const createRateLimit = (windowMs, max, message) => rateLimit({
+        windowMs,
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
         standardHeaders: true,
