@@ -12,41 +12,57 @@ const slowDown = require('express-slow-down');
 const cluster = require('cluster');
 const numCPUs = require('os').cpus().length;
 const redis = require('redis');
-const { Pool } = require('pg');
+const { pool } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
 const NODE_ENV = process.env.NODE_ENV || 'development';
-// Main server logic
-async function startServer() {
-    // Redis connection (disabled for now)
-    let redisClient = null;
-    console.warn('Redis connection disabled for development.');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(',').filter(Boolean);
 
-    // PostgreSQL connection
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-    });
-const { pool } = require('./db');
-    app.use(cors({
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-        credentials: true,
-        optionsSuccessStatus: 200
-    }));
-    app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
-    app.use(express.static(path.join(__dirname), {
-        maxAge: NODE_ENV === 'production' ? '1y' : '0',
-        etag: true,
-        lastModified: true
-    }));
-    // Use shared pool from db/index.js
+function createRateLimit(windowMs, max, message) {
+    return rateLimit({
+        windowMs,
         max,
         message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
         standardHeaders: true,
         legacyHeaders: false,
         skip: (req) => req.ip === '127.0.0.1' && NODE_ENV === 'development'
     });
+}
+// Main server logic
+async function startServer() {
+    // Redis connection (disabled for now)
+    let redisClient = null;
+    console.warn('Redis connection disabled for development.');
+
+    // PostgreSQL connection via shared pool from db/index.js
+    app.use(helmet({
+        contentSecurityPolicy: {
+            useDefaults: true,
+            directives: {
+                "script-src": ["'self'", "cdn.tailwindcss.com"],
+            },
+        },
+    }));
+    app.use(compression());
+    app.use(cors({
+        origin: (origin, cb) => {
+            // append your Railway URL to ALLOWED_ORIGINS in production
+            if (!origin || allowedOrigins.includes(origin)) {
+                cb(null, true);
+            } else {
+                cb(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+        optionsSuccessStatus: 200
+    }));
+    app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
+    app.use('/static', express.static(path.join(__dirname, 'public'), {
+        maxAge: NODE_ENV === 'production' ? '1y' : '0',
+        etag: NODE_ENV !== 'production',
+        lastModified: true
+    }));
     const generalLimiter = createRateLimit(15 * 60 * 1000, 1000, 'Too many requests');
     const authLimiter = createRateLimit(15 * 60 * 1000, 10, 'Too many authentication attempts');
     const apiLimiter = createRateLimit(60 * 1000, 100, 'API rate limit exceeded');
@@ -116,13 +132,24 @@ const { pool } = require('./db');
     });
     // Add more endpoints for users, subscriptions, clients, campaigns, leads, etc. as in previous code
 
-    // Health check
+    // Health checks
     app.get('/health', async (req, res) => {
         try {
             await pool.query('SELECT 1');
             res.json({ status: 'ok', db: 'PostgreSQL' });
         } catch (err) {
             res.status(500).json({ status: 'error', db: 'PostgreSQL', error: err.message });
+        }
+    });
+    app.get('/healthz', (req, res) => {
+        res.json({ status: 'ok' });
+    });
+    app.get('/readyz', async (req, res) => {
+        try {
+            await pool.query('SELECT 1');
+            res.json({ status: 'ok' });
+        } catch (err) {
+            res.status(500).json({ status: 'error' });
         }
     });
 

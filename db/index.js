@@ -1,7 +1,8 @@
 // db/index.js: PostgreSQL connection and helpers
 const { Pool } = require('pg');
 const connectionString = process.env.DATABASE_URL;
-const ssl = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+const useSsl = process.env.PG_SSL === 'true' || process.env.NODE_ENV === 'production';
+const ssl = useSsl ? { rejectUnauthorized: false } : false;
 
 const pool = new Pool({ connectionString, ssl });
 
