@@ -1,0 +1,30 @@
+{"merged":[],"skipped":[{"number":47,"title":"Add Node 20 CI workflow","reason":"not-mergeable"}
+{"number":48,"title":"docs: document env vars and health endpoints","reason":"not-mergeable"}
+{"number":49,"title":"feat: add theme toggling and accessibility","reason":"not-mergeable"}
+{"number":50,"title":"Add CSP, CORS and readiness tests","reason":"not-mergeable"}
+{"number":51,"title":"feat: add theme, security, and docs polish","reason":"not-mergeable"}
+{"number":52,"title":"refactor: use shared db pool and static public path","reason":"not-mergeable"}
+{"number":53,"title":"Add Helmet-based content security policy","reason":"not-mergeable"}
+{"number":54,"title":"feat: add liveness and readiness probes","reason":"not-mergeable"}
+{"number":55,"title":"refactor diagnostics checkAPI to use Server export","reason":"not-mergeable"}
+{"number":56,"title":"refactor: remove fadeIn animation","reason":"not-mergeable"}
+{"number":57,"title":"chore: switch to node test runner","reason":"not-mergeable"}
+{"number":58,"title":"Use JSON config for Lighthouse CI","reason":"not-mergeable"}
+{"number":59,"title":"chore: configure backstop visual tests","reason":"not-mergeable"}
+{"number":60,"title":"Remove .env from version control and update env example","reason":"not-mergeable"}
+{"number":61,"title":"refactor: use shared db pool and add health endpoints","reason":"not-mergeable"}
+{"number":62,"title":"Rename fadeIn animation to fade-in and remove duplicate keyframes","reason":"not-mergeable"}
+{"number":63,"title":"Add readiness endpoint tests","reason":"not-mergeable"}
+{"number":64,"title":"chore: add Lighthouse CI JSON config","reason":"not-mergeable"}
+{"number":65,"title":"Prepare Railway deployment","reason":"not-mergeable"}
+{"number":66,"title":"Add health and readiness probe endpoints","reason":"not-mergeable"}
+{"number":67,"title":"refactor: centralize pg pool","reason":"not-mergeable"}
+{"number":68,"title":"Restrict CORS to configured origins","reason":"not-mergeable"}
+{"number":69,"title":"Add Helmet CSP for external CDN scripts","reason":"not-mergeable"}
+{"number":70,"title":"refactor: move login and dashboard scripts","reason":"not-mergeable"}
+{"number":71,"title":"refactor: serve static files from public","reason":"not-mergeable"}
+{"number":72,"title":"Rename fadeIn animation to fade-in","reason":"not-mergeable"}
+{"number":73,"title":"Hash main CSS during build","reason":"not-mergeable"}
+{"number":74,"title":"Add Node.js smoke tests and update test script","reason":"not-mergeable"}
+{"number":75,"title":"Add Node.js CI workflow","reason":"not-mergeable"}
+{"number":76,"title":"docs: add setup steps and deployment checks","reason":"not-mergeable"}],"failed_validation":[]}
