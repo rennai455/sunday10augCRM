@@ -17,6 +17,9 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'renn-ai-ultra-secure-key-production-2024';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+    : [];
 // Main server logic
 async function startServer() {
     // Redis connection (disabled for now)
@@ -30,7 +33,13 @@ async function startServer() {
     });
 const { pool } = require('./db');
     app.use(cors({
-        origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
         credentials: true,
         optionsSuccessStatus: 200
     }));
