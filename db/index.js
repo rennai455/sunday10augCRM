@@ -1,7 +1,9 @@
-// db/index.js: PostgreSQL connection and helpers
+// db/index.js
 const { Pool } = require('pg');
+
 const connectionString = process.env.DATABASE_URL;
-const ssl = process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+const useSSL = String(process.env.PG_SSL).toLowerCase() === 'true';
+const ssl = useSSL ? { rejectUnauthorized: false } : undefined;
 
 const pool = new Pool({ connectionString, ssl });
 
@@ -22,7 +24,5 @@ module.exports = {
     }
   },
   pool,
-  smokeTest: async () => {
-    return pool.query('SELECT 1');
-  },
+  smokeTest: async () => pool.query('SELECT 1'),
 };
