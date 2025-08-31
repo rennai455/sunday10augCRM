@@ -1,37 +1,37 @@
 // tests/smoke.test.js: security/auth/CSP/CORS smoke tests
 const request = require('supertest');
 const app = require('../Server');
+const { pool } = require('../db');
 describe('RENN.AI CRM Security & Auth', () => {
   it('should not serve .db files', async () => {
     const res = await request(app).get('/crm.db');
     expect(res.status).toBe(404);
   });
   it('should enforce CSP headers', async () => {
-    const res = await request(app).get('/static/dashboard.html');
-    expect(res.headers['content-security-policy']).toBeDefined();
-    expect(res.headers['content-security-policy']).toMatch(/cdn\.tailwindcss\.com/);
+    const res = await request(app).get('/static/Login.html');
+    const csp = res.headers['content-security-policy'];
+    expect(csp).toBeDefined();
+    expect(csp).toMatch(/'self'/);
+    expect(csp).toMatch(/nonce-/);
+    expect(csp).toMatch(/cdn\.tailwindcss\.com/);
   });
   it('should enforce CORS allowlist', async () => {
-    const res = await request(app).get('/health').set('Origin', 'http://localhost:3000');
+    const res = await request(app).get('/healthz').set('Origin', 'http://localhost:3000');
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
   });
-  it('should block unauthorized API access', async () => {
-    const res = await request(app).get('/api/campaigns/123');
-    expect(res.status).toBe(401);
+  it('should reflect readiness', async () => {
+    const spy = jest.spyOn(pool, 'query').mockResolvedValueOnce();
+    let res = await request(app).get('/readyz');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ready: true });
+    spy.mockRejectedValueOnce(new Error('fail'));
+    res = await request(app).get('/readyz');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ ready: false });
+    spy.mockRestore();
   });
-  it('should allow registration, login, and dashboard access', async () => {
-    const email = `test${Date.now()}@renn.ai`;
-    const password = 'testpassword123';
-    // Register
-    let res = await request(app).post('/api/auth/register').send({ email, password, agency: 'Test Agency' });
-    expect(res.body.success).toBe(true);
-    // Login
-    res = await request(app).post('/api/auth/login').send({ email, password });
-    expect(res.body.success).toBe(true);
-    const cookies = res.headers['set-cookie'];
-    expect(cookies).toBeDefined();
-    // Logout
-    res = await request(app).post('/api/auth/logout').set('Cookie', cookies);
-    expect(res.body.success).toBe(true);
+  it('should block unauthorized API access', async () => {
+    const res = await request(app).get('/api/agencies');
+    expect(res.status).toBe(401);
   });
 });

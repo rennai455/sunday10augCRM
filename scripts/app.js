@@ -1,30 +1,6 @@
-// DARK MODE TOGGLE
-window.toggleDarkMode = function() {
-    const body = document.body;
-    const isDark = body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', isDark ? '1' : '0');
-    
-    // Update button text
-    const button = document.getElementById('dark-mode-toggle');
-    if (button) {
-        button.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-    }
-};
-
-// On load, apply dark mode if set
-document.addEventListener('DOMContentLoaded', function() {
-    if (localStorage.getItem('darkMode') === '1') {
-        document.body.classList.add('dark-mode');
-        const button = document.getElementById('dark-mode-toggle');
-        if (button) {
-            button.textContent = 'Light Mode';
-        }
-    }
-});
 // Sidebar toggle logic for CSP compliance
 document.addEventListener('DOMContentLoaded', function() {
   var sidebarBtn = document.getElementById('sidebar-toggle-btn');
-  var fabBtn = document.getElementById('fab-sidebar-toggle-2');
   var sidebar = document.getElementById('sidebar');
   function toggleSidebar() {
     if (sidebar) {
@@ -32,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   if (sidebarBtn) sidebarBtn.addEventListener('click', toggleSidebar);
-  if (fabBtn) fabBtn.addEventListener('click', toggleSidebar);
 });
 // Ultra-Optimized RENN.AI Frontend with Performance Best Practices
 class RENNApp {

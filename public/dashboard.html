@@ -27,8 +27,9 @@
     <!-- Main Layout Container -->
     <div class="layout">
         <aside class="layout__sidebar sidebar" id="sidebar">
+            <img src="/static/logo.svg" alt="RENN.AI" class="logo">
             <nav class="nav">
-                <a href="#" class="nav__item nav-item active" id="nav-dashboard">Dashboard</a>
+                <a href="#" class="nav__item nav-item active" aria-current="page" id="nav-dashboard">Dashboard</a>
                 <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
                 <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
                 <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
@@ -39,6 +40,7 @@
             <header class="layout__header">
                 <h1 class="text-xl font-bold">Welcome to Renn.AI CRM</h1>
                 <span id="user-role" class="ml-4 text-sm"></span>
+                <button id="theme-toggle" class="ml-auto btn btn--secondary">Toggle Theme</button>
             </header>
             <section class="layout__content" id="dashboard-section">
                 <!-- Dashboard content will be loaded here -->
@@ -48,7 +50,6 @@
 
     <!-- Mobile Menu Button -->
     <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">☰</button>
-    <button class="fab md:hidden" id="fab-sidebar-toggle-2">☰</button>
 
     <!-- Add Client Modal -->
     <div id="add-client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
@@ -63,6 +64,7 @@
         </div>
     </div>
 
+    <script src="/static/theme.js" defer></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Check authentication and load user info
