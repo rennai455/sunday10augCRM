@@ -76,3 +76,30 @@
   border-bottom: 2px solid var(--brand-primary);
   color: var(--brand-primary);
 }
+
+/* === ACCESSIBILITY HELPERS === */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: var(--space-sm);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transform: translateY(-100%);
+  transition: transform var(--transition-fast);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.logo {
+  max-width: 150px;
+  height: auto;
+  color: var(--color-text-primary);
+}
