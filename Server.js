@@ -35,7 +35,7 @@ const { pool } = require('./db');
         optionsSuccessStatus: 200
     }));
     app.use(express.json({ limit: '10mb', type: ['application/json', 'text/plain'] }));
-    app.use(express.static(path.join(__dirname), {
+    app.use('/static', express.static(path.join(__dirname, 'public'), {
         maxAge: NODE_ENV === 'production' ? '1y' : '0',
         etag: true,
         lastModified: true
@@ -78,17 +78,17 @@ const { pool } = require('./db');
 
     // Serve login.html as static for unauthenticated users
     app.get('/login', (req, res) => {
-        res.sendFile(path.join(__dirname, 'Login.html'));
+        res.sendFile(path.join(__dirname, 'public', 'Login.html'));
     });
 
     // Also serve at /Login.html for direct access
     app.get('/Login.html', (req, res) => {
-        res.sendFile(path.join(__dirname, 'Login.html'));
+        res.sendFile(path.join(__dirname, 'public', 'Login.html'));
     });
 
     // Serve dashboard.html only if authenticated
     app.get('/dashboard.html', authenticateJWT, (req, res) => {
-        res.sendFile(path.join(__dirname, 'dashboard.html'));
+        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
     });
 
     // Example API endpoints (cross-referenced with schema and frontend)
