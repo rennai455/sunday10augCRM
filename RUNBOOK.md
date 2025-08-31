@@ -3,11 +3,12 @@
 ## Local Setup
 1. Copy `.env.example` to `.env` and fill in secrets.
 2. Run `docker compose up -d postgres` to start local Postgres.
-3. Run `npm install` to install dependencies.
-4. Run `npm run migrate:db` to apply DB schema.
-5. Run `npm run seed:db` to insert admin/sample data.
-6. Run `npm run diagnostics` to verify config and security.
-7. Start server: `npm start`.
+3. Run `createdb renn_ai` to create the development database.
+4. Run `npm install` to install dependencies.
+5. Run `npm run migrate:db` to apply DB schema.
+6. Run `npm run seed:db` to insert admin/sample data.
+7. Run `npm run diagnostics` to verify config and security.
+8. Start server: `npm start`.
 
 ## Railway Deployment
 1. Create Railway project and add Railway Postgres plugin.
@@ -15,13 +16,19 @@
 3. Generate secrets:
    - JWT_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
    - WEBHOOK_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-4. Set `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
-5. Run `npm run migrate:db && npm run seed:db` in Railway shell.
+4. Set `PG_SSL=true` and `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
+5. In Railway shell run:
+   ```sh
+   createdb renn_ai
+   npm run migrate:db
+   npm run seed:db
+   ```
 6. Run `npm run diagnostics` in Railway shell (should exit 0).
-7. Deploy and visit `/health` for `{ ok: true }`.
+7. Deploy and visit `/healthz` and `/readyz` for `{ ok: true }`.
 
 ## Environment Variables
 - DATABASE_URL
+- PG_SSL
 - JWT_SECRET
 - WEBHOOK_SECRET
 - ALLOWED_ORIGINS
@@ -36,10 +43,10 @@
 - [ ] Admin user exists
 - [ ] Security middleware enabled
 - [ ] Diagnostics script passes
-- [ ] /health returns { ok: true }
+- [ ] `/healthz` and `/readyz` return { ok: true }
 - [ ] No SQLite code or dependencies
 - [ ] All /api/* unauthorized without cookie
 - [ ] CSV protected with ownership
 - [ ] Webhook signature enforced
 - [ ] Login sets HttpOnly cookie; Logout clears it
-- [ ] Static only at /static
+- [ ] Static files served at /static

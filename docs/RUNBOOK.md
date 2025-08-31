@@ -24,7 +24,7 @@ node -e "require('pg').Pool({connectionString:'postgres://postgres:postgres@loca
 ```
 
 ## Scenario B: Managed Postgres (Neon/Supabase/Render/RDS)
-- Use `?sslmode=require` in `DATABASE_URL`.
+- Use `?sslmode=require` in `DATABASE_URL` and set `PG_SSL=true`.
 - Ensure your DB firewall/allowlist permits your app/server IP.
 
 ## .env Setup
@@ -34,6 +34,7 @@ node -e "require('pg').Pool({connectionString:'postgres://postgres:postgres@loca
 ```
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/renn_ai
 NODE_ENV=development
+PG_SSL=false
 JWT_SECRET=<run `node -e "crypto.randomBytes(32).toString('hex')"`>
 WEBHOOK_SECRET=<run `node -e "crypto.randomBytes(32).toString('hex')"`>
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
@@ -44,9 +45,10 @@ ENABLE_SELF_SIGNUP=false
 ```
 DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DBNAME?sslmode=require
 NODE_ENV=production
+PG_SSL=true
 JWT_SECRET=<generated-hex>
 WEBHOOK_SECRET=<generated-hex>
-ALLOWED_ORIGINS=https://app.renn.ai
+ALLOWED_ORIGINS=https://app.renn.ai,https://your-railway-app.up.railway.app
 ENABLE_SELF_SIGNUP=false
 ```
 - If your password contains `@:/?#`, URL-encode it (e.g. `%40` for `@`).
@@ -91,3 +93,5 @@ npm run dev
 - [ ] Diagnostics pass
 - [ ] Register/login works
 - [ ] Security middleware enabled
+- [ ] `/healthz` and `/readyz` return { ok: true }
+- [ ] Static assets served from /static
