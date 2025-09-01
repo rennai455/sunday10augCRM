@@ -1,6 +1,6 @@
 // tests/smoke.test.js: security/auth/CSP/CORS smoke tests
 const request = require('supertest');
-const app = require('../Server');
+const app = require('../server');
 describe('RENN.AI CRM Security & Auth', () => {
   it('should not serve .db files', async () => {
     const res = await request(app).get('/crm.db');

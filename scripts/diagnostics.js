@@ -39,14 +39,14 @@ async function checkAPI() {
   // Import the Express app for diagnostics (should export `app`)
   let app = null;
   try {
-    app = require('../Server');
+    app = require('../server');
   } catch (e) {
-    warn('Could not import Express app from Server.js: ' + e.message);
+    warn('Could not import Express app from server.js: ' + e.message);
     return;
   }
 
   if (!app || typeof app.handle !== 'function') {
-    warn('Express app not found or invalid export. Ensure Server.js exports `app`.');
+    warn('Express app not found or invalid export. Ensure server.js exports `app`.');
     return;
   }
 
@@ -110,13 +110,13 @@ async function checkAPI() {
   let app = null;
   try {
     // Common export patterns
-    app = require('../Server'); // without extension
+    app = require('../server'); // without extension
   } catch (_) {
-    try { app = require('../Server.js'); } catch (_) {}
+    try { app = require('../server.js'); } catch (_) {}
   }
 
   if (!app || !app.handle) {
-    warn('API checks skipped: could not import Express app. Ensure Server.js exports `app` and only listens when run directly.');
+    warn('API checks skipped: could not import Express app. Ensure server.js exports `app` and only listens when run directly.');
     return;
   }
 
