@@ -28,7 +28,7 @@ async function diagnostics() {
 
   // Check migration
   try {
-    const agencies = await db.query('SELECT * FROM agencies LIMIT 1');
+    await db.query('SELECT * FROM agencies LIMIT 1');
     console.log('Agencies table: OK');
   } catch (err) {
     console.error('Agencies table error:', err);

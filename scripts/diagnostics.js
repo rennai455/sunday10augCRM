@@ -101,7 +101,10 @@ async function checkDB() {
     } else if (/database .* does not exist/i.test(m)) {
       info('Cause: DB name not created.\nFix: Create the database and grant privileges to your role.');
     }
-    try { await pool.end(); } catch (_) {}
+    try { await pool.end(); } catch (error) { 
+      // Ignore cleanup errors
+      void error;
+    }
   }
 }
 
@@ -111,8 +114,14 @@ async function checkAPI() {
   try {
     // Common export patterns
     app = require('../server'); // without extension
-  } catch (_) {
-    try { app = require('../server.js'); } catch (_) {}
+  } catch (error) {
+    // Ignore import errors
+    void error;
+    try { 
+      app = require('../server.js'); 
+    } catch (innerError) { 
+      void innerError;
+    }
   }
 
   if (!app || !app.handle) {
