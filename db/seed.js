@@ -1,5 +1,5 @@
 // db/seed.js: seed admin and sample data
-const db = require('./index');
+const db = require('../src/db/pool');
 const bcrypt = require('bcryptjs');
 
 async function seed() {

@@ -20,7 +20,8 @@
     "db:down": "docker compose down",
     "db:migrate": "node db/run-migrations.js",
     "db:seed": "node db/seed.js",
-    "diagnostics": "node scripts/diagnostics.js"
+    "diagnostics": "node scripts/diagnostics.js",
+    "deps:check": "madge --circular src"
   },
   "keywords": [],
   "author": "",
@@ -63,7 +64,8 @@
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "stylelint": "^16.23.0",
-    "stylelint-config-standard": "^39.0.0"
+    "stylelint-config-standard": "^39.0.0",
+    "madge": "^6.0.0"
   },
   "engines": { "node": ">=20 <23" }
 }

@@ -1,4 +1,4 @@
-// db/index.js
+// src/db/pool.js
 const { Pool } = require('pg');
 
 const connectionString = process.env.DATABASE_URL;
