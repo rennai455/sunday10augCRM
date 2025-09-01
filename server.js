@@ -1,5 +1,4 @@
 // server.js
-require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
@@ -7,14 +6,18 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
+const crypto = require('crypto');
+const config = require('./config');
 const { pool } = require('./db'); // single source of pg Pool
 
 const app = express();
-const PORT = process.env.PORT || 3002;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+app.disable('x-powered-by');
+app.enable('trust proxy'); // Railway/NGINX proxy
+
+const { PORT, NODE_ENV, ALLOWED_ORIGINS } = config;
 
 /** CORS allowlist (no '*' + credentials) */
-const raw = process.env.ALLOWED_ORIGINS || '';
+const raw = ALLOWED_ORIGINS || '';
 const ALLOWLIST = raw.split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
@@ -27,28 +30,30 @@ app.use(cors({
 }));
 
 /** Security & compression */
-app.enable('trust proxy'); // Railway/NGINX proxy
-app.use(helmet({
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      "default-src": ["'self'"],
-      "script-src": ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
-      "style-src": ["'self'", "'unsafe-inline'"],
-      "img-src": ["'self'", "data:"],
-      "frame-ancestors": ["'none'"]
+app.use((req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "https://cdn.tailwindcss.com", `\'nonce-${res.locals.cspNonce}\'`],
+        "style-src": ["'self'", `\'nonce-${res.locals.cspNonce}\'`],
+        "img-src": ["'self'", "data:"],
+        "frame-ancestors": ["'none'"]
+      }
     }
-  }
-}));
+  })(req, res, next);
+});
 if (NODE_ENV === 'production') {
   app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true, preload: true }));
 }
 app.use(compression());
 
 /** Parsers + static */
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 app.use('/static', express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '1y' : 0,
   etag: true,

@@ -21,6 +21,7 @@
     "db:migrate": "node db/run-migrations.js",
     "db:seed": "node db/seed.js",
     "diagnostics": "node scripts/diagnostics.js",
+    "audit": "npm audit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepare": "husky install"
@@ -35,6 +36,7 @@
     "cors": "^2.8.5",
     "debug": "^4.4.1",
     "dotenv": "^17.2.1",
+    "envalid": "^8.0.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
     "express-slow-down": "^2.1.0",

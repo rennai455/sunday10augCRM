@@ -1,9 +1,9 @@
 // db/index.js
 const { Pool } = require('pg');
+const config = require('../config');
 
-const connectionString = process.env.DATABASE_URL;
-const useSSL = String(process.env.PG_SSL).toLowerCase() === 'true';
-const ssl = useSSL ? { rejectUnauthorized: false } : undefined;
+const connectionString = config.DATABASE_URL;
+const ssl = config.PG_SSL ? { rejectUnauthorized: false } : undefined;
 
 const pool = new Pool({ connectionString, ssl });
 

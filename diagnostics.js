@@ -1,5 +1,5 @@
 // diagnostics.js: checks config, DB, and security
-require('dotenv').config();
+const config = require('./config');
 const db = require('./db');
 const fs = require('fs');
 
@@ -7,15 +7,12 @@ async function diagnostics() {
   const requiredEnv = [
     'DATABASE_URL',
     'JWT_SECRET',
-    'ADMIN_EMAIL',
-    'ADMIN_PASSWORD',
-    'CORS_ORIGIN',
-    'SESSION_COOKIE_NAME',
-    'RATE_LIMIT_WINDOW_MS',
-    'RATE_LIMIT_MAX',
+    'SEED_ADMIN_EMAIL',
+    'SEED_ADMIN_PASSWORD',
+    'ALLOWED_ORIGINS',
     'WEBHOOK_SECRET',
   ];
-  let missing = requiredEnv.filter((k) => !process.env[k]);
+  const missing = requiredEnv.filter((k) => !config[k]);
   if (missing.length) {
     console.error('Missing env vars:', missing);
   } else {

@@ -1,7 +1,7 @@
 // Restore checkEnv function
 async function checkEnv() {
   const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
-  const missing = required.filter(k => !process.env[k] || !String(process.env[k]).trim());
+  const missing = required.filter(k => !config[k] || !String(config[k]).trim());
   if (missing.length) {
     fail('Missing required env vars: ' + missing.join(', '));
   } else {
@@ -9,6 +9,7 @@ async function checkEnv() {
   }
 }
 'use strict';
+const config = require('../config');
 
 /**
  * RENN.AI Diagnostics
@@ -19,7 +20,6 @@ async function checkEnv() {
  * Exit codes: 0 = all checks passed, 1 = failure
  */
 
-require('dotenv').config();
 
 const { Pool } = require('pg');
 
@@ -32,7 +32,7 @@ function warn(msg)  { console.log(`⚠️  ${msg}`); }
 function fail(msg)  { hadFailure = true; console.error(`❌ ${msg}`); }
 
 function sslConfig() {
-  return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
+  return config.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 }
 
 async function checkAPI() {
@@ -72,7 +72,7 @@ async function checkAPI() {
 }
 
 async function checkDB() {
-  const url = process.env.DATABASE_URL;
+  const url = config.DATABASE_URL;
   if (!url || !String(url).trim()) {
     fail('DATABASE_URL is empty. Set it in .env (see RUNBOOK.md for examples).');
     return;
