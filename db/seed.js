@@ -1,14 +1,15 @@
 // db/seed.js: seed admin and sample data
 const db = require('./index');
 const bcrypt = require('bcryptjs');
+const config = require('../config');
 
 async function seed() {
   await db.query("INSERT INTO agencies (name) VALUES ($1) ON CONFLICT DO NOTHING", ['Demo Agency']);
   const agencyRes = await db.query("SELECT id FROM agencies WHERE name = $1", ['Demo Agency']);
   const agencyId = agencyRes.rows[0].id;
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const adminEmail = config.SEED_ADMIN_EMAIL;
+  const adminPassword = config.SEED_ADMIN_PASSWORD;
   const passwordHash = await bcrypt.hash(adminPassword, 12);
 
   await db.query(
