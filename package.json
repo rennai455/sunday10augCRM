@@ -25,7 +25,8 @@
     "audit": "npm audit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "deps:check": "madge --circular src"
   },
   "keywords": [],
   "author": "",
@@ -75,7 +76,8 @@
     "stylelint-config-standard": "^39.0.0",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",
-    "@eslint/js": "^9.13.0"
+    "@eslint/js": "^9.13.0",
+    "madge": "^6.0.0"
   },
   "engines": {
     "node": ">=20 <23"
