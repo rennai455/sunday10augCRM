@@ -3,8 +3,10 @@ const db = require('./index');
 const bcrypt = require('bcryptjs');
 
 async function seed() {
-  await db.query("INSERT INTO agencies (name) VALUES ($1) ON CONFLICT DO NOTHING", ['Demo Agency']);
-  const agencyRes = await db.query("SELECT id FROM agencies WHERE name = $1", ['Demo Agency']);
+  const agencyRes = await db.query(
+    "INSERT INTO agencies (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id",
+    ['Demo Agency']
+  );
   const agencyId = agencyRes.rows[0].id;
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
@@ -16,12 +18,10 @@ async function seed() {
     [adminEmail, passwordHash, agencyId]
   );
 
-  await db.query(
-    "INSERT INTO campaigns (agency_id, name, status) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+  const campaignRes = await db.query(
+    "INSERT INTO campaigns (agency_id, name, status) VALUES ($1, $2, $3) ON CONFLICT (agency_id, name) DO UPDATE SET status = EXCLUDED.status RETURNING id",
     [agencyId, 'Demo Campaign', 'active']
   );
-
-  const campaignRes = await db.query("SELECT id FROM campaigns WHERE name = $1", ['Demo Campaign']);
   const campaignId = campaignRes.rows[0].id;
 
   await db.query(
