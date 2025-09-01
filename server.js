@@ -6,6 +6,9 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
+const pinoHttp = require('pino-http');
+const { randomUUID } = require('crypto');
+const metrics = require('./metrics');
 const crypto = require('crypto');
 const config = require('./config');
 const { pool } = require('./db'); // single source of pg Pool
@@ -15,6 +18,16 @@ app.disable('x-powered-by');
 app.enable('trust proxy'); // Railway/NGINX proxy
 
 const { PORT, NODE_ENV, ALLOWED_ORIGINS } = config;
+
+/** request id + logging */
+app.use((req, _res, next) => {
+  req.id = randomUUID();
+  next();
+});
+app.use(pinoHttp({
+  genReqId: req => req.id,
+  redact: ['req.headers.authorization'],
+}));
 
 /** CORS allowlist (no '*' + credentials) */
 const raw = ALLOWED_ORIGINS || '';
@@ -69,6 +82,9 @@ app.use('/api/auth/', makeLimiter(15*60*1000, 10, 'Too many auth attempts'));
 app.use(slowDown({ windowMs: 15*60*1000, delayAfter: 50, delayMs: 500, maxDelayMs: 20000 }));
 
 /** Health/readiness */
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 app.get('/health', async (_req, res) => {
   try { await pool.query('select 1'); res.json({ status: 'ok', db: 'PostgreSQL' }); }
   catch (e) { res.status(500).json({ status: 'error', db: 'PostgreSQL', error: e.message }); }
@@ -77,8 +93,17 @@ app.get('/readyz', async (_req, res) => {
   try { await pool.query('select 1'); res.json({ ready: true }); }
   catch { res.status(503).json({ ready: false }); }
 });
+app.get('/metrics', async (_req, res) => {
+  res.set('Content-Type', metrics.register.contentType);
+  res.end(await metrics.register.metrics());
+});
 
 /** TODO: wire real routes here (users, agencies, leads, etc.) */
+
+app.use((err, req, res, _next) => {
+  req.log?.error({ err }, 'Unhandled error');
+  res.status(err.status || 500).json({ id: req.id, error: err.message || 'Internal Server Error' });
+});
 
 const server = app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);

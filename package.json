@@ -21,6 +21,7 @@
     "db:migrate": "node db/run-migrations.js",
     "db:seed": "node db/seed.js",
     "diagnostics": "node scripts/diagnostics.js",
+    "smoke": "node scripts/smoke.js",
     "audit": "npm audit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -42,12 +43,15 @@
     "express-slow-down": "^2.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "pino": "^9.4.0",
+    "pino-http": "^10.3.0",
     "pg": "^8.16.3",
     "postcss": "^8.5.6",
+    "prom-client": "^15.1.2",
     "redis": "^5.7.0",
     "tailwindcss": "^4.1.11"
   },
-  "description": "",
+  "description": "Prepared for GitHub import.",
   "devDependencies": {
     "@axe-core/cli": "^4.10.2",
     "@fullhuman/postcss-purgecss": "^7.0.2",
@@ -75,5 +79,9 @@
   },
   "engines": {
     "node": ">=20 <23"
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
   }
 }
