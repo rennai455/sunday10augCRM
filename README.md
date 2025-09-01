@@ -1,5 +1,5 @@
 # sunday10augCRM
-
+[![CI](https://github.com/rennai455/sunday10augCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/rennai455/sunday10augCRM/actions/workflows/ci.yml)
 Prepared for GitHub import.
 
 ## Getting Started
