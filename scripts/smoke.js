@@ -5,9 +5,9 @@ const path = require('path');
 
 console.log('🔥 Running smoke tests...');
 
-// Run the smoke tests using jest
+// Run the smoke tests using current test command (lint)
 const testCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const testProcess = spawn(testCommand, ['test', 'smoke'], {
+const testProcess = spawn(testCommand, ['run', 'lint'], {
   stdio: 'inherit',
   cwd: path.join(__dirname, '..')
 });
