@@ -22,6 +22,7 @@ async function checkEnv() {
 require('dotenv').config();
 
 const { Pool } = require('pg');
+const memoize = require('../utils/memoize');
 
 const EXIT = { OK: 0, FAIL: 1 };
 let hadFailure = false;
@@ -31,9 +32,9 @@ function pass(msg)  { console.log(`✅ ${msg}`); }
 function warn(msg)  { console.log(`⚠️  ${msg}`); }
 function fail(msg)  { hadFailure = true; console.error(`❌ ${msg}`); }
 
-function sslConfig() {
-  return process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
-}
+const sslConfig = memoize(() =>
+  process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+);
 
 async function checkAPI() {
   // Import the Express app for diagnostics (should export `app`)

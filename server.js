@@ -49,10 +49,10 @@ app.use(compression());
 /** Parsers + static */
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/static', express.static(path.join(__dirname, 'public'), {
-  maxAge: NODE_ENV === 'production' ? '1y' : 0,
-  etag: true,
-}));
+const staticOpts = NODE_ENV === 'production'
+  ? { maxAge: '1y', etag: true, lastModified: true }
+  : { maxAge: 0, etag: false, lastModified: false };
+app.use('/static', express.static(path.join(__dirname, 'public'), staticOpts));
 
 /** Rate limits (skip in dev) */
 const makeLimiter = (windowMs, max, message) => rateLimit({
