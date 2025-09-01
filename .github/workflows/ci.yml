@@ -1,14 +1,27 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
 jobs:
-  node:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'npm'
+
       - run: npm ci
-      - run: npm run css:build || true
-      - run: npm test || true
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run smoke
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage
