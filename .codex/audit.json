@@ -1,0 +1,141 @@
+{
+  "audit_timestamp": "2025-09-01T06:20:00Z",
+  "branch": "codex/cleanup-20250901-0619",
+  "head_commit": "5bad528",
+  "tools": {
+    "node": "v20.19.4",
+    "npm": "10.8.2",
+    "git": "2.45.2",
+    "jq": "jq-1.7"
+  },
+  "repo_state": {
+    "working_tree": "clean",
+    "merge_conflicts": "none_found",
+    "untracked_files": []
+  },
+  "scripts": {
+    "npm_install": {
+      "status": "partial_success",
+      "method": "npm install --ignore-scripts",
+      "issues": ["chromedriver network failure"]
+    },
+    "npm_ci": {
+      "status": "failed",
+      "error": "lockfile out of sync"
+    },
+    "lint": {
+      "status": "failed",
+      "problems": 154,
+      "errors": 79,
+      "warnings": 75,
+      "fixable": 5
+    },
+    "build": {
+      "status": "success",
+      "command": "npm run css:build"
+    },
+    "test": {
+      "status": "failed",
+      "reason": "runs lint which fails"
+    },
+    "test:jest": {
+      "status": "failed",
+      "reason": "jest not found"
+    }
+  },
+  "security": {
+    "critical_issues": [
+      {
+        "type": "tracked_secrets",
+        "file": ".env",
+        "description": "Environment file with secrets is tracked in git"
+      }
+    ],
+    "audit_production": {
+      "vulnerabilities": 0,
+      "status": "clean"
+    },
+    "audit_all": {
+      "vulnerabilities": 19,
+      "breakdown": {
+        "low": 6,
+        "moderate": 6,
+        "high": 7
+      }
+    },
+    "env_files": {
+      "tracked_env": ".env (CRITICAL)",
+      "env_example": ".env.example (good)",
+      "gitignore_status": "partial (ignores .env but file is tracked)"
+    }
+  },
+  "dependencies": {
+    "outdated_packages": [
+      {
+        "package": "concurrently",
+        "current": "9.2.0",
+        "wanted": "9.2.1",
+        "latest": "9.2.1",
+        "type": "patch"
+      },
+      {
+        "package": "cssnano",
+        "current": "7.1.0",
+        "wanted": "7.1.1",
+        "latest": "7.1.1",
+        "type": "patch"
+      },
+      {
+        "package": "redis",
+        "current": "5.8.0",
+        "wanted": "5.8.2",
+        "latest": "5.8.2",
+        "type": "patch"
+      },
+      {
+        "package": "tailwindcss",
+        "current": "4.1.11",
+        "wanted": "4.1.12",
+        "latest": "4.1.12",
+        "type": "patch"
+      }
+    ],
+    "major_updates_available": [
+      {
+        "package": "eslint",
+        "current": "8.57.1",
+        "latest": "9.34.0",
+        "note": "requires configuration migration"
+      },
+      {
+        "package": "express-slow-down",
+        "current": "2.1.0",
+        "latest": "3.0.0"
+      },
+      {
+        "package": "lint-staged",
+        "current": "15.5.2",
+        "latest": "16.1.5"
+      }
+    ],
+    "missing_dev_deps": [
+      "jest (referenced in scripts but not installed properly)"
+    ]
+  },
+  "config": {
+    "eslint_config": "present but has module type issues",
+    "prettier_config": "present",
+    "npmrc": "missing (registry not pinned)",
+    "editorconfig": "not checked"
+  },
+  "ci": {
+    "github_actions": {
+      "workflows": [".github/workflows/ci.yml", ".github/workflows/audit.yml"],
+      "node_version": "20",
+      "status": "will_fail_due_to_lint_errors"
+    }
+  },
+  "formatting_drift": {
+    "status": "not_measured_due_to_lint_errors"
+  }
+}
