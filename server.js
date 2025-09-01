@@ -64,10 +64,12 @@ app.use('/api/auth/', makeLimiter(15*60*1000, 10, 'Too many auth attempts'));
 app.use(slowDown({ windowMs: 15*60*1000, delayAfter: 50, delayMs: 500, maxDelayMs: 20000 }));
 
 /** Health/readiness */
-app.get('/health', async (_req, res) => {
+const healthHandler = async (_req, res) => {
   try { await pool.query('select 1'); res.json({ status: 'ok', db: 'PostgreSQL' }); }
   catch (e) { res.status(500).json({ status: 'error', db: 'PostgreSQL', error: e.message }); }
-});
+};
+app.get('/health', healthHandler);
+app.get('/healthz', healthHandler);
 app.get('/readyz', async (_req, res) => {
   try { await pool.query('select 1'); res.json({ ready: true }); }
   catch { res.status(503).json({ ready: false }); }
