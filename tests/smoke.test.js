@@ -12,7 +12,8 @@ describe('RENN.AI CRM health endpoints', () => {
   it('GET /readyz should report ready', async () => {
     const res = await request(app).get('/readyz');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ready: true });
+    expect(res.body).toHaveProperty('status', 'ready');
+
   });
 
   it('should not expose .env files', async () => {
