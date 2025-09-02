@@ -34,9 +34,10 @@ const raw = ALLOWED_ORIGINS || '';
 const ALLOWLIST = raw.split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin) return cb(null, true);                // same-origin / curl
-    if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
-    cb(null, ALLOWLIST.includes(origin));
+    if (!origin) return cb(null, true); // same-origin / curl
+    if (ALLOWLIST.length === 0) return cb(null, false);
+    if (ALLOWLIST.includes(origin)) return cb(null, true);
+    return cb(null, false);
   },
   credentials: true,
   optionsSuccessStatus: 200,
@@ -83,8 +84,12 @@ app.use(slowDown({ windowMs: 15*60*1000, delayAfter: 50, delayMs: 500, maxDelayM
 
 /** Health/readiness */
 const healthHandler = async (_req, res) => {
-  try { await pool.query('select 1'); res.json({ status: 'ok', db: 'PostgreSQL' }); }
-  catch (e) { res.status(500).json({ status: 'error', db: 'PostgreSQL', error: e.message }); }
+  try {
+    await pool.query('select 1');
+    res.json({ status: 'ok' });
+  } catch {
+    res.status(500).json({ status: 'error' });
+  }
 };
 app.get('/healthz', healthHandler);
 app.get('/health', healthHandler);
@@ -99,13 +104,26 @@ app.get('/metrics', async (_req, res) => {
 
 /** TODO: wire real routes here (users, agencies, leads, etc.) */
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
-  res.status(err.status || 500).json({ id: req.id, error: err.message || 'Internal Server Error' });
+  res.status(err.status || 500).json({ id: req.id, error: 'Internal Server Error' });
 });
 
 const server = app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
   console.log(`Environment: ${NODE_ENV}`);
 });
+
+const shutdown = () => {
+  console.log('Shutting down...');
+  const timer = setTimeout(() => process.exit(1), 10000);
+  server.close(() => {
+    clearTimeout(timer);
+    pool.end().catch(() => {});
+    process.exit(0);
+  });
+};
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
 module.exports = { app, server };
