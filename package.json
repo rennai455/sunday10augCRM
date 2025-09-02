@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "npm run lint",
+    "test": "node --test",
     "test:jest": "jest --runInBand",
     "test:unit": "jest tests/unit --runInBand",
     "test:integration": "jest tests/integration --runInBand",
@@ -17,7 +17,7 @@
     "css:build": "postcss styles/main.css -o dist/main.css",
     "css:lint": "stylelint 'styles/**/*.css' --fix",
     "format": "prettier --write \"**/*.{js,css,html,json,md}\"",
-    "build": "npm run css:build",
+    "build": "npm run css:build && node scripts/hash-css.js",
     "test:lighthouse": "lhci autorun",
     "test:visual": "backstop test",
     "db:up": "docker compose up -d",

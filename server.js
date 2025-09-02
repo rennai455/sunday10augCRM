@@ -35,7 +35,11 @@ app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);                // same-origin / curl
     if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
-    cb(null, ALLOWLIST.includes(origin));
+    if (ALLOWLIST.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
   optionsSuccessStatus: 200,
@@ -50,7 +54,13 @@ app.use((req, res, next) => {
       useDefaults: true,
       directives: {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "https://cdn.tailwindcss.com", `'nonce-${res.locals.cspNonce}'`],
+        "script-src": [
+          "'self'",
+          "https://cdn.tailwindcss.com",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com",
+          `'nonce-${res.locals.cspNonce}'`
+        ],
         "style-src": ["'self'", `'nonce-${res.locals.cspNonce}'`],
         "img-src": ["'self'", "data:"],
         "frame-ancestors": ["'none'"]
@@ -98,6 +108,21 @@ app.get('/metrics', async (_req, res) => {
 });
 
 /** TODO: wire real routes here (users, agencies, leads, etc.) */
+
+// Serve login.html as static for unauthenticated users
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'Login.html'));
+});
+
+// Also serve at /Login.html for direct access
+app.get('/Login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'Login.html'));
+});
+
+// Serve dashboard.html (authentication would be handled by middleware in real app)
+app.get('/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
 
 app.use((err, req, res, next) => {
   req.log?.error({ err }, 'Unhandled error');
