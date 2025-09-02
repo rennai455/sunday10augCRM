@@ -1,4 +1,5 @@
 // server.js - Super Server that merges everything together
+// Routes are defined inline; no standalone apiRouter is used.
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
