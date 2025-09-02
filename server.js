@@ -53,8 +53,8 @@ app.use((req, res, next) => {
       useDefaults: true,
       directives: {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "https://cdn.tailwindcss.com", `'nonce-${res.locals.cspNonce}'`, "'unsafe-inline'"],
-        "style-src": ["'self'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com", `'nonce-${res.locals.cspNonce}'`, "'unsafe-inline'"],
+        "script-src": ["'self'", "https://cdn.tailwindcss.com", `'nonce-${res.locals.cspNonce}'`],
+        "style-src": ["'self'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com", `'nonce-${res.locals.cspNonce}'`],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
         "img-src": ["'self'", "data:"],
         "connect-src": ["'self'"],
