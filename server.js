@@ -109,7 +109,6 @@ const server = app.listen(PORT, () => {
   console.log(`Environment: ${NODE_ENV}`);
 });
 
-<<<<<<< codex/implement-security-fixes-and-enhancements
 const shutdown = () => {
   console.log('Shutting down...');
   const timer = setTimeout(() => process.exit(1), 10000);
@@ -123,7 +122,3 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 module.exports = { app, server };
-=======
-module.exports = app;
-module.exports.server = server;
->>>>>>> main
