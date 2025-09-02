@@ -40,17 +40,20 @@ const ALLOWLIST = raw
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // same-origin / curl
+      if (!origin) return cb(null, true);        // same-origin / curl
       if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
-      cb(null, ALLOWLIST.includes(origin));
+      if (ALLOWLIST.includes(origin)) return cb(null, true);
+      return cb(null, false);
     },
     credentials: true,
     optionsSuccessStatus: 200,
   })
 );
+
 
 /** Security & compression */
 app.use((req, res, next) => {
@@ -143,8 +146,15 @@ app.use(slowDown(slowDownConfig));
 
 
 /** Health/readiness */
-const healthHandler = (_req, res) => {
-  res.json({ status: 'healthy' });
+const healthHandler = async (_req, res) => {
+  try {
+    await pool.query('select 1');
+    res.json({ status: 'healthy' });
+  } catch {
+    res.status(500).json({ status: 'error' });
+  }
+};
+
 };
 app.get('/healthz', healthHandler);
 app.get('/health', healthHandler);
@@ -476,8 +486,10 @@ app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
   res.status(err.status || 500).json({
     id: req.id,
-    error: err.message || 'Internal Server Error',
+    error: 'Internal Server Error',
   });
+});
+
 });
 
 const server = app.listen(PORT, () => {
