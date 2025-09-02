@@ -2,6 +2,15 @@
 const config = require('../config');
 const { Pool } = require('pg');
 
+/**
+ * RENN.AI Diagnostics
+ * - Verifies env + Postgres connectivity
+ * - (If available) probes API protections via supertest
+ * - Prints targeted hints on common failures
+ *
+ * Exit codes: 0 = all checks passed, 1 = failure
+ */
+
 const EXIT = { OK: 0, FAIL: 1 };
 let hadFailure = false;
 
@@ -128,7 +137,8 @@ async function checkAPI() {
     for (const p of candidates) {
       const res = await agent.get(p);
       if (res && res.headers && res.headers['content-security-policy']) {
-        seenCsp = true; break;
+        seenCsp = true;
+        break;
       }
     }
     if (seenCsp) pass('Helmet CSP header present.');
