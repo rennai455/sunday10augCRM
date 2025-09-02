@@ -1,0 +1,7 @@
+{
+  "lint": "fail",
+  "test": "fail",
+  "build": "fail",
+  "diagnostics": "fail",
+  "rationale": "Missing dependencies: @eslint/js, postcss, dotenv"
+}

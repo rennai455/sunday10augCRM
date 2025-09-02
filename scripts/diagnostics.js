@@ -10,6 +10,7 @@ const { Pool } = require('pg');
  *
  * Exit codes: 0 = all checks passed, 1 = failure
  */
+
 const EXIT = { OK: 0, FAIL: 1 };
 let hadFailure = false;
 
@@ -62,43 +63,35 @@ async function checkDB() {
     } else if (/database .* does not exist/i.test(m)) {
       info('Cause: DB name not created.\nFix: Create the database and grant privileges to your role.');
     }
-    try { await pool.end(); } catch (error) { 
-      // Ignore cleanup errors
-      void error;
-    }
+    try { await pool.end(); } catch (error) { void error; }
   }
 }
 
 async function checkAPI() {
-  // Try to import the Express app (should export `app`)
+  // Try to import Express app (should export `app`)
   let app = null;
   try {
-    // Common export patterns
-    app = require('../server'); // without extension
+    app = require('../server');
   } catch (error) {
-    // Ignore import errors
-    void error;
-    try { 
-      app = require('../server.js'); 
-    } catch (innerError) { 
-      void innerError;
-    }
+    warn('API checks skipped: ' + error.message);
+    return;
   }
 
-  if (!app || !app.handle) {
-    warn('API checks skipped: could not import Express app. Ensure server.js exports `app` and only listens when run directly.');
+  const expressApp = app.app || app;
+  if (!expressApp || typeof expressApp.handle !== 'function') {
+    warn('Express app not found or invalid export. Ensure server.js exports { app }.');
     return;
   }
 
   let request;
   try {
     request = require('supertest');
-  } catch (e) {
+  } catch {
     warn('supertest not installed; skipping API probes. Run: npm i -D supertest');
     return;
   }
 
-  const agent = request(app);
+  const agent = request(expressApp);
 
   // 1) /crm.db must not be served
   try {
@@ -127,7 +120,7 @@ async function checkAPI() {
     const res = await agent
       .post('/api/webhooks/campaign-update')
       .set('Content-Type', 'application/json')
-      .send('{}'); // missing X-Signature + X-Timestamp
+      .send('{}'); // missing signature headers
     if (res.status === 400 || res.status === 401) {
       pass('Webhook without signature rejected (good).');
     } else {
@@ -137,14 +130,15 @@ async function checkAPI() {
     warn(`Webhook check error: ${e.message}`);
   }
 
-  // 4) Helmet/CSP presence on any route
+  // 4) Helmet/CSP presence
   try {
     const candidates = ['/', '/static/dashboard.html', '/static/'];
     let seenCsp = false;
     for (const p of candidates) {
       const res = await agent.get(p);
       if (res && res.headers && res.headers['content-security-policy']) {
-        seenCsp = true; break;
+        seenCsp = true;
+        break;
       }
     }
     if (seenCsp) pass('Helmet CSP header present.');
