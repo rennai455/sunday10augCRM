@@ -85,27 +85,32 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 /** Rate limits (skip in dev) */
-const makeLimiter = (windowMs, max, message) => rateLimit({
-  windowMs, 
-  max, 
-  standardHeaders: true, 
-  legacyHeaders: false,
-  message: { error: message }, 
-  skip: () => NODE_ENV === 'development',
-  validate: { trustProxy: false } // Disable trust proxy validation in dev
-});
-app.use('/api/', makeLimiter(15*60*1000, 1000, 'Too many requests'));
-app.use('/api/auth/', makeLimiter(15*60*1000, 10, 'Too many auth attempts'));
-app.use(slowDown({ 
-  windowMs: 15*60*1000, 
-  delayAfter: 50, 
-  delayMs: () => 500, 
-  maxDelayMs: 20000,
-  validate: { 
-    delayMs: false,
-    trustProxy: false 
+const makeLimiter = (windowMs, max, message) => {
+  const opts = {
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: message },
+    skip: () => NODE_ENV === 'development'
+  };
+  if (NODE_ENV !== 'production') {
+    opts.validate = { trustProxy: false };
   }
-}));
+  return rateLimit(opts);
+};
+app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests'));
+app.use('/api/auth/', makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts'));
+const slowDownConfig = {
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 50,
+  delayMs: () => 500,
+  maxDelayMs: 20000
+};
+if (NODE_ENV !== 'production') {
+  slowDownConfig.validate = { delayMs: false, trustProxy: false };
+}
+app.use(slowDown(slowDownConfig));
 
 /** Health/readiness */
 const healthHandler = (_req, res) => {
