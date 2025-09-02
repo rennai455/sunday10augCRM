@@ -46,3 +46,20 @@ The script will:
 - create/force `main` as default branch
 - set `origin` to your repo
 - push the initial commit
+
+## Local setup
+
+Run the app locally:
+
+```bash
+cp .env.example .env
+npm install
+npm run build
+npm start
+```
+
+## Endpoints
+
+- `GET /healthz` – liveness check
+- `GET /readyz` – readiness check
+- Static assets served at `/static`
