@@ -1,4 +1,4 @@
-x// server.js - Super Server that merges everything together
+// server.js - Super Server that merges everything together
 // Routes are defined inline; no standalone apiRouter is used.
 const express = require('express');
 const path = require('path');
@@ -40,14 +40,12 @@ const ALLOWLIST = raw
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
-
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true);        // same-origin / curl
+      if (!origin) return cb(null, true); // same-origin / curl
       if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
-      if (ALLOWLIST.includes(origin)) return cb(null, true);
-      return cb(null, false);
+      cb(null, ALLOWLIST.includes(origin));
     },
     credentials: true,
     optionsSuccessStatus: 200,
@@ -62,24 +60,24 @@ app.use((req, res, next) => {
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        "default-src": ["'self'"],
-        "script-src": [
+        'default-src': ["'self'"],
+        'script-src': [
           "'self'",
-          "https://cdn.tailwindcss.com",
-          `'nonce-${res.locals.cspNonce}'`
+          'https://cdn.tailwindcss.com',
+          `'nonce-${res.locals.cspNonce}'`,
         ],
-        "style-src": [
+        'style-src': [
           "'self'",
-          "https://cdn.tailwindcss.com",
-          "https://fonts.googleapis.com",
-          `'nonce-${res.locals.cspNonce}'`
+          'https://cdn.tailwindcss.com',
+          'https://fonts.googleapis.com',
+          `'nonce-${res.locals.cspNonce}'`,
         ],
-        "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "img-src": ["'self'", "data:"],
-        "connect-src": ["'self'"],
-        "frame-ancestors": ["'none'"]
-      }
-    }
+        'font-src': ["'self'", 'https://fonts.gstatic.com'],
+        'img-src': ["'self'", 'data:'],
+        'connect-src': ["'self'"],
+        'frame-ancestors': ["'none'"],
+      },
+    },
   })(req, res, next);
 });
 if (NODE_ENV === 'production') {
@@ -103,29 +101,26 @@ app.use(
 );
 
 /** Rate limits (skip in dev) */
-const makeLimiter = (windowMs, max, message) => {
-  const opts = {
+const makeLimiter = (windowMs, max, message) =>
+  rateLimit({
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: message },
-    skip: () => NODE_ENV === 'development'
-  };
-  if (NODE_ENV !== 'production') {
-    opts.validate = { trustProxy: false };
-  }
-  return rateLimit(opts);
-};
-
+    skip: () => NODE_ENV === 'development',
+  });
 app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests'));
-app.use('/api/auth/', makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts'));
+app.use(
+  '/api/auth/',
+  makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts')
+);
 
 const slowDownConfig = {
   windowMs: 15 * 60 * 1000,
   delayAfter: 50,
-  delayMs: () => 500,
-  maxDelayMs: 20000
+  delayMs: 500,
+  maxDelayMs: 20000,
 };
 if (NODE_ENV !== 'production') {
   slowDownConfig.validate = { delayMs: false, trustProxy: false };
@@ -161,337 +156,156 @@ app.get('/metrics', async (_req, res) => {
 });
 
 /** Authentication middleware */
-const authenticateToken = (req, res, next) => {
+const auth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  the token = authHeader && authHeader.split(' ')[1];
+  const cookieToken = req.cookies?.token;
+  
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : cookieToken;
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ success: false, error: 'Access token required' });
+    return res.status(401).json({ error: 'No authentication token' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res
-        .status(403)
-        .json({ success: false, error: 'Invalid or expired token' });
-    }
-    req.user = user;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.userId = payload.userId;
+    req.agencyId = payload.agencyId;
+    req.isAdmin = payload.isAdmin;
     next();
-  });
+  } catch (e) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
 };
 
-/** Static page routes */
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'Login.html'));
-});
-
-app.get('/Login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'Login.html'));
-});
-
-app.get('/dashboard.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-app.get('/Register.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'Register.html'));
-});
-
-app.get('/', (req, res) => {
-  res.redirect('/Login.html');
-});
-
-/** Authentication API routes */
+/** API Routes */
+// Auth routes
 app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password required' });
+  }
+
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and password are required',
-      });
-    }
-
-    if (email === 'demo@renn.ai' && password === 'demo123') {
-      const token = jwt.sign(
-        { id: 1, email: 'demo@renn.ai', role: 'admin', agency: 'Demo Agency' },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-
-      return res.json({
-        success: true,
-        token,
-        user: {
-          id: 1,
-          email: 'demo@renn.ai',
-          role: 'admin',
-          agency: 'Demo Agency',
-        },
-      });
-    }
-
-    const result = await pool.query(
-      'SELECT id, email, password_hash, name FROM agencies WHERE email = $1',
-      [email.toLowerCase()]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
-    }
-
+    const result = await pool.query('SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
-    const isValid = await bcrypt.compare(password, user.password_hash);
-
-    if (!isValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+    if (!user || !await bcrypt.compare(password, user.password_hash)) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: 'admin', agency: user.name },
+      { userId: user.id, agencyId: user.agency_id, isAdmin: user.is_admin },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: 'admin',
-        agency: user.name,
-      },
+    res.cookie('token', token, { 
+      httpOnly: true, 
+      secure: NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000
     });
+    
+    res.json({ success: true, token, user: { id: user.id, email, agencyId: user.agency_id, isAdmin: user.is_admin } });
   } catch (error) {
-    req.log?.error({ error }, 'Login error');
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('Login error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ success: true });
+});
+
+app.get('/api/auth/me', auth, async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name, email, and password are required',
-      });
-    }
-
-    const existing = await pool.query(
-      'SELECT id FROM agencies WHERE email = $1',
-      [email.toLowerCase()]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: 'User already exists',
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      'INSERT INTO agencies (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, email, name',
-      [name, email.toLowerCase(), passwordHash]
-    );
-
+    const result = await pool.query('SELECT email, agency_id FROM users WHERE id = $1', [req.userId]);
     const user = result.rows[0];
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: 'admin', agency: user.name },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: 'admin',
-        agency: user.name,
-      },
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const agencyResult = await pool.query('SELECT name FROM agencies WHERE id = $1', [user.agency_id]);
+    const agency = agencyResult.rows[0]?.name;
+    
+    res.json({ 
+      success: true, 
+      email: user.email,
+      agency,
+      role: req.isAdmin ? 'admin' : 'user'
     });
   } catch (error) {
-    req.log?.error({ error }, 'Registration error');
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
+    console.error('Get user error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
   }
 });
 
-app.get('/api/auth/me', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    id: req.user.id,
-    email: req.user.email,
-    role: req.user.role,
-    agency: req.user.agency,
-  });
-});
-
-app.post('/api/auth/logout', (_req, res) => {
-  res.json({ success: true, message: 'Logged out successfully' });
-});
-
-/** API routes for CRM functionality */
-app.get('/api/campaigns', authenticateToken, async (req, res) => {
+// Protected routes
+app.get('/api/campaigns', auth, async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT * FROM campaigns WHERE agency_id = $1 ORDER BY created_at DESC',
-      [req.user.id]
+      [req.agencyId]
     );
-    res.json({ success: true, campaigns: result.rows });
+    res.json({ campaigns: result.rows });
   } catch (error) {
-    req.log?.error({ error }, 'Campaigns fetch error');
-    res
-      .status(500)
-      .json({ success: false, error: 'Failed to fetch campaigns' });
+    console.error('Get campaigns error:', error);
+    res.status(500).json({ error: 'Failed to fetch campaigns' });
   }
 });
 
-app.post('/api/campaigns', authenticateToken, async (req, res) => {
+app.get('/api/campaigns/:id', auth, async (req, res) => {
+  const { id } = req.params;
   try {
-    const { name, status = 'draft', details = {} } = req.body;
-
-    if (!name) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Campaign name is required' });
+    const result = await pool.query(
+      'SELECT * FROM campaigns WHERE id = $1 AND agency_id = $2',
+      [id, req.agencyId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Campaign not found' });
     }
-
-    const result = await pool.query(
-      'INSERT INTO campaigns (agency_id, name, status, details) VALUES ($1, $2, $3, $4) RETURNING *',
-      [req.user.id, name, status, details]
-    );
-
-    res.status(201).json({ success: true, campaign: result.rows[0] });
+    res.json(result.rows[0]);
   } catch (error) {
-    req.log?.error({ error }, 'Campaign creation error');
-    res
-      .status(500)
-      .json({ success: false, error: 'Failed to create campaign' });
+    console.error('Get campaign error:', error);
+    res.status(500).json({ error: 'Failed to fetch campaign' });
   }
 });
 
-app.get('/api/clients', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM clients WHERE agency_id = $1 ORDER BY created_at DESC',
-      [req.user.id]
-    );
-    res.json({ success: true, clients: result.rows });
-  } catch (error) {
-    req.log?.error({ error }, 'Clients fetch error');
-    res.status(500).json({ success: false, error: 'Failed to fetch clients' });
-  }
+// Serve static files (HTML, CSS, JS)
+app.get('/', (req, res) => {
+  res.redirect('/static/dashboard.html');
 });
 
-app.post('/api/clients', authenticateToken, async (req, res) => {
-  try {
-    const { name, email } = req.body;
-
-    if (!name || !email) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Client name and email are required' });
-    }
-
-    const result = await pool.query(
-      'INSERT INTO clients (agency_id, name, email) VALUES ($1, $2, $3) RETURNING *',
-      [req.user.id, name, email]
-    );
-
-    res.status(201).json({ success: true, client: result.rows[0] });
-  } catch (error) {
-    req.log?.error({ error }, 'Client creation error');
-    res.status(500).json({ success: false, error: 'Failed to create client' });
-  }
+app.get('/dashboard.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-app.get('/api/analytics/overview', authenticateToken, async (req, res) => {
-  try {
-    const campaignCount = await pool.query(
-      'SELECT COUNT(*) as count FROM campaigns WHERE agency_id = $1',
-      [req.user.id]
-    );
-
-    const clientCount = await pool.query(
-      'SELECT COUNT(*) as count FROM clients WHERE agency_id = $1',
-      [req.user.id]
-    );
-
-    const leadCount = await pool.query(
-      'SELECT COUNT(*) as count FROM leads l JOIN campaigns c ON l.campaign_id = c.id WHERE c.agency_id = $1',
-      [req.user.id]
-    );
-
-    res.json({
-      success: true,
-      data: {
-        campaigns: parseInt(campaignCount.rows[0].count, 10),
-        clients: parseInt(clientCount.rows[0].count, 10),
-        leads: parseInt(leadCount.rows[0].count, 10),
-        conversion_rate: '12.5%',
-      },
-    });
-  } catch (error) {
-    req.log?.error({ error }, 'Analytics fetch error');
-    res
-      .status(500)
-      .json({ success: false, error: 'Failed to fetch analytics' });
-  }
+app.get('/Login.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Login.html'));
 });
 
+/** Error handling */
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
-  res.status(err.status || 500).json({
-    id: req.id,
-    error: 'Internal Server Error',
-  });
+  res
+    .status(err.status || 500)
+    .json({ id: req.id, error: err.message || 'Internal Server Error' });
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Super Server listening on http://localhost:${PORT}`);
-  console.log(`Environment: ${NODE_ENV}`);
-  console.log(`Static files served from: ${path.join(__dirname, 'public')}`);
+  console.log(`🚀 RENN.AI Ultra-Optimized Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${NODE_ENV}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
 });
 
-const shutdown = () => {
-  console.log('Shutting down gracefully...');
-  const timer = setTimeout(() => {
-    console.error('Forced shutdown');
-    process.exit(1);
-  }, 10000);
-
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
   server.close(() => {
-    clearTimeout(timer);
-    pool.end().catch((err) => {
-      console.error('Error closing database pool:', err);
-    });
-    console.log('Server shutdown complete');
+    console.log('✅ Server closed');
     process.exit(0);
   });
-};
-
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+});
 
 module.exports = { app, server };

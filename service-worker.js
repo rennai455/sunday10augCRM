@@ -301,7 +301,7 @@ function handleNonGetRequest(event) {
   // For API requests, implement offline queue
   if (request.url.includes('/api/')) {
     event.respondWith(
-      fetch(request).catch(async (error) => {
+      fetch(request).catch(async () => {
         console.log("📱 Queueing offline request:", request.url);
         await queueOfflineRequest(request);
         return new Response(
@@ -530,7 +530,7 @@ async function queueOfflineRequest(request) {
     await store.add(requestData);
     
     // Register background sync
-    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+    if ('serviceWorker' in navigator && 'sync' in self.ServiceWorkerRegistration.prototype) {
       self.registration.sync.register('offline-requests');
     }
   } catch (error) {
@@ -575,7 +575,7 @@ function initializePerformanceMonitoring() {
 
 // Message handler for client communication
 self.addEventListener('message', event => {
-  const { type, data } = event.data;
+  const { type } = event.data;
   
   switch (type) {
     case 'GET_PERFORMANCE_METRICS':
