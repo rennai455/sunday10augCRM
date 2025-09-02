@@ -51,8 +51,8 @@ app.use((req, res, next) => {
       useDefaults: true,
       directives: {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "https://cdn.tailwindcss.com", `\'nonce-${res.locals.cspNonce}\'`],
-        "style-src": ["'self'", `\'nonce-${res.locals.cspNonce}\'`],
+        "script-src": ["'self'", "https://cdn.tailwindcss.com", `'nonce-${res.locals.cspNonce}'`],
+        "style-src": ["'self'", `'nonce-${res.locals.cspNonce}'`],
         "img-src": ["'self'", "data:"],
         "frame-ancestors": ["'none'"]
       }
@@ -99,7 +99,7 @@ app.get('/metrics', async (_req, res) => {
 
 /** TODO: wire real routes here (users, agencies, leads, etc.) */
 
-app.use((err, req, res, _next) => {
+app.use((err, req, res, next) => {
   req.log?.error({ err }, 'Unhandled error');
   res.status(err.status || 500).json({ id: req.id, error: err.message || 'Internal Server Error' });
 });
