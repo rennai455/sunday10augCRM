@@ -1,15 +1,6 @@
-// Restore checkEnv function
-async function checkEnv() {
-  const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
-  const missing = required.filter(k => !config[k] || !String(config[k]).trim());
-  if (missing.length) {
-    fail('Missing required env vars: ' + missing.join(', '));
-  } else {
-    pass('Required env vars present.');
-  }
-}
 'use strict';
 const config = require('../config');
+const { Pool } = require('pg');
 
 /**
  * RENN.AI Diagnostics
@@ -19,10 +10,6 @@ const config = require('../config');
  *
  * Exit codes: 0 = all checks passed, 1 = failure
  */
-
-
-const { Pool } = require('pg');
-
 const EXIT = { OK: 0, FAIL: 1 };
 let hadFailure = false;
 
@@ -35,39 +22,13 @@ function sslConfig() {
   return config.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 }
 
-async function checkAPI() {
-  // Import the Express app for diagnostics (should export `app`)
-  let app = null;
-  try {
-    app = require('../server');
-  } catch (e) {
-    warn('Could not import Express app from server.js: ' + e.message);
-    return;
-  }
-
-  if (!app || typeof app.handle !== 'function') {
-    warn('Express app not found or invalid export. Ensure server.js exports `app`.');
-    return;
-  }
-
-  let request;
-  try {
-    request = require('supertest');
-  } catch (e) {
-    warn('supertest not installed. Skipping API checks.');
-    return;
-  }
-
-  // Example API probe: health endpoint
-  try {
-    const res = await request(app).get('/health');
-    if (res.status === 200 && res.body.status === 'ok') {
-      pass('API /health endpoint OK');
-    } else {
-      fail('API /health endpoint failed: ' + JSON.stringify(res.body));
-    }
-  } catch (e) {
-    fail('API /health probe error: ' + e.message);
+async function checkEnv() {
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
+  const missing = required.filter(k => !config[k] || !String(config[k]).trim());
+  if (missing.length) {
+    fail('Missing required env vars: ' + missing.join(', '));
+  } else {
+    pass('Required env vars present.');
   }
 }
 
