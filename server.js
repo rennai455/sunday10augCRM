@@ -54,7 +54,6 @@ app.use(
   })
 );
 
-
 /** Security & compression */
 app.use((req, res, next) => {
   res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
@@ -63,7 +62,6 @@ app.use((req, res, next) => {
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-
         "default-src": ["'self'"],
         "script-src": [
           "'self'",
@@ -82,7 +80,6 @@ app.use((req, res, next) => {
         "frame-ancestors": ["'none'"]
       }
     }
-
   })(req, res, next);
 });
 if (NODE_ENV === 'production') {
@@ -107,23 +104,14 @@ app.use(
 
 /** Rate limits (skip in dev) */
 const makeLimiter = (windowMs, max, message) => {
-  return rateLimit({
+  const opts = {
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: message },
     skip: () => NODE_ENV === 'development'
-  });
-};
-
-    windowMs,
-    max,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: message },
-const makeLimiter = (windowMs, max, message) => {
-  const opts = { windowMs, max, message, skip: () => NODE_ENV === 'development' };
+  };
   if (NODE_ENV !== 'production') {
     opts.validate = { trustProxy: false };
   }
@@ -144,7 +132,6 @@ if (NODE_ENV !== 'production') {
 }
 app.use(slowDown(slowDownConfig));
 
-
 /** Health/readiness */
 const healthHandler = async (_req, res) => {
   try {
@@ -154,16 +141,20 @@ const healthHandler = async (_req, res) => {
     res.status(500).json({ status: 'error' });
   }
 };
-
-};
 app.get('/healthz', healthHandler);
 app.get('/health', healthHandler);
 
-const readinessHandler = (_req, res) => {
-  res.json({ status: 'ready' });
+const readinessHandler = async (_req, res) => {
+  try {
+    await pool.query('select 1');
+    res.json({ ready: true });
+  } catch {
+    res.status(503).json({ ready: false });
+  }
 };
 app.get('/readyz', readinessHandler);
 app.get('/readiness', readinessHandler);
+
 app.get('/metrics', async (_req, res) => {
   res.set('Content-Type', metrics.register.contentType);
   res.end(await metrics.register.metrics());
@@ -192,27 +183,22 @@ const authenticateToken = (req, res, next) => {
 };
 
 /** Static page routes */
-// Serve login.html as static for unauthenticated users
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'Login.html'));
 });
 
-// Also serve at /Login.html for direct access
 app.get('/Login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'Login.html'));
 });
 
-// Serve dashboard.html (authentication handled by frontend)
 app.get('/dashboard.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Serve register page
 app.get('/Register.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'Register.html'));
 });
 
-// Root route redirects to login
 app.get('/', (req, res) => {
   res.redirect('/Login.html');
 });
@@ -229,7 +215,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // For demo purposes, accept demo credentials
     if (email === 'demo@renn.ai' && password === 'demo123') {
       const token = jwt.sign(
         { id: 1, email: 'demo@renn.ai', role: 'admin', agency: 'Demo Agency' },
@@ -249,7 +234,6 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Try database authentication
     const result = await pool.query(
       'SELECT id, email, password_hash, name FROM agencies WHERE email = $1',
       [email.toLowerCase()]
@@ -308,7 +292,6 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    // Check if user already exists
     const existing = await pool.query(
       'SELECT id FROM agencies WHERE email = $1',
       [email.toLowerCase()]
@@ -321,7 +304,6 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    // Hash password and create user
     const passwordHash = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO agencies (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, email, name',
@@ -364,8 +346,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   });
 });
 
-app.post('/api/auth/logout', (req, res) => {
-  // In a stateless JWT system, logout is handled client-side
+app.post('/api/auth/logout', (_req, res) => {
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -446,19 +427,16 @@ app.post('/api/clients', authenticateToken, async (req, res) => {
 
 app.get('/api/analytics/overview', authenticateToken, async (req, res) => {
   try {
-    // Get campaign count
     const campaignCount = await pool.query(
       'SELECT COUNT(*) as count FROM campaigns WHERE agency_id = $1',
       [req.user.id]
     );
 
-    // Get client count
     const clientCount = await pool.query(
       'SELECT COUNT(*) as count FROM clients WHERE agency_id = $1',
       [req.user.id]
     );
 
-    // Get lead count
     const leadCount = await pool.query(
       'SELECT COUNT(*) as count FROM leads l JOIN campaigns c ON l.campaign_id = c.id WHERE c.agency_id = $1',
       [req.user.id]
@@ -467,10 +445,10 @@ app.get('/api/analytics/overview', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       data: {
-        campaigns: parseInt(campaignCount.rows[0].count),
-        clients: parseInt(clientCount.rows[0].count),
-        leads: parseInt(leadCount.rows[0].count),
-        conversion_rate: '12.5%', // Mock data
+        campaigns: parseInt(campaignCount.rows[0].count, 10),
+        clients: parseInt(clientCount.rows[0].count, 10),
+        leads: parseInt(leadCount.rows[0].count, 10),
+        conversion_rate: '12.5%',
       },
     });
   } catch (error) {
@@ -488,8 +466,6 @@ app.use((err, req, res, _next) => {
     id: req.id,
     error: 'Internal Server Error',
   });
-});
-
 });
 
 const server = app.listen(PORT, () => {
