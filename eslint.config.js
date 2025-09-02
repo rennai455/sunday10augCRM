@@ -51,8 +51,15 @@ module.exports = [
         atob: 'readonly',
         btoa: 'readonly',
         PerformanceObserver: 'readonly',
+        // Additional browser globals mentioned in linting errors
+        navigator: 'readonly',
+        Blob: 'readonly',
+        URL: 'readonly',
+        FormData: 'readonly',
         // Custom globals for the app
-        setUserRole: 'writable'
+        setUserRole: 'writable',
+        hideAddClientModal: 'readonly',
+        html2pdf: 'readonly'
       }
     }
   },

@@ -99,7 +99,7 @@ app.get('/metrics', async (_req, res) => {
 
 /** TODO: wire real routes here (users, agencies, leads, etc.) */
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
   res.status(err.status || 500).json({ id: req.id, error: err.message || 'Internal Server Error' });
 });
