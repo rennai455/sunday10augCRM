@@ -1,4 +1,4 @@
-// server.js - Super Server that merges everything together
+x// server.js - Super Server that merges everything together
 // Routes are defined inline; no standalone apiRouter is used.
 const express = require('express');
 const path = require('path');
@@ -163,7 +163,7 @@ app.get('/metrics', async (_req, res) => {
 /** Authentication middleware */
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
+  the token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res
