@@ -7,11 +7,11 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const pinoHttp = require('pino-http');
-const { randomUUID } = require('crypto');
+const crypto = require('crypto');
+const { randomUUID } = crypto;
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const metrics = require('./metrics');
-const crypto = require('crypto');
 const config = require('./config');
 const { pool } = require('./db');
 
