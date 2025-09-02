@@ -10,7 +10,7 @@ module.exports = [
       globals: {
         // Node.js globals
         require: 'readonly',
-        module: 'readonly', 
+        module: 'readonly',
         exports: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
@@ -21,15 +21,15 @@ module.exports = [
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         setInterval: 'readonly',
-        clearInterval: 'readonly'
-      }
+        clearInterval: 'readonly',
+      },
     },
     rules: {
       'no-console': 'warn',
       'no-unused-vars': 'error',
       'prefer-const': 'error',
-      'no-var': 'error'
-    }
+      'no-var': 'error',
+    },
   },
   // Browser environment for client-side scripts
   {
@@ -52,15 +52,15 @@ module.exports = [
         btoa: 'readonly',
         PerformanceObserver: 'readonly',
         // Custom globals for the app
-        setUserRole: 'writable'
-      }
-    }
+        setUserRole: 'writable',
+      },
+    },
   },
   // Service Worker environment
   {
     files: ['service-worker.js'],
     languageOptions: {
-      sourceType: 'script', 
+      sourceType: 'script',
       ecmaVersion: 2022,
       globals: {
         self: 'readonly',
@@ -71,9 +71,9 @@ module.exports = [
         indexedDB: 'readonly',
         navigator: 'readonly',
         console: 'readonly',
-        URL: 'readonly'
-      }
-    }
+        URL: 'readonly',
+      },
+    },
   },
   // Test files
   {
@@ -101,8 +101,8 @@ module.exports = [
         beforeEach: 'readonly',
         afterEach: 'readonly',
         jest: 'readonly',
-        test: 'readonly'
-      }
-    }
-  }
+        test: 'readonly',
+      },
+    },
+  },
 ];

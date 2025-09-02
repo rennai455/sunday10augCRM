@@ -1,6 +1,7 @@
 # RUNBOOK for renn-ai-crm
 
 ## Local Setup
+
 1. Copy `.env.example` to `.env` and fill in secrets.
 2. Run `docker compose up -d postgres` to start local Postgres.
 3. Run `npm install` to install dependencies.
@@ -10,6 +11,7 @@
 7. Start server: `npm start`.
 
 ## Railway Deployment
+
 1. Create Railway project and add Railway Postgres plugin.
 2. Copy Railway `DATABASE_URL` to your Railway environment variables.
 3. Generate secrets:
@@ -21,6 +23,7 @@
 7. Deploy and visit `/health` for `{ ok: true }`.
 
 ## Environment Variables
+
 - DATABASE_URL
 - JWT_SECRET
 - WEBHOOK_SECRET
@@ -31,6 +34,7 @@
 - SEED_ADMIN_PASSWORD
 
 ## Acceptance Checklist
+
 - [ ] All env vars present
 - [ ] DB schema applied
 - [ ] Admin user exists
@@ -38,7 +42,7 @@
 - [ ] Diagnostics script passes
 - [ ] /health returns { ok: true }
 - [ ] No SQLite code or dependencies
-- [ ] All /api/* unauthorized without cookie
+- [ ] All /api/\* unauthorized without cookie
 - [ ] CSV protected with ownership
 - [ ] Webhook signature enforced
 - [ ] Login sets HttpOnly cookie; Logout clears it

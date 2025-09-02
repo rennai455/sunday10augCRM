@@ -3,7 +3,8 @@
   padding: var(--space-lg) 0;
 }
 
-.nav__item, .nav-item {
+.nav__item,
+.nav-item {
   display: flex;
   align-items: center;
   padding: var(--space-md) var(--space-lg);
@@ -15,18 +16,21 @@
   margin-bottom: var(--space-xs);
 }
 
-.nav__item:hover, .nav-item:hover {
+.nav__item:hover,
+.nav-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
   border-left-color: var(--color-text-inverse);
 }
 
-.nav__item--active, .nav-item.active {
+.nav__item--active,
+.nav-item.active {
   background-color: rgba(255, 255, 255, 0.15);
   border-left-color: var(--color-text-inverse);
   font-weight: var(--font-weight-semibold);
 }
 
-.nav__item svg, .nav-item svg {
+.nav__item svg,
+.nav-item svg {
   margin-right: var(--space-md);
   width: 1.25rem;
   height: 1.25rem;

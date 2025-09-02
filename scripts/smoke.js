@@ -9,7 +9,7 @@ console.log('🔥 Running smoke tests...');
 const testCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const testProcess = spawn(testCommand, ['run', 'lint'], {
   stdio: 'inherit',
-  cwd: path.join(__dirname, '..')
+  cwd: path.join(__dirname, '..'),
 });
 
 testProcess.on('close', (code) => {

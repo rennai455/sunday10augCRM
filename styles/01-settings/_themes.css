@@ -1,5 +1,5 @@
 /* ===== THEME VARIATIONS ===== */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --color-bg-primary: #000;
   --color-bg-secondary: #0a0a0a;
   --color-bg-tertiary: #111;

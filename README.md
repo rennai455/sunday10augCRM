@@ -1,4 +1,5 @@
 # sunday10augCRM
+
 [![CI](https://github.com/rennai455/sunday10augCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/rennai455/sunday10augCRM/actions/workflows/ci.yml)
 Prepared for GitHub import.
 
@@ -24,7 +25,6 @@ Prepared for GitHub import.
    ```
 
 4. Health endpoints:
-
    - `GET /health`
    - `GET /readyz`
 
@@ -42,6 +42,7 @@ chmod +x push.sh
 ```
 
 The script will:
+
 - init git (if needed)
 - create/force `main` as default branch
 - set `origin` to your repo

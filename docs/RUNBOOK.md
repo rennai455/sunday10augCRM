@@ -1,6 +1,7 @@
 # Railway Deployment RUNBOOK
 
 ## 1. Railway service & variables
+
 - Create Railway Project
 - Provision PostgreSQL → copy `DATABASE_URL` (likely includes `?sslmode=require`).
 - Connect GitHub repo as a Web Service.
@@ -21,6 +22,7 @@ ALLOWED_SIGNUP_DOMAINS=renn.ai
 (Generate secrets locally with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
 
 ## 2. First deploy
+
 - Deploy from GitHub.
 - After the container is running, open Railway Shell and execute:
 
@@ -30,6 +32,7 @@ node db/seed.js
 ```
 
 ## 3. Smoke checks
+
 - `GET https://<app>/health` → `{ status: 'ok', db: 'PostgreSQL' }`
 - `HEAD https://<app>/static/Login.html` → has `Content-Security-Policy`
 - `HEAD https://<app>/health` with `Origin: https://<app>` → `Access-Control-Allow-Origin` present.

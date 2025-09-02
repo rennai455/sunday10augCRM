@@ -1,17 +1,17 @@
 /* === COLORED ROLE SWITCHER === */
-#role-switcher-btn[role="admin"],
+#role-switcher-btn[role='admin'],
 .role-admin {
   background: #ef4444 !important;
   color: #fff !important;
 }
 
-#role-switcher-btn[role="agency"],
+#role-switcher-btn[role='agency'],
 .role-agency {
   background: #3b82f6 !important;
   color: #fff !important;
 }
 
-#role-switcher-btn[role="client"],
+#role-switcher-btn[role='client'],
 .role-client {
   background: #22c55e !important;
   color: #fff !important;
@@ -180,8 +180,8 @@ body.dark .text-muted {
 
   /* Typography */
   --font-main:
-    "Inter", -apple-system, blinkmacsystemfont, "Segoe UI", roboto, sans-serif;
-  --font-secondary: "Inter", sans-serif;
+    'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, sans-serif;
+  --font-secondary: 'Inter', sans-serif;
 
   /* Spacing */
   --border-radius: 8px;
@@ -335,7 +335,7 @@ body.dark .metric-card .metric-trend {
 .metric-card.leads::before,
 .metric-card.score::before,
 .metric-card.clients::before {
-  content: "";
+  content: '';
   display: block;
   position: absolute;
   left: 0;

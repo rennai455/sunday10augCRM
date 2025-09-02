@@ -4,7 +4,10 @@ const { cleanEnv, str, num, bool } = require('envalid');
 dotenv.config();
 
 const env = cleanEnv(process.env, {
-  NODE_ENV: str({ choices: ['development', 'test', 'production'], default: 'development' }),
+  NODE_ENV: str({
+    choices: ['development', 'test', 'production'],
+    default: 'development',
+  }),
   PORT: num({ default: 3002 }),
   DATABASE_URL: str(),
   PG_SSL: bool({ default: false }),

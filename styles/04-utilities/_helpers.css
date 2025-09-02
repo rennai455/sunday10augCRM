@@ -23,7 +23,8 @@
 }
 /* stylelint-enable declaration-property-value-no-unknown */
 
-.animate-fade-in, .fade-in {
+.animate-fade-in,
+.fade-in {
   animation: fadeIn var(--transition-base) ease-out;
 }
 

@@ -35,7 +35,9 @@ describe('RENN.AI CRM Security & Health', () => {
     const res = await request(app)
       .get('/health')
       .set('Origin', 'http://localhost:3000');
-    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(res.headers['access-control-allow-origin']).toBe(
+      'http://localhost:3000'
+    );
   });
 
   it('should block unauthorized API access', async () => {
@@ -45,12 +47,12 @@ describe('RENN.AI CRM Security & Health', () => {
 
   it('should enforce rate limiting on API routes', async () => {
     // Make multiple requests rapidly to test rate limiting
-    const requests = Array(5).fill().map(() => 
-      request(app).get('/api/campaigns')
-    );
-    
+    const requests = Array(5)
+      .fill()
+      .map(() => request(app).get('/api/campaigns'));
+
     const responses = await Promise.all(requests);
     // At least some should pass in dev, but rate limiting should be configured
-    expect(responses.some(r => r.status < 500)).toBe(true);
+    expect(responses.some((r) => r.status < 500)).toBe(true);
   });
 });

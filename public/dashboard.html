@@ -1,127 +1,188 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RENN.AI - Dashboard</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap">
-    <link rel="stylesheet" href="dist/main.css">
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="dist/main.css" />
     <!-- Tailwind is built via PostCSS, no CDN script needed -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="scripts/app.js"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Check authentication (handled by app.js)
-        const token = localStorage.getItem('authToken');
-        if (!token) {…}
+      document.addEventListener('DOMContentLoaded', function () {
+          // Check authentication (handled by app.js)
+          const token = localStorage.getItem('authToken');
+          if (!token) {…}
 
-        });
-    });
+          });
+      });
     </script>
-</head>
+  </head>
 
-<body>
+  <body>
     <!-- Main Layout Container -->
     <div class="layout">
-        <aside class="layout__sidebar sidebar" id="sidebar">
-            <nav class="nav">
-                <a href="#" class="nav__item nav-item active" id="nav-dashboard">Dashboard</a>
-                <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
-                <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
-                <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
-                <button class="btn btn--secondary w-full mt-4" onclick="window.logout()">Logout</button>
-            </nav>
-        </aside>
-        <main class="layout__main main-content" id="main-content">
-            <header class="layout__header">
-                <h1 class="text-xl font-bold">Welcome to Renn.AI CRM</h1>
-                <span id="user-role" class="ml-4 text-sm"></span>
-            </header>
-            <section class="layout__content" id="dashboard-section">
-                <!-- Dashboard content will be loaded here -->
-            </section>
-        </main>
+      <aside class="layout__sidebar sidebar" id="sidebar">
+        <nav class="nav">
+          <a href="#" class="nav__item nav-item active" id="nav-dashboard"
+            >Dashboard</a
+          >
+          <a href="#" class="nav__item nav-item" id="nav-campaigns"
+            >Campaigns</a
+          >
+          <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
+          <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
+          <button
+            class="btn btn--secondary w-full mt-4"
+            onclick="window.logout()"
+          >
+            Logout
+          </button>
+        </nav>
+      </aside>
+      <main class="layout__main main-content" id="main-content">
+        <header class="layout__header">
+          <h1 class="text-xl font-bold">Welcome to Renn.AI CRM</h1>
+          <span id="user-role" class="ml-4 text-sm"></span>
+        </header>
+        <section class="layout__content" id="dashboard-section">
+          <!-- Dashboard content will be loaded here -->
+        </section>
+      </main>
     </div>
 
     <!-- Mobile Menu Button -->
-    <button id="sidebar-toggle-btn" class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded">☰</button>
+    <button
+      id="sidebar-toggle-btn"
+      class="md:hidden fixed top-4 left-4 z-50 bg-black text-white p-2 rounded"
+    >
+      ☰
+    </button>
     <button class="fab md:hidden" id="fab-sidebar-toggle-2">☰</button>
 
     <!-- Add Client Modal -->
-    <div id="add-client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-lg font-bold mb-4">Add New Client</h2>
-            <form id="add-client-form">
-                <input type="text" name="clientName" placeholder="Client Name" class="form-input mb-2 w-full" required />
-                <input type="email" name="clientEmail" placeholder="Client Email" class="form-input mb-2 w-full" required />
-                <button type="submit" class="btn btn--primary w-full">Add Client</button>
-            </form>
-            <button class="btn btn--secondary w-full mt-2" onclick="window.hideAddClientModal()">Cancel</button>
-        </div>
+    <div
+      id="add-client-modal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 class="text-lg font-bold mb-4">Add New Client</h2>
+        <form id="add-client-form">
+          <input
+            type="text"
+            name="clientName"
+            placeholder="Client Name"
+            class="form-input mb-2 w-full"
+            required
+          />
+          <input
+            type="email"
+            name="clientEmail"
+            placeholder="Client Email"
+            class="form-input mb-2 w-full"
+            required
+          />
+          <button type="submit" class="btn btn--primary w-full">
+            Add Client
+          </button>
+        </form>
+        <button
+          class="btn btn--secondary w-full mt-2"
+          onclick="window.hideAddClientModal()"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
+      document.addEventListener('DOMContentLoaded', function () {
         // Check authentication and load user info
         fetch('/api/auth/me', { credentials: 'include' })
-            .then(res => res.json())
-            .then(data => {
-                if (!data.success) {
-                    window.location.href = '/Login.html';
-                } else {
-                    document.getElementById('user-role').textContent = `Role: ${data.role || 'admin'}`;
-                    // Load dashboard content
-                    document.getElementById('dashboard-section').innerHTML = `<div class='card'><h2 class='card__title'>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
-                }
-            })
-            .catch(() => window.location.href = '/Login.html');
+          .then((res) => res.json())
+          .then((data) => {
+            if (!data.success) {
+              window.location.href = '/Login.html';
+            } else {
+              document.getElementById('user-role').textContent =
+                `Role: ${data.role || 'admin'}`;
+              // Load dashboard content
+              document.getElementById('dashboard-section').innerHTML =
+                `<div class='card'><h2 class='card__title'>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
+            }
+          })
+          .catch(() => (window.location.href = '/Login.html'));
 
         // Sidebar toggle for mobile
-        document.getElementById('sidebar-toggle-btn').addEventListener('click', function () {
+        document
+          .getElementById('sidebar-toggle-btn')
+          .addEventListener('click', function () {
             document.getElementById('sidebar').classList.toggle('open');
-        });
-        document.getElementById('fab-sidebar-toggle-2').addEventListener('click', function () {
+          });
+        document
+          .getElementById('fab-sidebar-toggle-2')
+          .addEventListener('click', function () {
             document.getElementById('sidebar').classList.toggle('open');
-        });
+          });
 
         // Navigation logic
-        document.getElementById('nav-dashboard').addEventListener('click', function () {
-            document.getElementById('dashboard-section').innerHTML = `<div class='card'><h2 class='card__title'>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
-        });
-        document.getElementById('nav-campaigns').addEventListener('click', function () {
-            document.getElementById('dashboard-section').innerHTML = `<div class='card'><h2 class='card__title'>Campaigns</h2><p>List of campaigns will appear here.</p></div>`;
-        });
-        document.getElementById('nav-leads').addEventListener('click', function () {
-            document.getElementById('dashboard-section').innerHTML = `<div class='card'><h2 class='card__title'>Leads</h2><p>List of leads will appear here.</p>`;
-        });
-        document.getElementById('nav-settings').addEventListener('click', function () {
-            document.getElementById('dashboard-section').innerHTML = `<div class='card'><h2 class='card__title'>Settings</h2><p>Settings form will appear here.</p></div>`;
-        });
+        document
+          .getElementById('nav-dashboard')
+          .addEventListener('click', function () {
+            document.getElementById('dashboard-section').innerHTML =
+              `<div class='card'><h2 class='card__title'>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
+          });
+        document
+          .getElementById('nav-campaigns')
+          .addEventListener('click', function () {
+            document.getElementById('dashboard-section').innerHTML =
+              `<div class='card'><h2 class='card__title'>Campaigns</h2><p>List of campaigns will appear here.</p></div>`;
+          });
+        document
+          .getElementById('nav-leads')
+          .addEventListener('click', function () {
+            document.getElementById('dashboard-section').innerHTML =
+              `<div class='card'><h2 class='card__title'>Leads</h2><p>List of leads will appear here.</p>`;
+          });
+        document
+          .getElementById('nav-settings')
+          .addEventListener('click', function () {
+            document.getElementById('dashboard-section').innerHTML =
+              `<div class='card'><h2 class='card__title'>Settings</h2><p>Settings form will appear here.</p></div>`;
+          });
 
         // Add client modal logic
         window.showAddClientModal = function () {
-            document.getElementById('add-client-modal').classList.remove('hidden');
+          document
+            .getElementById('add-client-modal')
+            .classList.remove('hidden');
         };
         window.hideAddClientModal = function () {
-            document.getElementById('add-client-modal').classList.add('hidden');
+          document.getElementById('add-client-modal').classList.add('hidden');
         };
-        document.getElementById('add-client-form').addEventListener('submit', function (e) {
+        document
+          .getElementById('add-client-form')
+          .addEventListener('submit', function (e) {
             e.preventDefault();
             // Add client logic here
             window.hideAddClientModal();
-        });
+          });
 
         // Logout logic
         window.logout = function () {
-            fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-                .then(() => window.location.href = '/Login.html');
+          fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+          }).then(() => (window.location.href = '/Login.html'));
         };
-    });
+      });
     </script>
     <script src="scripts/app.js"></script>
-</body>
-
+  </body>
 </html>

@@ -36,7 +36,9 @@ async function diagnostics() {
 
   // Check for admin user
   try {
-    const admin = await db.query('SELECT * FROM users WHERE is_admin = true LIMIT 1');
+    const admin = await db.query(
+      'SELECT * FROM users WHERE is_admin = true LIMIT 1'
+    );
     if (admin.rows.length) {
       console.log('Admin user: OK');
     } else {

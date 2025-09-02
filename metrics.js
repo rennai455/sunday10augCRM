@@ -9,7 +9,7 @@ const httpRequestsTotal = new Counter({
   name: 'http_requests_total',
   help: 'Total number of HTTP requests',
   labelNames: ['method', 'route', 'status_code'],
-  register
+  register,
 });
 
 const httpRequestDuration = new Histogram({
@@ -17,18 +17,18 @@ const httpRequestDuration = new Histogram({
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route', 'status_code'],
   buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10],
-  register
+  register,
 });
 
 const activeConnections = new Gauge({
   name: 'active_connections',
   help: 'Number of active connections',
-  register
+  register,
 });
 
 module.exports = {
   register,
   httpRequestsTotal,
   httpRequestDuration,
-  activeConnections
+  activeConnections,
 };
