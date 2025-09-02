@@ -1,26 +1,5 @@
-// Restore checkEnv function
-async function checkEnv() {
-  const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
-  const missing = required.filter(k => !config[k] || !String(config[k]).trim());
-  if (missing.length) {
-    fail('Missing required env vars: ' + missing.join(', '));
-  } else {
-    pass('Required env vars present.');
-  }
-}
 'use strict';
 const config = require('../config');
-
-/**
- * RENN.AI Diagnostics
- * - Verifies env + Postgres connectivity
- * - (If available) probes API protections via supertest
- * - Prints targeted hints on common failures
- *
- * Exit codes: 0 = all checks passed, 1 = failure
- */
-
-
 const { Pool } = require('pg');
 
 const EXIT = { OK: 0, FAIL: 1 };
@@ -35,39 +14,13 @@ function sslConfig() {
   return config.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false;
 }
 
-async function checkAPI() {
-  // Import the Express app for diagnostics (should export `app`)
-  let app = null;
-  try {
-    app = require('../server');
-  } catch (e) {
-    warn('Could not import Express app from server.js: ' + e.message);
-    return;
-  }
-
-  if (!app || typeof app.handle !== 'function') {
-    warn('Express app not found or invalid export. Ensure server.js exports `app`.');
-    return;
-  }
-
-  let request;
-  try {
-    request = require('supertest');
-  } catch (e) {
-    warn('supertest not installed. Skipping API checks.');
-    return;
-  }
-
-  // Example API probe: health endpoint
-  try {
-    const res = await request(app).get('/health');
-    if (res.status === 200 && res.body.status === 'ok') {
-      pass('API /health endpoint OK');
-    } else {
-      fail('API /health endpoint failed: ' + JSON.stringify(res.body));
-    }
-  } catch (e) {
-    fail('API /health probe error: ' + e.message);
+async function checkEnv() {
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'WEBHOOK_SECRET'];
+  const missing = required.filter(k => !config[k] || !String(config[k]).trim());
+  if (missing.length) {
+    fail('Missing required env vars: ' + missing.join(', '));
+  } else {
+    pass('Required env vars present.');
   }
 }
 
@@ -101,43 +54,35 @@ async function checkDB() {
     } else if (/database .* does not exist/i.test(m)) {
       info('Cause: DB name not created.\nFix: Create the database and grant privileges to your role.');
     }
-    try { await pool.end(); } catch (error) { 
-      // Ignore cleanup errors
-      void error;
-    }
+    try { await pool.end(); } catch (error) { void error; }
   }
 }
 
 async function checkAPI() {
-  // Try to import the Express app (should export `app`)
+  // Try to import Express app (should export `app`)
   let app = null;
   try {
-    // Common export patterns
-    app = require('../server'); // without extension
+    app = require('../server');
   } catch (error) {
-    // Ignore import errors
-    void error;
-    try { 
-      app = require('../server.js'); 
-    } catch (innerError) { 
-      void innerError;
-    }
+    warn('API checks skipped: ' + error.message);
+    return;
   }
 
-  if (!app || !app.handle) {
-    warn('API checks skipped: could not import Express app. Ensure server.js exports `app` and only listens when run directly.');
+  const expressApp = app.app || app;
+  if (!expressApp || typeof expressApp.handle !== 'function') {
+    warn('Express app not found or invalid export. Ensure server.js exports { app }.');
     return;
   }
 
   let request;
   try {
     request = require('supertest');
-  } catch (e) {
+  } catch {
     warn('supertest not installed; skipping API probes. Run: npm i -D supertest');
     return;
   }
 
-  const agent = request(app);
+  const agent = request(expressApp);
 
   // 1) /crm.db must not be served
   try {
@@ -166,7 +111,7 @@ async function checkAPI() {
     const res = await agent
       .post('/api/webhooks/campaign-update')
       .set('Content-Type', 'application/json')
-      .send('{}'); // missing X-Signature + X-Timestamp
+      .send('{}'); // missing signature headers
     if (res.status === 400 || res.status === 401) {
       pass('Webhook without signature rejected (good).');
     } else {
@@ -176,7 +121,7 @@ async function checkAPI() {
     warn(`Webhook check error: ${e.message}`);
   }
 
-  // 4) Helmet/CSP presence on any route
+  // 4) Helmet/CSP presence
   try {
     const candidates = ['/', '/static/dashboard.html', '/static/'];
     let seenCsp = false;

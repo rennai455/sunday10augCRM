@@ -16,12 +16,12 @@
 }
 
 .nav__item:hover, .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgb(255 255 255 / 10%);
   border-left-color: var(--color-text-inverse);
 }
 
 .nav__item--active, .nav-item.active {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgb(255 255 255 / 15%);
   border-left-color: var(--color-text-inverse);
   font-weight: var(--font-weight-semibold);
 }

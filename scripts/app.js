@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // Sidebar toggle logic for CSP compliance
 document.addEventListener('DOMContentLoaded', function() {
-  var sidebarBtn = document.getElementById('sidebar-toggle-btn');
-  var fabBtn = document.getElementById('fab-sidebar-toggle-2');
-  var sidebar = document.getElementById('sidebar');
+  const sidebarBtn = document.getElementById('sidebar-toggle-btn');
+  const fabBtn = document.getElementById('fab-sidebar-toggle-2');
+  const sidebar = document.getElementById('sidebar');
   function toggleSidebar() {
     if (sidebar) {
       sidebar.classList.toggle('show');
@@ -293,11 +293,11 @@ window.showSection = function(section) {
 
 // === EXPORT TO CSV ===
 window.exportTableToCSV = function() {
-    let csv = [];
+    const csv = [];
     const rows = document.querySelectorAll("#campaigns-table tr");
     rows.forEach(row => {
         const cols = row.querySelectorAll("td, th");
-        let rowData = [];
+        const rowData = [];
         cols.forEach(col => rowData.push(`"${col.innerText.trim()}"`));
         csv.push(rowData.join(","));
     });

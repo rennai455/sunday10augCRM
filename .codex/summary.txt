@@ -1,0 +1,10 @@
+- aligned smoke tests with /healthz and /readyz endpoints
+- tightened CORS default-deny, masked error responses, and added graceful shutdown
+- consolidated diagnostics script and replaced spawn in smoke script with ESLint API
+- generated runtime secrets for tests and added project-wide .editorconfig
+
+Verification commands:
+- `npm run -s lint` (fail: Cannot find module '@eslint/js')
+- `npm -s test` (fail: Cannot find module '@eslint/js')
+- `npm run -s build` (fail: postcss: not found)
+- `node scripts/diagnostics.js` (fail: Cannot find module 'dotenv')

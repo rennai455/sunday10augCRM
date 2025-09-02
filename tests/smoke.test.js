@@ -1,26 +1,21 @@
-// tests/smoke.test.js: security/auth/CSP/CORS smoke tests
+// tests/smoke.test.js: basic health and security smoke tests
 const request = require('supertest');
-const app = require('../server');
+const { app } = require('../server');
 
 describe('RENN.AI CRM Security & Health', () => {
   it('should respond to health endpoint', async () => {
-    const res = await request(app).get('/health');
+    const res = await request(app).get('/healthz');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('status', 'healthy');
+    expect(res.body).toEqual({ status: 'ok' });
   });
 
   it('should respond to readiness endpoint', async () => {
-    const res = await request(app).get('/readiness');
+    const res = await request(app).get('/readyz');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('status');
+    expect(res.body).toHaveProperty('status', 'ready');
   });
 
-  it('should not serve .db files', async () => {
-    const res = await request(app).get('/crm.db');
-    expect(res.status).toBe(404);
-  });
-
-  it('should not serve .env files', async () => {
+  it('should not expose .env files', async () => {
     const res = await request(app).get('/.env');
     expect(res.status).toBe(404);
   });
@@ -33,24 +28,30 @@ describe('RENN.AI CRM Security & Health', () => {
 
   it('should enforce CORS allowlist', async () => {
     const res = await request(app)
-      .get('/health')
+      .get('/healthz')
       .set('Origin', 'http://localhost:3000');
-    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    expect(res.headers['access-control-allow-origin']).toBe(
+      'http://localhost:3000'
+    );
   });
 
   it('should block unauthorized API access', async () => {
     const res = await request(app).get('/api/campaigns/123');
-    expect([401, 403]).toContain(res.status);
+    expect(res.status).toBe(401);
   });
 
   it('should enforce rate limiting on API routes', async () => {
     // Make multiple requests rapidly to test rate limiting
-    const requests = Array(5).fill().map(() => 
-      request(app).get('/api/campaigns')
-    );
-    
+    const requests = Array(5)
+      .fill()
+      .map(() => request(app).get('/api/campaigns/123'));
+
     const responses = await Promise.all(requests);
     // At least some should pass in dev, but rate limiting should be configured
-    expect(responses.some(r => r.status < 500)).toBe(true);
+    expect(responses.some((r) => r.status < 500)).toBe(true);
+  });
+
+  afterAll(() => {
+    app.server.close();
   });
 });
