@@ -12,6 +12,7 @@ const metrics = require('./metrics');
 const crypto = require('crypto');
 const config = require('./config');
 const { pool } = require('./db'); // single source of pg Pool
+const apiRouter = require('./routes/api');
 
 const app = express();
 app.disable('x-powered-by');
@@ -24,23 +25,30 @@ app.use((req, _res, next) => {
   req.id = randomUUID();
   next();
 });
-app.use(pinoHttp({
-  genReqId: req => req.id,
-  redact: ['req.headers.authorization'],
-}));
+app.use(
+  pinoHttp({
+    genReqId: (req) => req.id,
+    redact: ['req.headers.authorization'],
+  })
+);
 
 /** CORS allowlist (no '*' + credentials) */
 const raw = ALLOWED_ORIGINS || '';
-const ALLOWLIST = raw.split(',').map(s => s.trim()).filter(Boolean);
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);                // same-origin / curl
-    if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
-    cb(null, ALLOWLIST.includes(origin));
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-}));
+const ALLOWLIST = raw
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // same-origin / curl
+      if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
+      cb(null, ALLOWLIST.includes(origin));
+    },
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
 
 /** Security & compression */
 app.use((req, res, next) => {
@@ -50,47 +58,81 @@ app.use((req, res, next) => {
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        "default-src": ["'self'"],
-        "script-src": ["'self'", "https://cdn.tailwindcss.com", `'nonce-${res.locals.cspNonce}'`],
-        "style-src": ["'self'", `'nonce-${res.locals.cspNonce}'`],
-        "img-src": ["'self'", "data:"],
-        "frame-ancestors": ["'none'"]
-      }
-    }
+        'default-src': ["'self'"],
+        'script-src': [
+          "'self'",
+          'https://cdn.tailwindcss.com',
+          `'nonce-${res.locals.cspNonce}'`,
+        ],
+        'style-src': ["'self'", `'nonce-${res.locals.cspNonce}'`],
+        'img-src': ["'self'", 'data:'],
+        'frame-ancestors': ["'none'"],
+      },
+    },
   })(req, res, next);
 });
 if (NODE_ENV === 'production') {
-  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true, preload: true }));
+  app.use(
+    helmet.hsts({ maxAge: 31536000, includeSubDomains: true, preload: true })
+  );
 }
 app.use(compression());
 
 /** Parsers + static */
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
-app.use('/static', express.static(path.join(__dirname, 'public'), {
-  maxAge: NODE_ENV === 'production' ? '1y' : 0,
-  etag: true,
-}));
+app.use(
+  '/static',
+  express.static(path.join(__dirname, 'public'), {
+    maxAge: NODE_ENV === 'production' ? '1y' : 0,
+    etag: true,
+  })
+);
 
 /** Rate limits (skip in dev) */
-const makeLimiter = (windowMs, max, message) => rateLimit({
-  windowMs, max, standardHeaders: true, legacyHeaders: false,
-  message: { error: message }, skip: () => NODE_ENV === 'development'
-});
-app.use('/api/', makeLimiter(15*60*1000, 1000, 'Too many requests'));
-app.use('/api/auth/', makeLimiter(15*60*1000, 10, 'Too many auth attempts'));
-app.use(slowDown({ windowMs: 15*60*1000, delayAfter: 50, delayMs: 500, maxDelayMs: 20000 }));
+const makeLimiter = (windowMs, max, message) =>
+  rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: message },
+    skip: () => NODE_ENV === 'development',
+  });
+app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests'));
+app.use(
+  '/api/auth/',
+  makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts')
+);
+app.use(
+  slowDown({
+    windowMs: 15 * 60 * 1000,
+    delayAfter: 50,
+    delayMs: 500,
+    maxDelayMs: 20000,
+  })
+);
 
 /** Health/readiness */
 const healthHandler = async (_req, res) => {
-  try { await pool.query('select 1'); res.json({ status: 'ok', db: 'PostgreSQL' }); }
-  catch (e) { res.status(500).json({ status: 'error', db: 'PostgreSQL', error: e.message }); }
+  try {
+    await pool.query('select 1');
+    res.json({ status: 'ok', db: 'PostgreSQL' });
+  } catch (e) {
+    res
+      .status(500)
+      .json({ status: 'error', db: 'PostgreSQL', error: e.message });
+  }
 };
 app.get('/healthz', healthHandler);
 app.get('/health', healthHandler);
 app.get('/readyz', async (_req, res) => {
-  try { await pool.query('select 1'); res.json({ ready: true }); }
-  catch { res.status(503).json({ ready: false }); }
+  try {
+    await pool.query('select 1');
+    res.json({ ready: true });
+  } catch {
+    res.status(503).json({ ready: false });
+  }
 });
 app.get('/metrics', async (_req, res) => {
   res.set('Content-Type', metrics.register.contentType);
@@ -99,9 +141,14 @@ app.get('/metrics', async (_req, res) => {
 
 /** TODO: wire real routes here (users, agencies, leads, etc.) */
 
+app.use('/api', apiRouter);
+
+/* eslint-disable-next-line no-unused-vars */
 app.use((err, req, res, next) => {
   req.log?.error({ err }, 'Unhandled error');
-  res.status(err.status || 500).json({ id: req.id, error: err.message || 'Internal Server Error' });
+  res
+    .status(err.status || 500)
+    .json({ id: req.id, error: err.message || 'Internal Server Error' });
 });
 
 const server = app.listen(PORT, () => {
