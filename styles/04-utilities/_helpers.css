@@ -24,25 +24,13 @@
 /* stylelint-enable declaration-property-value-no-unknown */
 
 .animate-fade-in, .fade-in {
-  animation: fadeIn var(--transition-base) ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  animation: fade-in var(--transition-base) ease-out;
 }
 
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
 
   to {

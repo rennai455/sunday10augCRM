@@ -2,6 +2,23 @@
 [![CI](https://github.com/rennai455/sunday10augCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/rennai455/sunday10augCRM/actions/workflows/ci.yml)
 Prepared for GitHub import.
 
+## Local setup
+
+Run the app locally:
+
+```bash
+cp .env.example .env
+npm install
+npm run build
+npm start
+```
+
+## Endpoints
+
+- `GET /healthz` – liveness check
+- `GET /readyz` – readiness check
+- Static assets served at `/static`
+
 ## Getting Started
 
 1. Copy env template and fill secrets:
