@@ -26,23 +26,30 @@ app.use((req, _res, next) => {
   req.id = randomUUID();
   next();
 });
-app.use(pinoHttp({
-  genReqId: req => req.id,
-  redact: ['req.headers.authorization'],
-}));
+app.use(
+  pinoHttp({
+    genReqId: (req) => req.id,
+    redact: ['req.headers.authorization'],
+  })
+);
 
 /** CORS allowlist (no '*' + credentials) */
 const raw = ALLOWED_ORIGINS || '';
-const ALLOWLIST = raw.split(',').map(s => s.trim()).filter(Boolean);
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);                // same-origin / curl
-    if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
-    cb(null, ALLOWLIST.includes(origin));
-  },
-  credentials: true,
-  optionsSuccessStatus: 200,
-}));
+const ALLOWLIST = raw
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // same-origin / curl
+      if (ALLOWLIST.length === 0) return cb(null, true); // dev-open if not set
+      cb(null, ALLOWLIST.includes(origin));
+    },
+    credentials: true,
+    optionsSuccessStatus: 200,
+  })
+);
 
 /** Security & compression */
 app.use((req, res, next) => {
@@ -52,19 +59,32 @@ app.use((req, res, next) => {
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
+
         "default-src": ["'self'"],
-        "script-src": ["'self'", "https://cdn.tailwindcss.com", `'nonce-${res.locals.cspNonce}'`],
-        "style-src": ["'self'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com", `'nonce-${res.locals.cspNonce}'`],
+        "script-src": [
+          "'self'",
+          "https://cdn.tailwindcss.com",
+          `'nonce-${res.locals.cspNonce}'`
+        ],
+        "style-src": [
+          "'self'",
+          "https://cdn.tailwindcss.com",
+          "https://fonts.googleapis.com",
+          `'nonce-${res.locals.cspNonce}'`
+        ],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
         "img-src": ["'self'", "data:"],
         "connect-src": ["'self'"],
         "frame-ancestors": ["'none'"]
       }
     }
+
   })(req, res, next);
 });
 if (NODE_ENV === 'production') {
-  app.use(helmet.hsts({ maxAge: 31536000, includeSubDomains: true, preload: true }));
+  app.use(
+    helmet.hsts({ maxAge: 31536000, includeSubDomains: true, preload: true })
+  );
 }
 app.use(compression());
 
@@ -73,34 +93,42 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 
 // Serve static files from public directory
-app.use('/static', express.static(path.join(__dirname, 'public'), {
-  maxAge: NODE_ENV === 'production' ? '1y' : 0,
-  etag: true,
-}));
-
-// Serve public assets directly (for backward compatibility)
-app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: NODE_ENV === 'production' ? '1d' : 0,
-  etag: true,
-}));
+app.use(
+  '/static',
+  express.static(path.join(__dirname, 'public'), {
+    maxAge: NODE_ENV === 'production' ? '1y' : 0,
+    etag: true,
+  })
+);
 
 /** Rate limits (skip in dev) */
 const makeLimiter = (windowMs, max, message) => {
-  const opts = {
+  return rateLimit({
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: message },
     skip: () => NODE_ENV === 'development'
-  };
+  });
+};
+
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: message },
+const makeLimiter = (windowMs, max, message) => {
+  const opts = { windowMs, max, message, skip: () => NODE_ENV === 'development' };
   if (NODE_ENV !== 'production') {
     opts.validate = { trustProxy: false };
   }
   return rateLimit(opts);
 };
+
 app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests'));
 app.use('/api/auth/', makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts'));
+
 const slowDownConfig = {
   windowMs: 15 * 60 * 1000,
   delayAfter: 50,
@@ -111,6 +139,7 @@ if (NODE_ENV !== 'production') {
   slowDownConfig.validate = { delayMs: false, trustProxy: false };
 }
 app.use(slowDown(slowDownConfig));
+
 
 /** Health/readiness */
 const healthHandler = (_req, res) => {
@@ -135,12 +164,16 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ success: false, error: 'Access token required' });
+    return res
+      .status(401)
+      .json({ success: false, error: 'Access token required' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ success: false, error: 'Invalid or expired token' });
+      return res
+        .status(403)
+        .json({ success: false, error: 'Invalid or expired token' });
     }
     req.user = user;
     next();
@@ -150,38 +183,38 @@ const authenticateToken = (req, res, next) => {
 /** Static page routes */
 // Serve login.html as static for unauthenticated users
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'Login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'Login.html'));
 });
 
 // Also serve at /Login.html for direct access
 app.get('/Login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'Login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'Login.html'));
 });
 
 // Serve dashboard.html (authentication handled by frontend)
 app.get('/dashboard.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 // Serve register page
 app.get('/Register.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'Register.html'));
+  res.sendFile(path.join(__dirname, 'public', 'Register.html'));
 });
 
 // Root route redirects to login
 app.get('/', (req, res) => {
-    res.redirect('/Login.html');
+  res.redirect('/Login.html');
 });
 
 /** Authentication API routes */
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Email and password are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required',
       });
     }
 
@@ -192,11 +225,16 @@ app.post('/api/auth/login', async (req, res) => {
         JWT_SECRET,
         { expiresIn: '24h' }
       );
-      
+
       return res.json({
         success: true,
         token,
-        user: { id: 1, email: 'demo@renn.ai', role: 'admin', agency: 'Demo Agency' }
+        user: {
+          id: 1,
+          email: 'demo@renn.ai',
+          role: 'admin',
+          agency: 'Demo Agency',
+        },
       });
     }
 
@@ -207,9 +245,9 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid credentials' 
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
       });
     }
 
@@ -217,9 +255,9 @@ app.post('/api/auth/login', async (req, res) => {
     const isValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isValid) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid credentials' 
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials',
       });
     }
 
@@ -232,13 +270,18 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user.id, email: user.email, role: 'admin', agency: user.name }
+      user: {
+        id: user.id,
+        email: user.email,
+        role: 'admin',
+        agency: user.name,
+      },
     });
   } catch (error) {
     req.log?.error({ error }, 'Login error');
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
     });
   }
 });
@@ -246,11 +289,11 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    
+
     if (!name || !email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Name, email, and password are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required',
       });
     }
 
@@ -261,9 +304,9 @@ app.post('/api/auth/register', async (req, res) => {
     );
 
     if (existing.rows.length > 0) {
-      return res.status(409).json({ 
-        success: false, 
-        message: 'User already exists' 
+      return res.status(409).json({
+        success: false,
+        message: 'User already exists',
       });
     }
 
@@ -284,13 +327,18 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(201).json({
       success: true,
       token,
-      user: { id: user.id, email: user.email, role: 'admin', agency: user.name }
+      user: {
+        id: user.id,
+        email: user.email,
+        role: 'admin',
+        agency: user.name,
+      },
     });
   } catch (error) {
     req.log?.error({ error }, 'Registration error');
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
     });
   }
 });
@@ -301,7 +349,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
     id: req.user.id,
     email: req.user.email,
     role: req.user.role,
-    agency: req.user.agency
+    agency: req.user.agency,
   });
 });
 
@@ -320,27 +368,33 @@ app.get('/api/campaigns', authenticateToken, async (req, res) => {
     res.json({ success: true, campaigns: result.rows });
   } catch (error) {
     req.log?.error({ error }, 'Campaigns fetch error');
-    res.status(500).json({ success: false, error: 'Failed to fetch campaigns' });
+    res
+      .status(500)
+      .json({ success: false, error: 'Failed to fetch campaigns' });
   }
 });
 
 app.post('/api/campaigns', authenticateToken, async (req, res) => {
   try {
     const { name, status = 'draft', details = {} } = req.body;
-    
+
     if (!name) {
-      return res.status(400).json({ success: false, error: 'Campaign name is required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Campaign name is required' });
     }
 
     const result = await pool.query(
       'INSERT INTO campaigns (agency_id, name, status, details) VALUES ($1, $2, $3, $4) RETURNING *',
       [req.user.id, name, status, details]
     );
-    
+
     res.status(201).json({ success: true, campaign: result.rows[0] });
   } catch (error) {
     req.log?.error({ error }, 'Campaign creation error');
-    res.status(500).json({ success: false, error: 'Failed to create campaign' });
+    res
+      .status(500)
+      .json({ success: false, error: 'Failed to create campaign' });
   }
 });
 
@@ -360,16 +414,18 @@ app.get('/api/clients', authenticateToken, async (req, res) => {
 app.post('/api/clients', authenticateToken, async (req, res) => {
   try {
     const { name, email } = req.body;
-    
+
     if (!name || !email) {
-      return res.status(400).json({ success: false, error: 'Client name and email are required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Client name and email are required' });
     }
 
     const result = await pool.query(
       'INSERT INTO clients (agency_id, name, email) VALUES ($1, $2, $3) RETURNING *',
       [req.user.id, name, email]
     );
-    
+
     res.status(201).json({ success: true, client: result.rows[0] });
   } catch (error) {
     req.log?.error({ error }, 'Client creation error');
@@ -384,13 +440,13 @@ app.get('/api/analytics/overview', authenticateToken, async (req, res) => {
       'SELECT COUNT(*) as count FROM campaigns WHERE agency_id = $1',
       [req.user.id]
     );
-    
+
     // Get client count
     const clientCount = await pool.query(
       'SELECT COUNT(*) as count FROM clients WHERE agency_id = $1',
       [req.user.id]
     );
-    
+
     // Get lead count
     const leadCount = await pool.query(
       'SELECT COUNT(*) as count FROM leads l JOIN campaigns c ON l.campaign_id = c.id WHERE c.agency_id = $1',
@@ -403,20 +459,23 @@ app.get('/api/analytics/overview', authenticateToken, async (req, res) => {
         campaigns: parseInt(campaignCount.rows[0].count),
         clients: parseInt(clientCount.rows[0].count),
         leads: parseInt(leadCount.rows[0].count),
-        conversion_rate: '12.5%' // Mock data
-      }
+        conversion_rate: '12.5%', // Mock data
+      },
     });
   } catch (error) {
     req.log?.error({ error }, 'Analytics fetch error');
-    res.status(500).json({ success: false, error: 'Failed to fetch analytics' });
+    res
+      .status(500)
+      .json({ success: false, error: 'Failed to fetch analytics' });
   }
 });
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
   req.log?.error({ err }, 'Unhandled error');
-  res.status(err.status || 500).json({ 
-    id: req.id, 
-    error: err.message || 'Internal Server Error' 
+  res.status(err.status || 500).json({
+    id: req.id,
+    error: err.message || 'Internal Server Error',
   });
 });
 
@@ -432,7 +491,7 @@ const shutdown = () => {
     console.error('Forced shutdown');
     process.exit(1);
   }, 10000);
-  
+
   server.close(() => {
     clearTimeout(timer);
     pool.end().catch((err) => {
