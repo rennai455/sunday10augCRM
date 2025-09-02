@@ -12,7 +12,7 @@ describe('RENN.AI CRM Security & Health', () => {
   it('should respond to readiness endpoint', async () => {
     const res = await request(app).get('/readiness');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('status');
+    expect(res.body).toHaveProperty('status', 'ready');
   });
 
   it('should not serve .db files', async () => {
