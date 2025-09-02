@@ -16,73 +16,48 @@
 <body>
     <div class="min-h-screen flex items-center justify-center bg-gray-100">
         <div class="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-            <h2 class="text-2xl font-bold mb-6 text-center">Login to Renn.AI CRM</h2>
-            <form id="loginForm" class="space-y-4" autocomplete="off">
-                <div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <input type="hidden" name="_csrf" id="csrf-token" value="">
+                <div class="mb-6">
                     <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" id="email" name="email" required class="form-input mt-1 block w-full" placeholder="you@renn.ai" />
+                    <input type="email" id="email" name="email" autocomplete="email" required class="w-full px-4 py-2 border rounded" />
                 </div>
-                <div>
+                <div class="mb-6 relative">
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" name="password" required class="form-input mt-1 block w-full" placeholder="••••••••" />
+                    <input type="password" id="password" name="password" autocomplete="current-password" required class="w-full px-4 py-2 border rounded pr-10" placeholder="••••••••" />
+                    <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-3 text-gray-500 hover:text-black" aria-label="Toggle password visibility">
+                        <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <svg id="eye-off-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                    </button>
                 </div>
-                <button type="submit" class="btn btn--primary w-full">Login</button>
-                <div id="login-error" class="mt-2 text-red-600 text-sm hidden"></div>
+                <div class="mb-6 flex items-center justify-between">
+                    <label for="remember-me" class="flex items-center">
+                        <input type="checkbox" id="remember-me" name="remember-me" class="mr-2" /> Remember me
+                    </label>
+                    <button type="submit" id="submit-btn" class="bg-black text-white px-4 py-2 rounded">Sign In</button>
+                </div>
+                <div class="mb-6 text-right">
+                    <a href="#" class="text-blue-600">Forgot password?</a>
+                </div>
             </form>
-            <div class="mt-4 text-center">
-                <a href="/Register.html" class="text-blue-600 hover:underline">Create an account</a>
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-xs text-gray-600 text-center">
+                    Demo: email: <strong>demo@renn.ai</strong> | password: <strong>demo123</strong>
+                </p>
+            </div>
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    Don't have an account? 
+                    <a href="#" class="text-black font-medium hover:underline">Contact Sales</a>
+                </p>
             </div>
         </div>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('loginForm');
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const email = form.email.value.trim();
-            const password = form.password.value;
-            const errorDiv = document.getElementById('login-error');
-            errorDiv.classList.add('hidden');
-            try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    window.location.href = '/dashboard.html';
-                } else {
-                    errorDiv.textContent = data.message || 'Invalid credentials.';
-                    errorDiv.classList.remove('hidden');
-                }
-            } catch (err) {
-                errorDiv.textContent = 'Login failed. Please try again.';
-                errorDiv.classList.remove('hidden');
-            }
-        });
-    });
-    </script>
+    <script src="/static/js/login.js"></script>
 </body>
-</html>
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'mt-4 text-red-600 text-sm';
-                    errorDiv.textContent = 'Invalid credentials. Use demo@renn.ai / demo123';
-                    
-                    const form = document.getElementById('loginForm');
-                    if (!form.querySelector('.text-red-600')) {
-                        form.appendChild(errorDiv);
-                    }
-                }
-            }, 1000);
-        }
-    </script>
-</body>
-    <script>
-        // Set CSRF token (in a real app, this would come from your server)
-        document.addEventListener('DOMContentLoaded', function() {
-        });
-
-        // Toggle password visibility
-    </script>
 </html>
