@@ -12,7 +12,7 @@
   width: var(--sidebar-width);
   height: 100vh;
   background-color: var(--brand-primary);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgb(255 255 255 / 10%);
   overflow-y: auto;
   z-index: 40;
   transition: transform var(--transition-base);
@@ -46,15 +46,17 @@
 }
 
 /* Mobile responsive */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .sidebar, .layout__sidebar {
     transform: translateX(-100%);
     z-index: 50;
     transition: transform 0.3s;
   }
+
   .sidebar.open, .layout__sidebar.open {
     transform: translateX(0);
   }
+
   .main-content, .layout__main {
     margin-left: 0;
   }
