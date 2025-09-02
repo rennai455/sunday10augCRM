@@ -59,24 +59,26 @@ app.use((req, res, next) => {
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        'default-src': ["'self'"],
-        'script-src': [
+
+        "default-src": ["'self'"],
+        "script-src": [
           "'self'",
-          'https://cdn.tailwindcss.com',
-          `'nonce-${res.locals.cspNonce}'`,
+          "https://cdn.tailwindcss.com",
+          `'nonce-${res.locals.cspNonce}'`
         ],
-        'style-src': [
+        "style-src": [
           "'self'",
-          'https://cdn.tailwindcss.com',
-          'https://fonts.googleapis.com',
-          `'nonce-${res.locals.cspNonce}'`,
+          "https://cdn.tailwindcss.com",
+          "https://fonts.googleapis.com",
+          `'nonce-${res.locals.cspNonce}'`
         ],
-        'font-src': ["'self'", 'https://fonts.gstatic.com'],
-        'img-src': ["'self'", 'data:'],
-        'connect-src': ["'self'"],
-        'frame-ancestors': ["'none'"],
-      },
-    },
+        "font-src": ["'self'", "https://fonts.gstatic.com"],
+        "img-src": ["'self'", "data:"],
+        "connect-src": ["'self'"],
+        "frame-ancestors": ["'none'"]
+      }
+    }
+
   })(req, res, next);
 });
 if (NODE_ENV === 'production') {
