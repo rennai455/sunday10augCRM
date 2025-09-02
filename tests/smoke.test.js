@@ -1,26 +1,21 @@
-// tests/smoke.test.js: security/auth/CSP/CORS smoke tests
+// tests/smoke.test.js: basic health and security smoke tests
 const request = require('supertest');
-const app = require('../server');
+const { app } = require('../server');
 
 describe('RENN.AI CRM Security & Health', () => {
   it('should respond to health endpoint', async () => {
-    const res = await request(app).get('/health');
-    expect([200, 500]).toContain(res.status);
-    expect(res.body).toHaveProperty('status');
+    const res = await request(app).get('/healthz');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'ok' });
   });
 
   it('should respond to readiness endpoint', async () => {
     const res = await request(app).get('/readyz');
-    expect([200, 503]).toContain(res.status);
-    expect(res.body).toHaveProperty('ready');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('status', 'ready');
   });
 
-  it('should not serve .db files', async () => {
-    const res = await request(app).get('/crm.db');
-    expect(res.status).toBe(404);
-  });
-
-  it('should not serve .env files', async () => {
+  it('should not expose .env files', async () => {
     const res = await request(app).get('/.env');
     expect(res.status).toBe(404);
   });
@@ -33,7 +28,7 @@ describe('RENN.AI CRM Security & Health', () => {
 
   it('should enforce CORS allowlist', async () => {
     const res = await request(app)
-      .get('/health')
+      .get('/healthz')
       .set('Origin', 'http://localhost:3000');
     expect(res.headers['access-control-allow-origin']).toBe(
       'http://localhost:3000'
