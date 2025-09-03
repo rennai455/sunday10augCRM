@@ -33,7 +33,7 @@ module.exports = [
   },
   // Browser environment for client-side scripts
   {
-    files: ['scripts/app.js', 'public/**/*.js'],
+    files: ['public/**/*.js'],
     languageOptions: {
       sourceType: 'script',
       ecmaVersion: 2022,
