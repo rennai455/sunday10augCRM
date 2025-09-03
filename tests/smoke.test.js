@@ -1,6 +1,6 @@
 // tests/smoke.test.js: basic health and security smoke tests
 const request = require('supertest');
-const { app } = require('../server');
+const { app, server } = require('../server');
 
 describe('RENN.AI CRM Security & Health', () => {
   it('should respond to health endpoint', async () => {
@@ -52,6 +52,6 @@ describe('RENN.AI CRM Security & Health', () => {
   });
 
   afterAll(() => {
-    app.server.close();
+    if (server.listening) server.close();
   });
 });
