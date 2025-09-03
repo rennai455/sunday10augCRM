@@ -34,6 +34,18 @@ app.use(
   })
 );
 
+/** Prometheus metrics */
+app.use((req, res, next) => {
+  const end = metrics.httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    const route = req.route?.path || req.path;
+    const labels = { method: req.method, route, status_code: res.statusCode };
+    metrics.httpRequestsTotal.inc(labels);
+    end(labels);
+  });
+  next();
+});
+
 /** CORS allowlist (no '*' + credentials) */
 const raw = ALLOWED_ORIGINS || '';
 const ALLOWLIST = raw
@@ -159,8 +171,10 @@ app.get('/metrics', async (_req, res) => {
 const auth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const cookieToken = req.cookies?.token;
-  
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : cookieToken;
+
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : cookieToken;
 
   if (!token) {
     return res.status(401).json({ error: 'No authentication token' });
@@ -182,14 +196,21 @@ const auth = async (req, res, next) => {
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ success: false, message: 'Email and password required' });
+    return res
+      .status(400)
+      .json({ success: false, message: 'Email and password required' });
   }
 
   try {
-    const result = await pool.query('SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1', [email]);
+    const result = await pool.query(
+      'SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1',
+      [email]
+    );
     const user = result.rows[0];
-    if (!user || !await bcrypt.compare(password, user.password_hash)) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Invalid credentials' });
     }
 
     const token = jwt.sign(
@@ -198,14 +219,23 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    res.cookie('token', token, { 
-      httpOnly: true, 
+    res.cookie('token', token, {
+      httpOnly: true,
       secure: NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000,
     });
-    
-    res.json({ success: true, token, user: { id: user.id, email, agencyId: user.agency_id, isAdmin: user.is_admin } });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email,
+        agencyId: user.agency_id,
+        isAdmin: user.is_admin,
+      },
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -219,20 +249,28 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT email, agency_id FROM users WHERE id = $1', [req.userId]);
+    const result = await pool.query(
+      'SELECT email, agency_id FROM users WHERE id = $1',
+      [req.userId]
+    );
     const user = result.rows[0];
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: 'User not found' });
     }
-    
-    const agencyResult = await pool.query('SELECT name FROM agencies WHERE id = $1', [user.agency_id]);
+
+    const agencyResult = await pool.query(
+      'SELECT name FROM agencies WHERE id = $1',
+      [user.agency_id]
+    );
     const agency = agencyResult.rows[0]?.name;
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       email: user.email,
       agency,
-      role: req.isAdmin ? 'admin' : 'user'
+      role: req.isAdmin ? 'admin' : 'user',
     });
   } catch (error) {
     console.error('Get user error:', error);
