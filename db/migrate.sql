@@ -2,33 +2,36 @@
 
 CREATE TABLE IF NOT EXISTS agencies (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    name VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    agency_id INTEGER REFERENCES agencies(id),
+    email VARCHAR(128) UNIQUE NOT NULL,
+    password_hash VARCHAR(256) NOT NULL,
+    agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE,
     is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS campaigns (
     id SERIAL PRIMARY KEY,
-    agency_id INTEGER REFERENCES agencies(id),
-    name TEXT NOT NULL,
-    status TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE,
+    name VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    details JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS leads (
     id SERIAL PRIMARY KEY,
-    campaign_id INTEGER REFERENCES campaigns(id),
-    name TEXT NOT NULL,
-    email TEXT,
-    phone TEXT,
-    status TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
+    campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
+    name VARCHAR(128),
+    email VARCHAR(128),
+    phone VARCHAR(32),
+    status VARCHAR(32),
+    status_history JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
