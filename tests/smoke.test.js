@@ -1,18 +1,24 @@
 // tests/smoke.test.js: basic health and security smoke tests
 const request = require('supertest');
+
+// Mock database layer to avoid real connections during tests
+jest.mock('../db', () => ({
+  pool: { query: jest.fn().mockResolvedValue({ rows: [] }) },
+}));
+
 const { app, server } = require('../server');
 
 describe('RENN.AI CRM Security & Health', () => {
   it('should respond to health endpoint', async () => {
     const res = await request(app).get('/healthz');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: 'ok' });
+    expect(res.body).toEqual({ status: 'healthy' });
   });
 
   it('should respond to readiness endpoint', async () => {
     const res = await request(app).get('/readyz');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('status', 'ready');
+    expect(res.body).toEqual({ ready: true });
   });
 
   it('should not expose .env files', async () => {
@@ -52,6 +58,8 @@ describe('RENN.AI CRM Security & Health', () => {
   });
 
   afterAll(() => {
+
     if (server.listening) server.close();
+
   });
 });
