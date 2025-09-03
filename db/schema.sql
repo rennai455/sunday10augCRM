@@ -2,8 +2,16 @@
 CREATE TABLE agencies (
     id SERIAL PRIMARY KEY,
     name VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- users
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
     email VARCHAR(128) UNIQUE NOT NULL,
     password_hash VARCHAR(256) NOT NULL,
+    agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE,
+    is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

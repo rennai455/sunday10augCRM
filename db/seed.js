@@ -25,9 +25,10 @@ async function seed() {
   const campaignRes = await db.query("SELECT id FROM campaigns WHERE name = $1", ['Demo Campaign']);
   const campaignId = campaignRes.rows[0].id;
 
+  const statusHistory = JSON.stringify([{ status: 'new', timestamp: new Date().toISOString() }]);
   await db.query(
-    "INSERT INTO leads (campaign_id, name, email, phone, status) VALUES ($1, $2, $3, $4, $5)",
-    [campaignId, 'John Doe', 'john@example.com', '555-1234', 'new']
+    "INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1, $2, $3, $4, $5, $6)",
+    [campaignId, 'John Doe', 'john@example.com', '555-1234', 'new', statusHistory]
   );
 
   console.log('Seed data inserted.');
