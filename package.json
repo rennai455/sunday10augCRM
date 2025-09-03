@@ -54,7 +54,8 @@
     "postcss": "^8.5.6",
     "prom-client": "^15.1.2",
     "redis": "^5.7.0",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "cookie-parser": "^1.4.6"
   },
   "description": "Prepared for GitHub import.",
   "devDependencies": {

@@ -58,6 +58,8 @@ describe('RENN.AI CRM Security & Health', () => {
   });
 
   afterAll(() => {
-    server.close();
+
+    if (server.listening) server.close();
+
   });
 });

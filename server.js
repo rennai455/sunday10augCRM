@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const { randomUUID } = crypto;
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const cookieParser = require('cookie-parser');
 const metrics = require('./metrics');
 const config = require('./config');
 const { pool } = require('./db');
@@ -90,6 +91,7 @@ app.use(compression());
 /** Parsers + static */
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+app.use(cookieParser());
 
 // Serve static files from public directory
 app.use(
@@ -308,4 +310,4 @@ process.on('SIGTERM', () => {
   });
 });
 
-module.exports = { app, server };
+module.exports = { app, server, auth };
