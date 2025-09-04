@@ -183,7 +183,7 @@ async function checkAPI() {
   // 4) CSP headers
   try {
     let seenCsp = false;
-    const candidates = ['/health', '/healthz', '/static/dashboard.html'];
+    const candidates = ['/health', '/healthz', '/dashboard.html'];
     for (const p of candidates) {
       const res = await agent.get(p);
       if (res && res.headers && res.headers['content-security-policy']) {

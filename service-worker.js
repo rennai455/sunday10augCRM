@@ -9,7 +9,6 @@ const API_CACHE = "renn-ai-api-v2.0.0";
 const CACHE_CONFIG = {
   // Critical resources cached immediately
   STATIC_ASSETS: [
-    "/",
     "/Login.html",
     "/dashboard.html",
     "/static/scripts/app.js",

@@ -330,9 +330,9 @@ app.get('/api/campaigns/:id', auth, async (req, res) => {
   }
 });
 
-// Serve static files (HTML, CSS, JS)
+// Serve HTML pages from the consolidated public directory
 const sendDashboard = (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 };
 
 app.get('/', authenticateWeb, sendDashboard);
@@ -343,7 +343,7 @@ app.get('/Register.html', authenticateWeb, (req, res) => {
 });
 
 app.get('/Login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'Login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'Login.html'));
 });
 
 /** Error handling */
