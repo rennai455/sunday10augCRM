@@ -14,8 +14,6 @@ PG_SSL=true
 JWT_SECRET=<strong random 32B base64>
 WEBHOOK_SECRET=<strong random 32B base64>
 ALLOWED_ORIGINS=https://<your-subdomain>.up.railway.app
-ENABLE_SELF_SIGNUP=false
-ALLOWED_SIGNUP_DOMAINS=renn.ai
 ```
 
 (Generate secrets locally with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
