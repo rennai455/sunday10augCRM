@@ -25,49 +25,53 @@
       <a href="/Register.html" class="link">Create an account</a>
     </div>
   </div>
+
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('loginForm');
-    const submitBtn = form.querySelector('button[type="submit"]');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = form.email.value.trim();
-      const password = form.password.value;
-      const errorDiv = document.getElementById('login-error');
-      errorDiv.classList.add('hidden');
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('loginForm');
+      const submitBtn = form.querySelector('button[type="submit"]');
 
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Logging in...';
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-          credentials: 'include'
-        });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-        if (res.ok) {
-          window.location.href = '/dashboard.html';
-          return;
-        }
+        const email = form.email.value.trim();
+        const password = form.password.value;
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.classList.add('hidden');
 
-        if (res.status >= 400 && res.status < 500) {
-          const data = await res.json();
-          errorDiv.textContent = data.message || 'Invalid credentials.';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in...';
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include'
+          });
+
+          if (res.ok) {
+            window.location.href = '/dashboard.html';
+            return;
+          }
+
+          if (res.status >= 400 && res.status < 500) {
+            const data = await res.json();
+            errorDiv.textContent = data.message || 'Invalid credentials.';
+            errorDiv.classList.remove('hidden');
+            return;
+          }
+
+          throw new Error('Unexpected error');
+        } catch (err) {
+          errorDiv.textContent = 'Login failed. Please try again.';
           errorDiv.classList.remove('hidden');
-          return;
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Login';
         }
-
-        throw new Error('Unexpected error');
-      } catch (err) {
-        errorDiv.textContent = 'Login failed. Please try again.';
-        errorDiv.classList.remove('hidden');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Login';
-      }
+      });
     });
-  });
   </script>
 </body>
 </html>
