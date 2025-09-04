@@ -30,6 +30,7 @@
     "audit": "npm audit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "postinstall": "npm run build",
     "prepare": "husky install"
   },
   "keywords": [],
