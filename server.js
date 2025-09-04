@@ -11,7 +11,7 @@ const pinoHttp = require('pino-http');
 const crypto = require('crypto');
 const { randomUUID } = crypto;
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const cookieParser = require('cookie-parser');
 const metrics = require('./metrics');
 const config = require('./config');
@@ -387,19 +387,24 @@ app.use((err, req, res, _next) => {
     .json({ id: req.id, error: err.message || 'Internal Server Error' });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 RENN.AI Ultra-Optimized Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${NODE_ENV}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
+let server;
+if (require.main === module) {
+  server = app.listen(PORT, () => {
+    console.log(`🚀 RENN.AI Ultra-Optimized Server running on port ${PORT}`);
+    console.log(`📍 Environment: ${NODE_ENV}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   });
-});
+
+  const shutdown = (signal) => {
+    console.log(`🛑 ${signal} received, shutting down gracefully`);
+    server.close(() => {
+      console.log('✅ Server closed');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
 
 module.exports = { app, server, auth };

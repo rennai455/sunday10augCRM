@@ -1,7 +1,12 @@
-const dotenv = require('dotenv');
+let dotenv;
+try {
+  // Optional in environments where dotenv is not installed
+  dotenv = require('dotenv');
+  dotenv.config();
+} catch {
+  // eslint-disable-next-line no-empty
+}
 const { cleanEnv, str, num, bool } = require('envalid');
-
-dotenv.config();
 
 const env = cleanEnv(process.env, {
   NODE_ENV: str({ choices: ['development', 'test', 'production'], default: 'development' }),
