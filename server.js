@@ -77,6 +77,7 @@ app.use((req, res, next) => {
         'script-src': [
           "'self'",
           'https://cdn.tailwindcss.com',
+          'https://cdnjs.cloudflare.com',
           `'nonce-${res.locals.cspNonce}'`,
         ],
         'style-src': [
