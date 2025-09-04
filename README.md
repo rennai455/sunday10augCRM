@@ -28,11 +28,18 @@ Prepared for GitHub import.
    PostgreSQL schema. The previously empty `migrate-to-postgresql.js` script
    has been removed.
 
-4. Health endpoints:
+4. Lint and test the project:
+
+   ```bash
+   npm run lint
+   npm test
+   ```
+
+5. Health endpoints:
    - `GET /health`
    - `GET /readyz`
 
-5. Static files are served from `/static/*`.
+6. Static files are served from `/static/*`.
 
 ## Quick start
 
