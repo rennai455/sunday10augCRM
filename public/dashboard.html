@@ -34,6 +34,12 @@
                 <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
                 <button class="btn btn--secondary w-full mt-4" onclick="window.logout()">Logout</button>
             </nav>
+            <footer class="sidebar__footer">
+                <div id="user-chip" class="user-chip">
+                    <span class="user-chip__avatar"></span>
+                    <span class="user-chip__email"></span>
+                </div>
+            </footer>
         </aside>
         <main class="layout__main main-content" id="main-content">
             <header class="layout__header">
@@ -75,6 +81,14 @@
                     document.getElementById('user-role').textContent = `Role: ${data.role || 'admin'}`;
                     // Load dashboard content
                     document.getElementById('dashboard-section').innerHTML = `<div class='card'><h2 class='card__title'>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
+
+                    const parts = (data.name || data.email).split(/[\s@]+/);
+                    const initials = (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
+                    const chip = document.getElementById('user-chip');
+                    if (chip) {
+                        chip.querySelector('.user-chip__avatar').textContent = initials.toUpperCase();
+                        chip.querySelector('.user-chip__email').textContent = data.email;
+                    }
                 }
             })
             .catch(() => window.location.href = '/Login.html');

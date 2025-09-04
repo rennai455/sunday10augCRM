@@ -16,6 +16,8 @@
   overflow-y: auto;
   z-index: 40;
   transition: transform var(--transition-base);
+  display: flex;
+  flex-direction: column;
 }
 
 .layout__main, .main-content {

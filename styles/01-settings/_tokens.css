@@ -28,6 +28,11 @@
   --color-role-agency: #3b82f6;
   --color-role-client: #22c55e;
 
+  /* Component Colors */
+  --color-chip-bg: var(--color-bg-tertiary);
+  --color-chip-text: var(--color-text-primary);
+  --color-chip-initial-bg: var(--color-bg-primary);
+
   /* Typography */
   --font-family-primary: "Inter", -apple-system, blinkmacsystemfont, sans-serif;
   --font-weight-regular: 400;
