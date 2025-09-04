@@ -8,11 +8,16 @@ const { Pool } = require('pg');
  * - (If available) probes API protections via supertest
  * - Prints targeted hints on common failures
  *
+ * Flags:
+ * --skip-api  Skip API probes even if supertest is installed
+ *
  * Exit codes: 0 = all checks passed, 1 = failure
  */
 
 const EXIT = { OK: 0, FAIL: 1 };
 let hadFailure = false;
+const argv = process.argv.slice(2);
+const skipAPI = argv.includes('--skip-api');
 
 function info(msg) {
   console.log(`ℹ️  ${msg}`);
@@ -98,7 +103,12 @@ async function checkDB() {
   }
 }
 
-async function checkAPI() {
+async function checkAPI(skip) {
+  if (skip) {
+    warn('API checks skipped via --skip-api flag.');
+    return;
+  }
+
   // Try to import Express app (should export `app`)
   let app = null;
   try {
@@ -124,8 +134,8 @@ async function checkAPI() {
   try {
     request = require('supertest');
   } catch (e) {
-    warn(
-      'supertest not installed; skipping API probes. Run: npm i -D supertest'
+    fail(
+      'supertest not installed; run "npm install --dev" or pass --skip-api to bypass API probes.'
     );
     return;
   }
@@ -220,7 +230,7 @@ async function checkAPI() {
   info('Running diagnostics…');
   await checkEnv();
   await checkDB();
-  await checkAPI();
+  await checkAPI(skipAPI);
   if (hadFailure) {
     fail('Diagnostics FAILED. See messages above and docs/RUNBOOK.md.');
     process.exit(EXIT.FAIL);

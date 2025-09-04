@@ -6,7 +6,7 @@
 3. Run `npm install` to install dependencies.
 4. Run `npm run migrate:db` to apply DB schema.
 5. Run `npm run seed:db` to insert admin/sample data.
-6. Run `npm run diagnostics` to verify config and security.
+6. Run `npm install --dev && npm run diagnostics` to verify config and security.
 7. Start server: `npm start`.
 
 ## Railway Deployment
@@ -17,7 +17,7 @@
    - WEBHOOK_SECRET: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 4. Set `ALLOWED_ORIGINS` to include your Railway domain (e.g. `https://your-railway-app.up.railway.app`).
 5. Run `npm run migrate:db && npm run seed:db` in Railway shell.
-6. Run `npm run diagnostics` in Railway shell (should exit 0).
+6. Run `npm install --dev && npm run diagnostics` in Railway shell (should exit 0).
 7. Deploy and visit `/health` for `{ ok: true }`.
 
 ## Environment Variables
