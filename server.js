@@ -77,6 +77,7 @@ app.use((req, res, next) => {
         'script-src': [
           "'self'",
           'https://cdn.tailwindcss.com',
+          'https://cdnjs.cloudflare.com',
           `'nonce-${res.locals.cspNonce}'`,
         ],
         'style-src': [
@@ -105,12 +106,19 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '100kb' }));
 app.use(cookieParser());
 
-// Serve static files from public directory
+// Serve static assets but block direct HTML access
 app.use(
   '/static',
+  (req, res, next) => {
+    if (path.extname(req.path).toLowerCase() === '.html') {
+      return res.status(404).end();
+    }
+    next();
+  },
   express.static(path.join(__dirname, 'public'), {
     maxAge: NODE_ENV === 'production' ? '1y' : 0,
     etag: true,
+    index: false,
   })
 );
 
@@ -193,6 +201,20 @@ const auth = async (req, res, next) => {
   }
 };
 
+// Web route authentication using cookie token
+const authenticateWeb = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.redirect('/Login.html');
+  }
+  try {
+    jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.redirect('/Login.html');
+  }
+};
+
 /** API Routes */
 // Auth routes
 app.post('/api/auth/login', async (req, res) => {
@@ -228,16 +250,7 @@ app.post('/api/auth/login', async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email,
-        agencyId: user.agency_id,
-        isAdmin: user.is_admin,
-      },
-    });
+    res.json({ success: true });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
@@ -245,8 +258,12 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ success: true });
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  return res.json({ success: true });
 });
 
 app.get('/api/auth/me', auth, async (req, res) => {
@@ -312,21 +329,15 @@ app.get('/api/campaigns/:id', auth, async (req, res) => {
 });
 
 // Serve static files (HTML, CSS, JS)
-app.get('/', (req, res) => {
-  res.redirect('/static/dashboard.html');
-});
+const sendDashboard = (req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+};
 
-app.get('/dashboard.html', (req, res) => {
-  const token = req.cookies?.token;
-  if (!token) {
-    return res.redirect('/Login.html');
-  }
-  try {
-    jwt.verify(token, JWT_SECRET);
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-  } catch {
-    res.redirect('/Login.html');
-  }
+app.get('/', authenticateWeb, sendDashboard);
+app.get('/dashboard.html', authenticateWeb, sendDashboard);
+
+app.get('/Register.html', authenticateWeb, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'Register.html'));
 });
 
 app.get('/Login.html', (req, res) => {
@@ -358,4 +369,3 @@ process.on('SIGTERM', () => {
 });
 
 module.exports = { app, server, auth };
-
