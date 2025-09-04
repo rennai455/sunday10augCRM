@@ -362,7 +362,7 @@ app.get('/api/campaigns/:id', auth, async (req, res) => {
   }
 });
 
-// Serve static files (HTML, CSS, JS)
+// Serve HTML pages from the consolidated public directory
 const sendDashboard = (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 };

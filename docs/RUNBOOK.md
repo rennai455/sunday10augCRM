@@ -32,5 +32,5 @@ node db/seed.js
 
 ## 3. Smoke checks
 - `GET https://<app>/health` → `{ status: 'ok', db: 'PostgreSQL' }`
-- `HEAD https://<app>/static/Login.html` → has `Content-Security-Policy`
+- `HEAD https://<app>/Login.html` → has `Content-Security-Policy`
 - `HEAD https://<app>/health` with `Origin: https://<app>` → `Access-Control-Allow-Origin` present.
