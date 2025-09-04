@@ -49,6 +49,12 @@ async function checkEnv() {
   } else {
     pass('Required env vars present.');
   }
+  if (!config.ALLOWED_ORIGINS) {
+    warn('ALLOWED_ORIGINS is empty; CORS is wide open.');
+  }
+  if (config.NODE_ENV === 'production' && !config.PG_SSL) {
+    warn('PG_SSL is false in production; enable SSL for Postgres.');
+  }
 }
 
 async function checkDB() {
