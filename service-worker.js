@@ -10,10 +10,10 @@ const CACHE_CONFIG = {
   // Critical resources cached immediately
   STATIC_ASSETS: [
     "/",
-    "/login.html",
+    "/Login.html",
     "/dashboard.html",
-    "/app.js",
-    "/shared.css",
+    "/static/scripts/app.js",
+    "/static/dist/main.css",
     "/manifest.json"
   ],
   
