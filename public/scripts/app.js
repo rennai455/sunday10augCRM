@@ -54,8 +54,15 @@ class RENNApp {
   }
 
   async init() {
-    // Check authentication first
-    if (!this.isAuthenticated()) {
+    // Check authentication first via server
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      if (res.status === 401) {
+        this.redirectToLogin();
+        return;
+      }
+    } catch (err) {
+      console.error('Authentication check failed', err);
       this.redirectToLogin();
       return;
     }
@@ -115,39 +122,15 @@ class RENNApp {
     }
   }
 
-  // Authentication check with token validation
-  isAuthenticated() {
-    // Check for JWT token in localStorage
-    const token = localStorage.getItem('authToken');
-    if (!token) return false;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.exp * 1000 > Date.now();
-    } catch (error) {
-      console.warn('Invalid token format');
-      localStorage.removeItem('authToken');
-      return false;
-    }
-  }
-
   redirectToLogin() {
     // Redirect user to login page
-    window.location.href = '/Login.html';
-  }
-
-  logout() {
-    // Clear token and redirect to login
-    localStorage.removeItem('authToken');
     window.location.href = '/Login.html';
   }
 }
 
 // On dashboard.html, check authentication on load
 if (window.location.pathname === '/dashboard.html') {
-  const app = new RENNApp();
-  if (!app.isAuthenticated()) {
-    app.redirectToLogin();
-  }
+  new RENNApp();
   // Initialize colored role switcher
   document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('role-switcher-btn');
@@ -170,9 +153,14 @@ if (window.location.pathname === '/dashboard.html') {
 }
 
 // Expose logout for button
-window.logout = function () {
-  const app = new RENNApp();
-  app.logout();
+window.logout = async function () {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  } catch (err) {
+    console.error('Logout failed', err);
+  } finally {
+    window.location.href = '/Login.html';
+  }
 };
 
 // Account role support
