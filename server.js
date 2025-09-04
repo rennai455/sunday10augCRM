@@ -257,8 +257,12 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ success: true });
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  return res.json({ success: true });
 });
 
 app.get('/api/auth/me', auth, async (req, res) => {
