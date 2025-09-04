@@ -317,7 +317,16 @@ app.get('/', (req, res) => {
 });
 
 app.get('/dashboard.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.redirect('/Login.html');
+  }
+  try {
+    jwt.verify(token, JWT_SECRET);
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+  } catch {
+    res.redirect('/Login.html');
+  }
 });
 
 app.get('/Login.html', (req, res) => {
