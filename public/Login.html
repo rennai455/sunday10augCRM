@@ -47,15 +47,20 @@
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password }),
+                    credentials: 'include'
                 });
-                const data = await res.json();
-                if (data.success) {
+                if (res.ok) {
                     window.location.href = '/dashboard.html';
-                } else {
+                    return;
+                }
+                if (res.status >= 400 && res.status < 500) {
+                    const data = await res.json();
                     errorDiv.textContent = data.message || 'Invalid credentials.';
                     errorDiv.classList.remove('hidden');
+                    return;
                 }
+                throw new Error('Unexpected error');
             } catch (err) {
                 errorDiv.textContent = 'Login failed. Please try again.';
                 errorDiv.classList.remove('hidden');
@@ -64,25 +69,4 @@
     });
     </script>
 </body>
-</html>
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'mt-4 text-red-600 text-sm';
-                    errorDiv.textContent = 'Invalid credentials. Use demo@renn.ai / demo123';
-                    
-                    const form = document.getElementById('loginForm');
-                    if (!form.querySelector('.text-red-600')) {
-                        form.appendChild(errorDiv);
-                    }
-                }
-            }, 1000);
-        }
-    </script>
-</body>
-    <script>
-        // Set CSRF token (in a real app, this would come from your server)
-        document.addEventListener('DOMContentLoaded', function() {
-        });
-
-        // Toggle password visibility
-    </script>
 </html>
