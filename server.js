@@ -79,6 +79,7 @@ app.use((req, res, next) => {
           'https://cdn.tailwindcss.com',
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
+          'https://cdn.jsdelivr.net',
           `'nonce-${res.locals.cspNonce}'`,
         ],
         'style-src': [
