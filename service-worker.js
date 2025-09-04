@@ -48,6 +48,9 @@ let performanceMetrics = {
   backgroundSyncs: 0
 };
 
+// Fallback in-memory queue when IndexedDB is unavailable
+let inMemoryQueue = [];
+
 // Install event - Enhanced with priority caching
 self.addEventListener("install", event => {
   console.log("🔧 Service Worker installing...");
@@ -72,8 +75,8 @@ self.addEventListener("install", event => {
         );
       }),
       
-      // Initialize IndexedDB for offline queue
-      initializeOfflineDB()
+      // Initialize IndexedDB for offline queue if available
+      'indexedDB' in self ? initializeOfflineDB() : Promise.resolve()
     ]).then(() => {
       console.log("✅ Service Worker installation complete");
       // Skip waiting to activate immediately
@@ -334,33 +337,70 @@ self.addEventListener('sync', event => {
 // Process offline request queue
 async function processOfflineQueue() {
   try {
-    const db = await openOfflineDB();
-    const transaction = db.transaction(['requests'], 'readwrite');
-    const store = transaction.objectStore('requests');
-    const requests = await getAllFromStore(store);
-    
-    for (const queuedRequest of requests) {
-      try {
-        const response = await fetch(queuedRequest.url, queuedRequest.options);
-        
-        if (response.ok) {
-          // Request successful - remove from queue
-          await store.delete(queuedRequest.id);
-          console.log("✅ Processed offline request:", queuedRequest.url);
-          
-          // Notify clients
-          const clients = await self.clients.matchAll();
-          clients.forEach(client => {
-            client.postMessage({
-              type: 'OFFLINE_REQUEST_PROCESSED',
-              url: queuedRequest.url,
-              success: true
+    if ('indexedDB' in self) {
+      const db = await openOfflineDB();
+      if (!db) return;
+      const transaction = db.transaction(['requests'], 'readwrite');
+      const store = transaction.objectStore('requests');
+      const requests = await getAllFromStore(store);
+
+      for (const queuedRequest of requests) {
+        try {
+          const fetchOptions = {
+            method: queuedRequest.method,
+            headers: queuedRequest.headers,
+            body: queuedRequest.body
+          };
+          const response = await fetch(queuedRequest.url, fetchOptions);
+
+          if (response.ok) {
+            // Request successful - remove from queue
+            await store.delete(queuedRequest.id);
+            console.log("✅ Processed offline request:", queuedRequest.url);
+
+            // Notify clients
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'OFFLINE_REQUEST_PROCESSED',
+                url: queuedRequest.url,
+                success: true
+              });
             });
-          });
+          }
+        } catch (error) {
+          console.warn("Failed to process offline request:", error);
+          // Keep in queue for next sync
         }
-      } catch (error) {
-        console.warn("Failed to process offline request:", error);
-        // Keep in queue for next sync
+      }
+    } else {
+      // Fallback processing for in-memory queue
+      const requests = [...inMemoryQueue];
+      for (const queuedRequest of requests) {
+        try {
+          const fetchOptions = {
+            method: queuedRequest.method,
+            headers: queuedRequest.headers,
+            body: queuedRequest.body
+          };
+          const response = await fetch(queuedRequest.url, fetchOptions);
+          if (response.ok) {
+            inMemoryQueue = inMemoryQueue.filter(r => r !== queuedRequest);
+            console.log("✅ Processed offline request:", queuedRequest.url);
+
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => {
+              client.postMessage({
+                type: 'OFFLINE_REQUEST_PROCESSED',
+                url: queuedRequest.url,
+                success: true
+              });
+            });
+          }
+        } catch (error) {
+          console.warn("Failed to process offline request:", error);
+          // Keep in memory queue for next attempt
+        }
       }
     }
   } catch (error) {
@@ -492,15 +532,19 @@ function generateFallbackResponse(request) {
 
 // IndexedDB utilities for offline queue
 async function initializeOfflineDB() {
+  if (!('indexedDB' in self)) {
+    return Promise.resolve(null);
+  }
+
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('RennAI-Offline', 1);
-    
+
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
-    
+
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      
+
       if (!db.objectStoreNames.contains('requests')) {
         const store = db.createObjectStore('requests', { keyPath: 'id', autoIncrement: true });
         store.createIndex('timestamp', 'timestamp', { unique: false });
@@ -510,15 +554,14 @@ async function initializeOfflineDB() {
 }
 
 async function openOfflineDB() {
+  if (!('indexedDB' in self)) {
+    return null;
+  }
   return initializeOfflineDB();
 }
 
 async function queueOfflineRequest(request) {
   try {
-    const db = await openOfflineDB();
-    const transaction = db.transaction(['requests'], 'readwrite');
-    const store = transaction.objectStore('requests');
-    
     const requestData = {
       url: request.url,
       method: request.method,
@@ -526,12 +569,25 @@ async function queueOfflineRequest(request) {
       body: request.method !== 'GET' ? await request.clone().text() : null,
       timestamp: Date.now()
     };
-    
-    await store.add(requestData);
-    
-    // Register background sync
-    if ('serviceWorker' in navigator && 'sync' in self.ServiceWorkerRegistration.prototype) {
-      self.registration.sync.register('offline-requests');
+
+    if ('indexedDB' in self) {
+      const db = await openOfflineDB();
+      if (db) {
+        const transaction = db.transaction(['requests'], 'readwrite');
+        const store = transaction.objectStore('requests');
+        await store.add(requestData);
+      }
+    } else {
+      inMemoryQueue.push(requestData);
+    }
+
+    // Register background sync if available, otherwise fallback to immediate attempt
+    const registration = self.registration;
+    if (registration && 'sync' in registration) {
+      registration.sync.register('offline-requests');
+    } else {
+      // Attempt to process immediately when Background Sync isn't supported
+      processOfflineQueue();
     }
   } catch (error) {
     console.error("Error queueing offline request:", error);
