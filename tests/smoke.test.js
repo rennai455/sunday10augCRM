@@ -32,6 +32,12 @@ describe('RENN.AI CRM Security & Health', () => {
     expect(res.headers['content-security-policy']).toMatch(/default-src/);
   });
 
+  it('serves built CSS from /static', async () => {
+    const res = await request(app).get('/static/dist/main.css');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/css/);
+  });
+
   it('should enforce CORS allowlist', async () => {
     const res = await request(app)
       .get('/healthz')

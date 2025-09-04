@@ -21,6 +21,7 @@ ALLOWED_SIGNUP_DOMAINS=renn.ai
 (Generate secrets locally with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
 
 ## 2. First deploy
+- The `postinstall` script runs `npm run build` to generate `public/dist/main.css` before the server starts.
 - Deploy from GitHub.
 - After the container is running, open Railway Shell and execute:
 
