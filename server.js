@@ -21,7 +21,7 @@ const app = express();
 app.disable('x-powered-by');
 app.enable('trust proxy'); // Railway/NGINX proxy
 
-const { PORT, NODE_ENV, ALLOWED_ORIGINS, JWT_SECRET } = config;
+const { PORT, NODE_ENV, ALLOWED_ORIGINS, JWT_SECRET, WEBHOOK_SECRET } = config;
 
 /** request id + logging */
 app.use((req, _res, next) => {
@@ -102,6 +102,38 @@ if (NODE_ENV === 'production') {
   );
 }
 app.use(compression());
+
+// Webhook handler with HMAC signature verification
+app.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    const signature = req.get('x-signature');
+    if (!signature) {
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    const expected = crypto
+      .createHmac('sha256', WEBHOOK_SECRET)
+      .update(req.body)
+      .digest('hex');
+
+    const sigBuf = Buffer.from(signature, 'hex');
+    const expBuf = Buffer.from(expected, 'hex');
+    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      return res.status(400).json({ error: 'Invalid signature' });
+    }
+
+    try {
+      const payload = JSON.parse(req.body.toString('utf8'));
+      // Placeholder processing of the webhook payload
+      req.log?.info({ payload }, 'Webhook received');
+      return res.json({ received: true });
+    } catch {
+      return res.status(400).json({ error: 'Invalid JSON' });
+    }
+  }
+);
 
 /** Parsers + static */
 app.use(express.json({ limit: '100kb' }));
