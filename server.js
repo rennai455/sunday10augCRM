@@ -193,6 +193,26 @@ const auth = async (req, res, next) => {
   }
 };
 
+const authenticateWeb = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const cookieToken = req.cookies?.token;
+
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.substring(7)
+    : cookieToken;
+
+  if (!token) {
+    return res.redirect('/Login.html');
+  }
+
+  try {
+    jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.redirect('/Login.html');
+  }
+};
+
 /** API Routes */
 // Auth routes
 app.post('/api/auth/login', async (req, res) => {
@@ -311,17 +331,17 @@ app.get('/api/campaigns/:id', auth, async (req, res) => {
   }
 });
 
-// Serve static files (HTML, CSS, JS)
-app.get('/', (req, res) => {
-  res.redirect('/static/dashboard.html');
+// Serve HTML pages
+app.get('/', (_req, res) => {
+  res.redirect('/Login.html');
 });
 
-app.get('/dashboard.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dashboard.html'));
+app.get('/dashboard.html', authenticateWeb, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 app.get('/Login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'Login.html'));
+  res.sendFile(path.join(__dirname, 'public', 'Login.html'));
 });
 
 /** Error handling */
