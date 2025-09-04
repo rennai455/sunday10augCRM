@@ -18,7 +18,7 @@
         <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
         <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
         <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
-        <button class="btn btn-secondary btn-block mt-4" onclick="window.logout()">Logout</button>
+        <button class="btn btn-secondary btn-block mt-4" id="logout-button">Logout</button>
       </nav>
       <footer class="sidebar__footer">
         <div id="user-chip" class="user-chip">
@@ -52,71 +52,10 @@
         </div>
         <button type="submit" class="btn btn-primary btn-block">Add Client</button>
       </form>
-      <button class="btn btn-secondary btn-block mt" onclick="window.hideAddClientModal()">Cancel</button>
+      <button class="btn btn-secondary btn-block mt" id="cancel-add-client">Cancel</button>
     </div>
   </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Fetch user info and populate sidebar chip & dashboard
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success) {
-            window.location.href = '/Login.html';
-          } else {
-            document.getElementById('user-role').textContent = `Role: ${data.role || 'admin'}`;
-            document.getElementById('dashboard-section').innerHTML =
-              `<div class='card'><h2>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
-
-            const parts = (data.name || data.email).split(/[\\s@]+/);
-            const initials = (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
-            const chip = document.getElementById('user-chip');
-            chip.querySelector('.user-chip__avatar').textContent = initials.toUpperCase();
-            chip.querySelector('.user-chip__email').textContent = data.email;
-          }
-        })
-        .catch(() => window.location.href = '/Login.html');
-
-      // Sidebar toggles
-      document.getElementById('sidebar-toggle-btn')
-        .addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-      document.getElementById('fab-sidebar-toggle-2')
-        .addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-
-      // Navigation handlers
-      document.getElementById('nav-dashboard').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
-      });
-      document.getElementById('nav-campaigns').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Campaigns</h2><p>List of campaigns will appear here.</p></div>`;
-      });
-      document.getElementById('nav-leads').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Leads</h2><p>List of leads will appear here.</p></div>`;
-      });
-      document.getElementById('nav-settings').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Settings</h2><p>Settings form will appear here.</p></div>`;
-      });
-
-      // Add client modal
-      window.showAddClientModal = () => document.getElementById('add-client-modal').classList.remove('hidden');
-      window.hideAddClientModal = () => document.getElementById('add-client-modal').classList.add('hidden');
-      document.getElementById('add-client-form').addEventListener('submit', e => {
-        e.preventDefault();
-        window.hideAddClientModal();
-      });
-
-      // Logout
-      window.logout = () => {
-        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-          .then(() => window.location.href = '/Login.html');
-      };
-    });
-  </script>
-  <script src="/static/scripts/app.js"></script>
+    <script type="module" src="/static/scripts/main.js"></script>
 </body>
 </html>

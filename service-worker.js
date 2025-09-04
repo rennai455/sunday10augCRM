@@ -12,7 +12,7 @@ const CACHE_CONFIG = {
     "/",
     "/Login.html",
     "/dashboard.html",
-    "/static/scripts/app.js",
+    "/static/scripts/main.js",
     "/static/dist/main.css",
     "/manifest.json"
   ],
