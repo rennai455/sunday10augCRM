@@ -11,22 +11,32 @@
   <script src="scripts/app.js"></script>
 </head>
 <body>
-  <aside class="sidebar" id="sidebar">
-    <nav class="nav">
-      <a href="#" class="nav-item active" id="nav-dashboard">Dashboard</a>
-      <a href="#" class="nav-item" id="nav-campaigns">Campaigns</a>
-      <a href="#" class="nav-item" id="nav-leads">Leads</a>
-      <a href="#" class="nav-item" id="nav-settings">Settings</a>
-      <button class="btn btn-secondary btn-block mt" onclick="window.logout()">Logout</button>
-    </nav>
-  </aside>
-  <main class="main" id="main-content">
-    <header class="header">
-      <h1>Welcome to Renn.AI CRM</h1>
-      <span id="user-role" class="badge"></span>
-    </header>
-    <section id="dashboard-section"></section>
-  </main>
+  <!-- Main Layout Container -->
+  <div class="layout">
+    <aside class="layout__sidebar sidebar" id="sidebar">
+      <nav class="nav">
+        <a href="#" class="nav__item nav-item active" id="nav-dashboard">Dashboard</a>
+        <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
+        <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
+        <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
+        <button class="btn btn-secondary btn-block mt-4" onclick="window.logout()">Logout</button>
+      </nav>
+      <footer class="sidebar__footer">
+        <div id="user-chip" class="user-chip">
+          <span class="user-chip__avatar"></span>
+          <span class="user-chip__email"></span>
+        </div>
+      </footer>
+    </aside>
+
+    <main class="layout__main main-content" id="main-content">
+      <header class="layout__header">
+        <h1>Welcome to Renn.AI CRM</h1>
+        <span id="user-role" class="badge"></span>
+      </header>
+      <section class="layout__content" id="dashboard-section"></section>
+    </main>
+  </div>
 
   <button id="sidebar-toggle-btn" class="btn btn-primary sidebar-toggle">☰</button>
   <button class="btn btn-primary fab" id="fab-sidebar-toggle-2">☰</button>
@@ -48,60 +58,65 @@
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        if (!data.success) {
-          window.location.href = '/Login.html';
-        } else {
-          document.getElementById('user-role').textContent = data.role || 'admin';
-          document.getElementById('dashboard-section').innerHTML =
-            `<div class="card"><h2>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
-        }
-      })
-      .catch(() => window.location.href = '/Login.html');
+    document.addEventListener('DOMContentLoaded', function () {
+      // Fetch user info and populate sidebar chip & dashboard
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) {
+            window.location.href = '/Login.html';
+          } else {
+            document.getElementById('user-role').textContent = `Role: ${data.role || 'admin'}`;
+            document.getElementById('dashboard-section').innerHTML =
+              `<div class='card'><h2>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
 
-    document.getElementById('sidebar-toggle-btn').addEventListener('click', function () {
-      document.getElementById('sidebar').classList.toggle('open');
-    });
-    document.getElementById('fab-sidebar-toggle-2').addEventListener('click', function () {
-      document.getElementById('sidebar').classList.toggle('open');
-    });
+            const parts = (data.name || data.email).split(/[\\s@]+/);
+            const initials = (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
+            const chip = document.getElementById('user-chip');
+            chip.querySelector('.user-chip__avatar').textContent = initials.toUpperCase();
+            chip.querySelector('.user-chip__email').textContent = data.email;
+          }
+        })
+        .catch(() => window.location.href = '/Login.html');
 
-    document.getElementById('nav-dashboard').addEventListener('click', function () {
-      document.getElementById('dashboard-section').innerHTML =
-        `<div class='card'><h2>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
-    });
-    document.getElementById('nav-campaigns').addEventListener('click', function () {
-      document.getElementById('dashboard-section').innerHTML =
-        `<div class='card'><h2>Campaigns</h2><p>List of campaigns will appear here.</p></div>`;
-    });
-    document.getElementById('nav-leads').addEventListener('click', function () {
-      document.getElementById('dashboard-section').innerHTML =
-        `<div class='card'><h2>Leads</h2><p>List of leads will appear here.</p></div>`;
-    });
-    document.getElementById('nav-settings').addEventListener('click', function () {
-      document.getElementById('dashboard-section').innerHTML =
-        `<div class='card'><h2>Settings</h2><p>Settings form will appear here.</p></div>`;
-    });
+      // Sidebar toggles
+      document.getElementById('sidebar-toggle-btn')
+        .addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+      document.getElementById('fab-sidebar-toggle-2')
+        .addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
 
-    window.showAddClientModal = function () {
-      document.getElementById('add-client-modal').classList.remove('hidden');
-    };
-    window.hideAddClientModal = function () {
-      document.getElementById('add-client-modal').classList.add('hidden');
-    };
-    document.getElementById('add-client-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      window.hideAddClientModal();
-    });
+      // Navigation handlers
+      document.getElementById('nav-dashboard').addEventListener('click', () => {
+        document.getElementById('dashboard-section').innerHTML =
+          `<div class='card'><h2>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
+      });
+      document.getElementById('nav-campaigns').addEventListener('click', () => {
+        document.getElementById('dashboard-section').innerHTML =
+          `<div class='card'><h2>Campaigns</h2><p>List of campaigns will appear here.</p></div>`;
+      });
+      document.getElementById('nav-leads').addEventListener('click', () => {
+        document.getElementById('dashboard-section').innerHTML =
+          `<div class='card'><h2>Leads</h2><p>List of leads will appear here.</p></div>`;
+      });
+      document.getElementById('nav-settings').addEventListener('click', () => {
+        document.getElementById('dashboard-section').innerHTML =
+          `<div class='card'><h2>Settings</h2><p>Settings form will appear here.</p></div>`;
+      });
 
-    window.logout = function () {
-      fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-        .then(() => window.location.href = '/Login.html');
-    };
-  });
+      // Add client modal
+      window.showAddClientModal = () => document.getElementById('add-client-modal').classList.remove('hidden');
+      window.hideAddClientModal = () => document.getElementById('add-client-modal').classList.add('hidden');
+      document.getElementById('add-client-form').addEventListener('submit', e => {
+        e.preventDefault();
+        window.hideAddClientModal();
+      });
+
+      // Logout
+      window.logout = () => {
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+          .then(() => window.location.href = '/Login.html');
+      };
+    });
   </script>
   <script src="scripts/app.js"></script>
 </body>

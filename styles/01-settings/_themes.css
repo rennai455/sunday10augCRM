@@ -9,4 +9,7 @@
   --color-border-primary: #333;
   --color-border-secondary: #444;
   --color-border-focus: #fff;
+  --color-chip-bg: #111;
+  --color-chip-text: #fff;
+  --color-chip-initial-bg: #333;
 }
