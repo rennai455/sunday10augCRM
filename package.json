@@ -7,7 +7,7 @@
     "test:jest": "jest --runInBand",
     "test:unit": "jest tests/unit --runInBand",
     "test:integration": "jest tests/integration --runInBand",
-    "test:all": "npm-run-all css:lint css:build test:lighthouse test:visual",
+    "test:all": "npm-run-all css:lint css:build test test:lighthouse test:visual",
     "coverage": "jest --coverage --runInBand",
     "start": "node server.js",
     "dev": "concurrently \"npm run css:watch\" \"npm run server:dev\" \"npm run live-server\"",
