@@ -249,16 +249,7 @@ app.post('/api/auth/login', async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user.id,
-        email,
-        agencyId: user.agency_id,
-        isAdmin: user.is_admin,
-      },
-    });
+    res.json({ success: true });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
