@@ -11,7 +11,7 @@ const CACHE_CONFIG = {
   STATIC_ASSETS: [
     "/Login.html",
     "/dashboard.html",
-    "/static/scripts/app.js",
+    "/static/dist/app.js",
     "/static/dist/main.css",
     "/manifest.json"
   ],

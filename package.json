@@ -17,7 +17,8 @@
     "css:build": "postcss styles/main.css -o public/dist/main.css",
     "css:lint": "stylelint 'styles/**/*.css' --fix",
     "format": "prettier --write \"**/*.{js,css,html,json,md}\"",
-    "build": "npm run css:build",
+    "build": "npm-run-all css:build js:build",
+    "js:build": "esbuild public/scripts/app.js --bundle --format=iife --outfile=public/dist/app.js",
     "test:lighthouse": "lhci autorun",
     "test:visual": "backstop test",
     "db:up": "docker compose up -d",
@@ -59,6 +60,7 @@
   },
   "description": "Prepared for GitHub import.",
   "devDependencies": {
+    "esbuild": "^0.21.5",
     "@axe-core/cli": "^4.10.2",
     "@eslint/js": "^9.13.0",
     "@fullhuman/postcss-purgecss": "^7.0.2",
