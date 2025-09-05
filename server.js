@@ -7,6 +7,8 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
+const RedisStore = require('rate-limit-redis');
+const { createClient } = require('redis');
 const pinoHttp = require('pino-http');
 const crypto = require('crypto');
 const { randomUUID } = crypto;
@@ -22,6 +24,23 @@ app.disable('x-powered-by');
 app.enable('trust proxy'); // Railway/NGINX proxy
 
 const { PORT, NODE_ENV, ALLOWED_ORIGINS, JWT_SECRET, WEBHOOK_SECRET } = config;
+
+let redisClient;
+let redisStoreRate;
+let redisStoreSlow;
+if (NODE_ENV !== 'test') {
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  redisClient = createClient({ url: redisUrl });
+  redisClient.on('error', (err) => console.error('Redis error', err));
+  redisClient.connect().catch((err) => console.error('Redis connect error', err));
+  const createStore = (prefix) =>
+    new RedisStore({
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix,
+    });
+  redisStoreRate = createStore('ratelimit:');
+  redisStoreSlow = createStore('slowdown:');
+}
 
 /** request id + logging */
 app.use((req, _res, next) => {
@@ -157,15 +176,20 @@ app.use(
 );
 
 /** Rate limits (skip in dev) */
-const makeLimiter = (windowMs, max, message) =>
-  rateLimit({
+const makeLimiter = (windowMs, max, message) => {
+  const opts = {
     windowMs,
     max,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: message },
     skip: () => NODE_ENV === 'development',
-  });
+  };
+  if (redisStoreRate) {
+    opts.store = redisStoreRate;
+  }
+  return rateLimit(opts);
+};
 app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests'));
 app.use(
   '/api/auth/',
@@ -180,6 +204,9 @@ const slowDownConfig = {
 };
 if (NODE_ENV !== 'production') {
   slowDownConfig.validate = { delayMs: false, trustProxy: false };
+}
+if (redisStoreSlow) {
+  slowDownConfig.store = redisStoreSlow;
 }
 app.use(slowDown(slowDownConfig));
 

@@ -18,6 +18,13 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7
+    container_name: renn-ai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
 volumes:
   renn-ai-db-data:
 
