@@ -13,10 +13,11 @@ DATABASE_URL=<Railway URL incl. ?sslmode=require>
 PG_SSL=true
 JWT_SECRET=<strong random 32B base64>
 WEBHOOK_SECRET=<strong random 32B base64>
-ALLOWED_ORIGINS=https://<your-subdomain>.up.railway.app
+ALLOWED_ORIGINS=https://<your-subdomain>.up.railway.app,https://another-domain.com
 ```
 
 (Generate secrets locally with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
+`ALLOWED_ORIGINS` accepts a comma-separated list of domains.
 
 ## 2. First deploy
 - The `postinstall` script runs `npm run build` to generate `public/dist/main.css` before the server starts.
