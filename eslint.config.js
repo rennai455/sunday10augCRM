@@ -1,9 +1,11 @@
 const js = require('@eslint/js');
 
 module.exports = [
+  // Ignore built assets entirely
+  { ignores: ['public/dist/**/*'] },
   js.configs.recommended,
   {
-    ignores: ['dist/', 'node_modules/', '*.min.js'],
+    ignores: ['**/dist/**', '**/public/dist/**', 'node_modules/', '*.min.js'],
     languageOptions: {
       sourceType: 'commonjs',
       ecmaVersion: 2022,
@@ -33,9 +35,10 @@ module.exports = [
   },
   // Browser environment for client-side scripts
   {
-    files: ['public/**/*.js'],
+    files: ['public/scripts/**/*.js'],
     languageOptions: {
-      sourceType: 'script',
+      // Client-side modules use ES module syntax
+      sourceType: 'module',
       ecmaVersion: 2022,
       globals: {
         // Browser globals
