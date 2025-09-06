@@ -21,6 +21,8 @@
 4. Run `npm install --dev && npm run diagnostics` in Railway shell (should exit 0).
 5. Deploy and visit `/health` for `{ ok: true }`.
 
+For a more detailed walkthrough, see [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
 ## Environment Variables
 - DATABASE_URL
 - PG_SSL
