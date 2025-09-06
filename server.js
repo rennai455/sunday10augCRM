@@ -1,8 +1,11 @@
+// server.js
 const express = require('express');
 const config = require('./config');
 const { applyPreMiddleware, applyPostMiddleware } = require('./src/middleware');
 const { registerWebhook, registerRoutes } = require('./src/routes');
 const { auth } = require('./src/auth');
+
+const { PORT, NODE_ENV } = config;
 
 const app = express();
 app.disable('x-powered-by');
@@ -13,14 +16,12 @@ registerWebhook(app);
 applyPostMiddleware(app);
 registerRoutes(app);
 
-const { PORT, NODE_ENV } = config;
-
 let server;
 if (require.main === module) {
   server = app.listen(PORT, () => {
-    console.log(`🚀 RENN.AI Ultra-Optimized Server running on port ${PORT}`);
-    console.log(`📍 Environment: ${NODE_ENV}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🚀 RENN.AI Ultra-Optimized Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${NODE_ENV}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   });
 
   const shutdown = (signal) => {
