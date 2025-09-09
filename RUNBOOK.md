@@ -9,6 +9,11 @@
 6. Run `npm install --dev && npm run diagnostics` to verify config and security.
 7. Start server: `npm start`.
 
+## Docker
+- Use `docker build -t renn-ai-crm .` to build the multi-stage image.
+- The container runs as non-root and exposes `PORT` (default 3002).
+- Healthcheck targets `/healthz` via an internal Node script.
+
 ## Railway Deployment
 1. Create Railway project and add Railway Postgres plugin.
 2. In Railway's dashboard, add service variables:
@@ -56,5 +61,6 @@ If `REDIS_URL` is set, replay tracking uses Redis (NX + PX). Otherwise an in-pro
 - [ ] Webhook signature enforced
 - [ ] Rate limiting metrics visible (`rate_limit_blocked_total`)
 - [ ] Webhook metrics visible (`webhook_events_total`)
+- [ ] Audit log entries on login/logout/webhook
 - [ ] Login sets HttpOnly cookie; Logout clears it
 - [ ] Static only at /static

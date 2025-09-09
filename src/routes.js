@@ -8,6 +8,7 @@ const { checkAndSetReplay } = require('./replayStore');
 const { pool } = require('../db');
 const config = require('../config');
 const { auth, authenticateWeb } = require('./auth');
+const { recordAudit } = require('./audit');
 
 const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET } = config;
 
@@ -66,6 +67,7 @@ function registerWebhook(app) {
             const payload = JSON.parse(req.body.toString('utf8'));
             req.log?.info({ id, ts, payload }, 'Webhook received');
             metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
+            recordAudit(req, 'webhook:received', { id, ts });
             return res.json({ received: true });
           } catch {
             metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
@@ -81,6 +83,7 @@ function registerWebhook(app) {
       const payload = JSON.parse(req.body.toString('utf8'));
       req.log?.info({ id, ts, payload }, 'Webhook received');
       metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
+      recordAudit(req, 'webhook:received', { id, ts });
       return res.json({ received: true });
     } catch {
       metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
@@ -149,7 +152,8 @@ function registerRoutes(app) {
         sameSite: 'lax',
         maxAge: 24 * 60 * 60 * 1000,
       });
-
+      // Audit login success (no PII stored, only IDs)
+      recordAudit(req, 'auth:login', { userId: user.id, agencyId: user.agency_id });
       res.json({ success: true });
     } catch (error) {
       console.error('Login error:', error);
@@ -163,6 +167,7 @@ function registerRoutes(app) {
       secure: NODE_ENV === 'production',
       sameSite: 'lax',
     });
+    recordAudit(req, 'auth:logout');
     return res.json({ success: true });
   });
 

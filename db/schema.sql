@@ -123,3 +123,19 @@ CREATE INDEX idx_client_projects_client_id ON client_projects(client_id);
 -- Composite indexes for recency queries
 CREATE INDEX idx_campaigns_agency_created ON campaigns(agency_id, created_at DESC);
 CREATE INDEX idx_leads_campaign_created ON leads(campaign_id, created_at DESC);
+
+-- audit_log
+CREATE TABLE audit_log (
+  id BIGSERIAL PRIMARY KEY,
+  occurred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  req_id TEXT,
+  user_id INTEGER,
+  agency_id INTEGER,
+  action TEXT NOT NULL,
+  payload_hash TEXT,
+  ip INET,
+  user_agent TEXT
+);
+CREATE INDEX idx_audit_agency_time ON audit_log(agency_id, occurred_at DESC);
+CREATE INDEX idx_audit_user_time ON audit_log(user_id, occurred_at DESC);
+CREATE INDEX idx_audit_action_time ON audit_log(action, occurred_at DESC);

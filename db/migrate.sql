@@ -39,3 +39,20 @@ CREATE TABLE IF NOT EXISTS leads (
 -- Performance indexes (idempotent)
 CREATE INDEX IF NOT EXISTS idx_campaigns_agency_created ON campaigns(agency_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_leads_campaign_created ON leads(campaign_id, created_at DESC);
+
+-- Audit log for critical actions
+CREATE TABLE IF NOT EXISTS audit_log (
+  id BIGSERIAL PRIMARY KEY,
+  occurred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  req_id TEXT,
+  user_id INTEGER,
+  agency_id INTEGER,
+  action TEXT NOT NULL,
+  payload_hash TEXT,
+  ip INET,
+  user_agent TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_agency_time ON audit_log(agency_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit_log(user_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action_time ON audit_log(action, occurred_at DESC);

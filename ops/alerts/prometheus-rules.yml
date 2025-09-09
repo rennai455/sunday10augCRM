@@ -1,0 +1,39 @@
+groups:
+  - name: renn-ai-crm.slo
+    rules:
+      - alert: ApiHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m])) > 0.001
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: High 5xx error rate on API
+          description: "5xx ratio > 0.1% for 10m"
+
+      - alert: ApiLatencyP95High
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.3
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: p95 latency above 300ms
+
+      - alert: RateLimitBlocksSpike
+        expr: increase(rate_limit_blocked_total[5m]) > 50
+        for: 10m
+        labels:
+          severity: warn
+        annotations:
+          summary: Sudden spike in rate limit blocks
+
+      - alert: WebhookIssues
+        expr: |
+          increase(webhook_events_total{outcome=~"invalid_sig|replay|stale"}[15m]) > 5
+        for: 15m
+        labels:
+          severity: warn
+        annotations:
+          summary: Webhook invalid/replay/stale events detected

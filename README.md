@@ -41,6 +41,17 @@ Prepared for GitHub import.
 
 6. Static files are served from `/static/*`.
 
+## Docker (multi-stage)
+
+Build and run locally:
+
+```bash
+docker build -t renn-ai-crm:dev .
+docker run --rm -e PORT=3002 -p 3002:3002 renn-ai-crm:dev
+```
+
+The image uses a multi-stage build (builder → runner), runs as non-root `node`, and defines a `HEALTHCHECK` on `/healthz`.
+
 ## Environment Variables
 
 The server expects several variables to be present at runtime:
@@ -116,3 +127,5 @@ The script will:
 - create/force `main` as default branch
 - set `origin` to your repo
 - push the initial commit
+### Audit log
+An `audit_log` table captures `req.id`, `user_id`, `agency_id`, `action`, and a SHA-256 `payload_hash` with `ip` and `user_agent`. Login, logout, and webhook receipts are recorded.

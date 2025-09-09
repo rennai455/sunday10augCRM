@@ -50,7 +50,18 @@ function applyPreMiddleware(app) {
   app.use(
     pinoHttp({
       genReqId: (req) => req.id,
-      redact: ['req.headers.authorization'],
+      redact: {
+        paths: [
+          'req.headers.authorization',
+          'req.headers.cookie',
+          "res.headers['set-cookie']",
+          'req.cookies',
+          'req.body.password',
+          'req.body.email',
+          'req.body.phone',
+        ],
+        censor: '[REDACTED]',
+      },
     })
   );
 
