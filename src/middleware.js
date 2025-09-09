@@ -13,7 +13,15 @@ const cookieParser = require('cookie-parser');
 const metrics = require('../metrics');
 const config = require('../config');
 
-const { NODE_ENV, ALLOWED_ORIGINS, REDIS_URL } = config;
+const {
+  NODE_ENV,
+  ALLOWED_ORIGINS,
+  REDIS_URL,
+  API_RATE_WINDOW_MS,
+  API_RATE_MAX,
+  AUTH_RATE_WINDOW_MS,
+  AUTH_RATE_MAX,
+} = config;
 
 let redisStore;
 function initRateLimitStore() {
@@ -155,10 +163,10 @@ function applyPostMiddleware(app) {
       },
     });
   };
-  app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests', 'api'));
+  app.use('/api/', makeLimiter(API_RATE_WINDOW_MS, API_RATE_MAX, 'Too many requests', 'api'));
   app.use(
     '/api/auth/',
-    makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts', 'auth')
+    makeLimiter(AUTH_RATE_WINDOW_MS, AUTH_RATE_MAX, 'Too many auth attempts', 'auth')
   );
 
   const slowDownConfig = {

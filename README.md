@@ -89,6 +89,16 @@ Full deployment instructions are in [docs/RUNBOOK.md](docs/RUNBOOK.md).
 ### Rate limiting metrics
 Prometheus counter `rate_limit_blocked_total{route,type}` increments on 429 responses from the rate limiter (types: `api`, `auth`). Use this for alerting on abuse or misconfiguration.
 
+### Rate limiting configuration
+Tune rate limits via env vars (defaults in parentheses):
+- `API_RATE_WINDOW_MS` (900000)
+- `API_RATE_MAX` (1000)
+- `AUTH_RATE_WINDOW_MS` (900000)
+- `AUTH_RATE_MAX` (10)
+
+### Webhook metrics
+Prometheus counter `webhook_events_total{outcome}` increments with outcomes: `accepted`, `replay`, `stale`, `invalid_sig`, `missing_sig`, `invalid_json`.
+
 ## Quick start
 
 From the project root (top-level folder of your code):

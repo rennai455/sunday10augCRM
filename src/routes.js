@@ -18,6 +18,7 @@ function registerWebhook(app) {
   app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
     const signature = req.get('x-signature');
     if (!signature) {
+      metrics.webhookEventsTotal?.inc({ outcome: 'missing_sig' });
       return res.status(401).json({ error: 'Missing signature' });
     }
 
@@ -41,6 +42,7 @@ function registerWebhook(app) {
     const sigBuf = Buffer.from(signature, 'hex');
     const expBuf = Buffer.from(expected, 'hex');
     if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+      metrics.webhookEventsTotal?.inc({ outcome: 'invalid_sig' });
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
@@ -49,18 +51,24 @@ function registerWebhook(app) {
       const now = Date.now();
       const tsNum = Number(ts);
       if (!Number.isFinite(tsNum) || Math.abs(now - tsNum) > REPLAY_TTL_MS) {
+        metrics.webhookEventsTotal?.inc({ outcome: 'stale' });
         return res.status(408).json({ error: 'Stale timestamp' });
       }
       // Check and set replay marker (Redis or in-memory fallback)
       // If marker already exists, it's a replay
       checkAndSetReplay(id, REPLAY_TTL_MS)
         .then((isReplay) => {
-          if (isReplay) return res.status(409).json({ error: 'Replay detected' });
+          if (isReplay) {
+            metrics.webhookEventsTotal?.inc({ outcome: 'replay' });
+            return res.status(409).json({ error: 'Replay detected' });
+          }
           try {
             const payload = JSON.parse(req.body.toString('utf8'));
             req.log?.info({ id, ts, payload }, 'Webhook received');
+            metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
             return res.json({ received: true });
           } catch {
+            metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
             return res.status(400).json({ error: 'Invalid JSON' });
           }
         })
@@ -68,11 +76,14 @@ function registerWebhook(app) {
       return; // Response handled in promise
     }
 
+    // No id/timestamp: legacy signing over raw body only
     try {
       const payload = JSON.parse(req.body.toString('utf8'));
       req.log?.info({ id, ts, payload }, 'Webhook received');
+      metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
       return res.json({ received: true });
     } catch {
+      metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
       return res.status(400).json({ error: 'Invalid JSON' });
     }
   });

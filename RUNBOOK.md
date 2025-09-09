@@ -32,8 +32,11 @@ For a more detailed walkthrough, see [docs/RUNBOOK.md](docs/RUNBOOK.md).
 - ALLOWED_ORIGINS
 - SEED_ADMIN_EMAIL
 - SEED_ADMIN_PASSWORD
-- REDIS_URL (optional for prod rate limits)
- - REDIS_URL (optional for prod rate limits and webhook replay guard)
+- REDIS_URL (optional for prod rate limits and webhook replay guard)
+- API_RATE_WINDOW_MS (optional)
+- API_RATE_MAX (optional)
+- AUTH_RATE_WINDOW_MS (optional)
+- AUTH_RATE_MAX (optional)
 
 ## Webhooks
 - Required: `x-signature` header (HMAC-SHA256)
@@ -52,5 +55,6 @@ If `REDIS_URL` is set, replay tracking uses Redis (NX + PX). Otherwise an in-pro
 - [ ] CSV protected with ownership
 - [ ] Webhook signature enforced
 - [ ] Rate limiting metrics visible (`rate_limit_blocked_total`)
+- [ ] Webhook metrics visible (`webhook_events_total`)
 - [ ] Login sets HttpOnly cookie; Logout clears it
 - [ ] Static only at /static

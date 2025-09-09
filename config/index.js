@@ -19,6 +19,11 @@ const env = cleanEnv(process.env, {
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
   REDIS_URL: str({ default: '' }),
+  // Rate limit configuration
+  API_RATE_WINDOW_MS: num({ default: 900000 }), // 15 minutes
+  API_RATE_MAX: num({ default: 1000 }),
+  AUTH_RATE_WINDOW_MS: num({ default: 900000 }),
+  AUTH_RATE_MAX: num({ default: 10 }),
 });
 
 module.exports = env;
