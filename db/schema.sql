@@ -120,3 +120,6 @@ CREATE INDEX idx_leads_client_id ON leads(client_id);
 CREATE INDEX idx_deals_lead_id ON deals(lead_id);
 CREATE INDEX idx_clients_agency_id ON clients(agency_id);
 CREATE INDEX idx_client_projects_client_id ON client_projects(client_id);
+-- Composite indexes for recency queries
+CREATE INDEX idx_campaigns_agency_created ON campaigns(agency_id, created_at DESC);
+CREATE INDEX idx_leads_campaign_created ON leads(campaign_id, created_at DESC);

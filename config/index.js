@@ -18,6 +18,7 @@ const env = cleanEnv(process.env, {
   WEBHOOK_SECRET: str(),
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
+  REDIS_URL: str({ default: '' }),
 });
 
 module.exports = env;

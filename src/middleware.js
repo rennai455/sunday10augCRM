@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const RedisStore = require('rate-limit-redis');
+const { getRedisClient } = require('./redis');
 const slowDown = require('express-slow-down');
 const pinoHttp = require('pino-http');
 const crypto = require('crypto');
@@ -11,7 +13,25 @@ const cookieParser = require('cookie-parser');
 const metrics = require('../metrics');
 const config = require('../config');
 
-const { NODE_ENV, ALLOWED_ORIGINS } = config;
+const { NODE_ENV, ALLOWED_ORIGINS, REDIS_URL } = config;
+
+let redisStore;
+function initRateLimitStore() {
+  if (redisStore) return redisStore;
+  if (NODE_ENV === 'production' && REDIS_URL) {
+    try {
+      const redisClient = getRedisClient();
+      redisStore = new RedisStore({
+        sendCommand: (...args) => redisClient.sendCommand(args),
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to init Redis store (rate limit):', err);
+      redisStore = undefined;
+    }
+  }
+  return redisStore;
+}
 
 function applyPreMiddleware(app) {
   app.use((req, _res, next) => {
@@ -38,12 +58,17 @@ function applyPreMiddleware(app) {
   });
 
   const raw = ALLOWED_ORIGINS || '';
-  const ALLOWLIST = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const ALLOWLIST = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   app.use(
     cors({
       origin: (origin, cb) => {
+        // Allow non-browser/server-to-server requests without CORS header
         if (!origin) return cb(null, true);
-        if (ALLOWLIST.length === 0) return cb(null, true);
+        // Default deny when allowlist is empty
+        if (ALLOWLIST.length === 0) return cb(null, false);
         cb(null, ALLOWLIST.includes(origin));
       },
       credentials: true,
@@ -111,19 +136,29 @@ function applyPostMiddleware(app) {
     })
   );
 
-  const makeLimiter = (windowMs, max, message) =>
-    rateLimit({
+  const makeLimiter = (windowMs, max, message, typeLabel) => {
+    const store = initRateLimitStore();
+    return rateLimit({
       windowMs,
       max,
       standardHeaders: true,
       legacyHeaders: false,
       message: { error: message },
       skip: () => NODE_ENV === 'development',
+      store,
+      handler: (req, res, _next, options) => {
+        const labels = { route: req.path || req.baseUrl || 'unknown', type: typeLabel || 'api' };
+        if (metrics.rateLimitBlockedTotal && typeof metrics.rateLimitBlockedTotal.inc === 'function') {
+          metrics.rateLimitBlockedTotal.inc(labels);
+        }
+        res.status(options.statusCode || 429).json({ error: message });
+      },
     });
-  app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests'));
+  };
+  app.use('/api/', makeLimiter(15 * 60 * 1000, 1000, 'Too many requests', 'api'));
   app.use(
     '/api/auth/',
-    makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts')
+    makeLimiter(15 * 60 * 1000, 10, 'Too many auth attempts', 'auth')
   );
 
   const slowDownConfig = {

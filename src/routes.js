@@ -4,11 +4,15 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const metrics = require('../metrics');
+const { checkAndSetReplay } = require('./replayStore');
 const { pool } = require('../db');
 const config = require('../config');
 const { auth, authenticateWeb } = require('./auth');
 
 const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET } = config;
+
+// Replay TTL window
+const REPLAY_TTL_MS = 5 * 60 * 1000;
 
 function registerWebhook(app) {
   app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
@@ -17,10 +21,22 @@ function registerWebhook(app) {
       return res.status(401).json({ error: 'Missing signature' });
     }
 
-    const expected = crypto
-      .createHmac('sha256', WEBHOOK_SECRET)
-      .update(req.body)
-      .digest('hex');
+    const id = req.get('x-id');
+    const ts = req.get('x-timestamp');
+
+    // Prefer signing scheme with id+timestamp for replay protection; otherwise fallback
+    const toSign =
+      id && ts
+        ? Buffer.concat([
+            Buffer.from(String(id)),
+            Buffer.from('.'),
+            Buffer.from(String(ts)),
+            Buffer.from('.'),
+            Buffer.from(req.body),
+          ])
+        : Buffer.from(req.body);
+
+    const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(toSign).digest('hex');
 
     const sigBuf = Buffer.from(signature, 'hex');
     const expBuf = Buffer.from(expected, 'hex');
@@ -28,9 +44,33 @@ function registerWebhook(app) {
       return res.status(400).json({ error: 'Invalid signature' });
     }
 
+    // Replay guard when id/timestamp provided
+    if (id && ts) {
+      const now = Date.now();
+      const tsNum = Number(ts);
+      if (!Number.isFinite(tsNum) || Math.abs(now - tsNum) > REPLAY_TTL_MS) {
+        return res.status(408).json({ error: 'Stale timestamp' });
+      }
+      // Check and set replay marker (Redis or in-memory fallback)
+      // If marker already exists, it's a replay
+      checkAndSetReplay(id, REPLAY_TTL_MS)
+        .then((isReplay) => {
+          if (isReplay) return res.status(409).json({ error: 'Replay detected' });
+          try {
+            const payload = JSON.parse(req.body.toString('utf8'));
+            req.log?.info({ id, ts, payload }, 'Webhook received');
+            return res.json({ received: true });
+          } catch {
+            return res.status(400).json({ error: 'Invalid JSON' });
+          }
+        })
+        .catch(() => res.status(500).json({ error: 'Replay guard failure' }));
+      return; // Response handled in promise
+    }
+
     try {
       const payload = JSON.parse(req.body.toString('utf8'));
-      req.log?.info({ payload }, 'Webhook received');
+      req.log?.info({ id, ts, payload }, 'Webhook received');
       return res.json({ received: true });
     } catch {
       return res.status(400).json({ error: 'Invalid JSON' });
