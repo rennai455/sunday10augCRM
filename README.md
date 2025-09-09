@@ -54,6 +54,16 @@ The server expects several variables to be present at runtime:
 
 See the [RUNBOOK](RUNBOOK.md#environment-variables) for additional notes on configuring these values.
 
+### CORS policy
+Cross-origin requests are default-denied. Only origins explicitly included in `ALLOWED_ORIGINS` are allowed. Server-to-server requests without an `Origin` header are accepted.
+
+### Webhook verification and replay guard
+Incoming webhooks must include `x-signature` (HMAC-SHA256) of the raw body using `WEBHOOK_SECRET`.
+For stronger replay protection, send `x-id` (unique ID) and `x-timestamp` (ms since epoch) and compute the signature over: `"<x-id>.<x-timestamp>.<raw-body>"`.
+Requests older than 5 minutes or reused `x-id` values are rejected.
+
+If `REDIS_URL` is configured in production, webhook replay tracking uses Redis (`SET key NX PX=5m`). Without Redis, an in-process fallback store is used (single instance only).
+
 ## Diagnostics
 
 Run the diagnostics script to validate configuration and security settings:
@@ -75,6 +85,19 @@ To deploy on [Railway](https://railway.app):
 4. Execute `npm run diagnostics` and verify `/health` returns `{ ok: true }`.
 
 Full deployment instructions are in [docs/RUNBOOK.md](docs/RUNBOOK.md).
+
+### Rate limiting metrics
+Prometheus counter `rate_limit_blocked_total{route,type}` increments on 429 responses from the rate limiter (types: `api`, `auth`). Use this for alerting on abuse or misconfiguration.
+
+### Rate limiting configuration
+Tune rate limits via env vars (defaults in parentheses):
+- `API_RATE_WINDOW_MS` (900000)
+- `API_RATE_MAX` (1000)
+- `AUTH_RATE_WINDOW_MS` (900000)
+- `AUTH_RATE_MAX` (10)
+
+### Webhook metrics
+Prometheus counter `webhook_events_total{outcome}` increments with outcomes: `accepted`, `replay`, `stale`, `invalid_sig`, `missing_sig`, `invalid_json`.
 
 ## Quick start
 

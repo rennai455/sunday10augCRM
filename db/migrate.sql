@@ -35,3 +35,7 @@ CREATE TABLE IF NOT EXISTS leads (
     status_history JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Performance indexes (idempotent)
+CREATE INDEX IF NOT EXISTS idx_campaigns_agency_created ON campaigns(agency_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_leads_campaign_created ON leads(campaign_id, created_at DESC);

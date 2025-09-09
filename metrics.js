@@ -24,4 +24,16 @@ module.exports = {
   register,
   httpRequestsTotal,
   httpRequestDuration,
+  rateLimitBlockedTotal: new Counter({
+    name: 'rate_limit_blocked_total',
+    help: 'Total number of requests blocked by rate limiting',
+    labelNames: ['route', 'type'],
+    registers: [register],
+  }),
+  webhookEventsTotal: new Counter({
+    name: 'webhook_events_total',
+    help: 'Count of webhook events by outcome',
+    labelNames: ['outcome'],
+    registers: [register],
+  }),
 };
