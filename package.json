@@ -18,7 +18,7 @@
     "css:lint": "stylelint 'styles/**/*.css' --fix",
     "format": "prettier --write \"**/*.{js,css,html,json,md}\"",
     "build": "npm-run-all css:build js:build",
-    "js:build": "esbuild public/scripts/app.js --bundle --format=iife --outfile=public/dist/app.js",
+    "js:build": "esbuild public/scripts/app.js --bundle --format=iife --external:web-vitals --outfile=public/dist/app.js",
     "test:lighthouse": "lhci autorun",
     "test:visual": "backstop test",
     "db:up": "docker compose up -d",
@@ -39,7 +39,7 @@
   "license": "ISC",
   "dependencies": {
     "autoprefixer": "^10.4.21",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "debug": "^4.4.1",

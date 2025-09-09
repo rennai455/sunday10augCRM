@@ -11,9 +11,9 @@ jest.mock('../db', () => ({
 const { app, server } = require('../server');
 
 describe('dashboard authentication flow', () => {
-  afterAll(() => {
-    if (server.listening) server.close();
-  });
+afterAll(() => {
+  if (server && server.listening) server.close();
+});
 
   it('redirects unauthenticated users to Login.html', async () => {
     const res = await request(app).get('/dashboard.html');

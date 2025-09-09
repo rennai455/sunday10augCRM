@@ -19,7 +19,7 @@ describe('auth middleware cookie support', () => {
     expect(res.body.userId).toBe(123);
   });
 
-  afterAll(() => {
-    if (server.listening) server.close();
-  });
+afterAll(() => {
+  if (server && server.listening) server.close();
+});
 });
