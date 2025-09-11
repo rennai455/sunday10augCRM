@@ -46,16 +46,16 @@ async function diagnostics() {
     console.error('Admin user check error:', err);
   }
 
-  // Check for secure headers in server.js
+  // Check for security middleware in src/middleware.js
   try {
-    const serverCode = fs.readFileSync('./server.js', 'utf8');
-    if (serverCode.includes('helmet(') && serverCode.includes('rateLimit(')) {
+    const middlewareCode = fs.readFileSync('./src/middleware.js', 'utf8');
+    if (middlewareCode.includes('helmet(') && middlewareCode.includes('rateLimit(')) {
       console.log('Security middleware: OK');
     } else {
-      console.error('Security middleware missing in server.js');
+      console.error('Security middleware missing in src/middleware.js');
     }
   } catch (err) {
-    console.error('server.js read error:', err);
+    console.error('src/middleware.js read error:', err);
   }
 }
 
