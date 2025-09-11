@@ -38,6 +38,7 @@ Prepared for GitHub import.
 5. Health endpoints:
    - `GET /health`
    - `GET /readyz`
+   - `GET /docs` (Swagger UI, requires auth)
 
 6. Static files are served from `/static/*`.
 
@@ -59,6 +60,7 @@ The server expects several variables to be present at runtime:
 - `DATABASE_URL` – PostgreSQL connection string
 - `JWT_SECRET` – secret used to sign JWTs
 - `WEBHOOK_SECRET` – shared secret for verifying webhooks
+- `WEBHOOK_SECRETS` – optional, comma-separated additional secrets for rotation
 - `ALLOWED_ORIGINS` – comma separated list of allowed origins
 - `SEED_ADMIN_EMAIL` – email for the seeded admin user
 - `SEED_ADMIN_PASSWORD` – password for the seeded admin user
@@ -92,6 +94,9 @@ To deploy on [Railway](https://railway.app):
 
 1. Create a Railway project and provision a PostgreSQL database.
 2. Set the environment variables listed above, including secrets and `DATABASE_URL`.
+   - Optional rotation: add `WEBHOOK_SECRETS` so old+new validate during rotation.
+   - Observability: set `SENTRY_DSN` and/or `OTEL_EXPORTER_OTLP_ENDPOINT`.
+   - Pool tuning: `PG_POOL_MAX`, `PG_IDLE_TIMEOUT_MS`.
 3. Run migrations and seed data in a Railway shell.
 4. Execute `npm run diagnostics` and verify `/health` returns `{ ok: true }`.
 
@@ -129,3 +134,28 @@ The script will:
 - push the initial commit
 ### Audit log
 An `audit_log` table captures `req.id`, `user_id`, `agency_id`, `action`, and a SHA-256 `payload_hash` with `ip` and `user_agent`. Login, logout, and webhook receipts are recorded.
+
+## CSRF
+- `GET /api/csrf-token` issues a token and cookie (`csrf_token`).
+- Send `x-csrf-token` header with POST/PUT/PATCH/DELETE requests to `/api/*`.
+- Exemptions: `/webhook`, `/metrics`, `/health*`, `/ready*`.
+
+## RLS (optional)
+- To enable:
+  1) `npm run migrate:pg:up`
+  2) set `PG_ENABLE_RLS=true`
+  3) `npm run db:rls`
+- App sets `SET LOCAL app.current_agency_id` when using `withAgencyContext(agencyId, fn)`.
+  Use this helper for tenant-isolated queries.
+## Leads API (scaffolded)
+- `GET /api/leads` — list (filters: `campaignId`, `status`, with pagination)
+- `GET /api/leads/:id` — fetch single
+- `POST /api/leads` — create (fields: `campaign_id`, `name`, `email`, `phone`, `status`)
+- `PUT /api/leads/:id` — update partial
+- `DELETE /api/leads/:id` — delete
+
+All leads endpoints are tenant-scoped and use `withAgencyContext`.
+
+## API Docs
+- Generate: `npm run openapi`
+- View: `GET /docs` (auth required)

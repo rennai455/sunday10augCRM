@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const cookieParser = require('cookie-parser');
 const metrics = require('../metrics');
 const config = require('../config');
+const csurf = require('csurf');
 
 const {
   NODE_ENV,
@@ -140,6 +141,22 @@ function applyPostMiddleware(app) {
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use(cookieParser());
 
+  // CSRF protection (double submit cookie). Exempt safe routes and webhooks.
+  const csrfProtection = csurf({ cookie: { key: 'csrf_token', sameSite: 'lax', httpOnly: true, secure: NODE_ENV === 'production' } });
+  const csrfExempt = new Set(['/webhook', '/metrics', '/health', '/healthz', '/readyz', '/readiness']);
+  app.use((req, res, next) => {
+    if (NODE_ENV === 'test') return next();
+    // Only protect state-changing API routes
+    const method = req.method.toUpperCase();
+    const unsafe = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+    if (!unsafe) return next();
+    if (csrfExempt.has(req.path)) return next();
+    return csrfProtection(req, res, (err) => {
+      if (err) return res.status(403).json({ error: 'Invalid CSRF token' });
+      next();
+    });
+  });
+
   app.use(
     '/static',
     (req, res, next) => {
@@ -154,6 +171,18 @@ function applyPostMiddleware(app) {
       index: false,
     })
   );
+
+  // Endpoint to fetch a CSRF token for clients that need it
+  app.get('/api/csrf-token', (req, res) => {
+    try {
+      // Generate a token by invoking the middleware on demand
+      csurf({ cookie: { key: 'csrf_token', sameSite: 'lax', httpOnly: true, secure: NODE_ENV === 'production' } })(req, res, () => {
+        res.json({ csrfToken: req.csrfToken?.() });
+      });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to issue CSRF token' });
+    }
+  });
 
   const makeLimiter = (windowMs, max, message, typeLabel) => {
     const store = initRateLimitStore();

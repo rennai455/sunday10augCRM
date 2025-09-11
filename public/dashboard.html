@@ -18,12 +18,18 @@
         <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
         <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
         <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
+        <a href="/docs" class="nav__item nav-item" id="nav-docs" data-roles="admin">API Docs</a>
+        <a href="/Audit.html" class="nav__item nav-item" id="nav-audit" data-roles="admin">Audit</a>
         <button class="btn btn-secondary btn-block mt-4" onclick="window.logout()">Logout</button>
       </nav>
       <footer class="sidebar__footer">
         <div id="user-chip" class="user-chip">
           <span class="user-chip__avatar"></span>
           <span class="user-chip__email"></span>
+        </div>
+        <div class="mt">
+          <h3 style="font-size: 0.9rem;">Recent Activity</h3>
+          <ul id="sidebar-activity" style="font-size: 0.85rem; max-height: 160px; overflow:auto;"></ul>
         </div>
       </footer>
     </aside>
@@ -67,13 +73,29 @@
           } else {
             document.getElementById('user-role').textContent = `Role: ${data.role || 'admin'}`;
             document.getElementById('dashboard-section').innerHTML =
-              `<div class='card'><h2>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>`;
+              `<div class='card'><h2>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>
+               <div class='card mt'>
+                 <h2>Recent Activity</h2>
+                 <ul id='activity-list' class='mt'></ul>
+               </div>`;
+            loadRecentActivity();
 
             const parts = (data.name || data.email).split(/[\\s@]+/);
             const initials = (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
             const chip = document.getElementById('user-chip');
             chip.querySelector('.user-chip__avatar').textContent = initials.toUpperCase();
             chip.querySelector('.user-chip__email').textContent = data.email;
+
+            // Hide items not allowed for role
+            document.querySelectorAll('.nav-item').forEach((item) => {
+              const roles = item.getAttribute('data-roles');
+              if (roles && !roles.includes(data.role)) {
+                item.style.display = 'none';
+              }
+            });
+            // Load sidebar activity initially and every 60s
+            loadSidebarActivity();
+            setInterval(loadSidebarActivity, 60000);
           }
         })
         .catch(() => window.location.href = '/Login.html');
@@ -90,12 +112,10 @@
           `<div class='card'><h2>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
       });
       document.getElementById('nav-campaigns').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Campaigns</h2><p>List of campaigns will appear here.</p></div>`;
+        renderCampaigns();
       });
       document.getElementById('nav-leads').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Leads</h2><p>List of leads will appear here.</p></div>`;
+        renderLeads();
       });
       document.getElementById('nav-settings').addEventListener('click', () => {
         document.getElementById('dashboard-section').innerHTML =
@@ -111,12 +131,177 @@
       });
 
       // Logout
-      window.logout = () => {
-        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-          .then(() => window.location.href = '/Login.html');
+      window.logout = async () => {
+        try {
+          let csrfToken;
+          try {
+            const t = await fetch('/api/csrf-token', { credentials: 'include' });
+            const td = await t.json();
+            csrfToken = td.csrfToken;
+          } catch {}
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: csrfToken ? { 'x-csrf-token': csrfToken } : {}
+          });
+        } finally {
+          window.location.href = '/Login.html';
+        }
       };
+      // Expose render functions if needed
+      window.renderCampaigns = renderCampaigns;
+      window.renderLeads = renderLeads;
     });
+
+    async function renderCampaigns(page = 1, pageSize = 10, sort = 'created_at', order = 'desc') {
+      const section = document.getElementById('dashboard-section');
+      section.innerHTML = `<div class='card'><h2>Campaigns <small id='campaigns-last-updated' class='chip'></small></h2><div id='campaigns-controls'></div><div id='campaigns-list'>Loading...</div></div>`;
+      const qs = new URLSearchParams({ page, pageSize, sort, order });
+      const res = await fetch(`/api/campaigns?${qs.toString()}`, { credentials: 'include' });
+      const total = parseInt(res.headers.get('X-Total-Count') || '0', 10);
+      const data = await res.json();
+      const rows = (data.campaigns || []);
+      // Last updated chip
+      const latest = rows.reduce((acc, r) => {
+        const t = r.updated_at || r.created_at;
+        const ms = t ? new Date(t).getTime() : 0;
+        return ms > acc ? ms : acc;
+      }, 0);
+      if (latest) {
+        const chip = document.getElementById('campaigns-last-updated');
+        chip.textContent = timeAgo(latest);
+        chip.className = 'chip ' + chipColor(latest);
+      }
+      const list = rows.map(c => `<tr><td>${c.id}</td><td>${c.name}</td><td>${c.status}</td><td>${new Date(c.created_at).toLocaleString()}</td><td>${c.updated_at ? new Date(c.updated_at).toLocaleString() : ''}</td></tr>`).join('');
+      const controls = `
+        <div class='row'>
+          <label>Sort
+            <select id='campaigns-sort'>
+              <option value='created_at' ${sort==='created_at'?'selected':''}>Created</option>
+              <option value='updated_at' ${sort==='updated_at'?'selected':''}>Updated</option>
+            </select>
+          </label>
+          <label>Order
+            <select id='campaigns-order'>
+              <option value='desc' ${order==='desc'?'selected':''}>Desc</option>
+              <option value='asc' ${order==='asc'?'selected':''}>Asc</option>
+            </select>
+          </label>
+          <button id='campaigns-prev' ${page<=1?'disabled':''}>Prev</button>
+          <span>Page ${page}</span>
+          <button id='campaigns-next' ${(page*pageSize)>=total?'disabled':''}>Next</button>
+        </div>`;
+      document.getElementById('campaigns-controls').innerHTML = controls;
+      document.getElementById('campaigns-list').innerHTML = `<table class='table'><thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Created</th><th>Updated</th></tr></thead><tbody>${list}</tbody></table>`;
+      document.getElementById('campaigns-sort').onchange = (e)=> renderCampaigns(page, pageSize, e.target.value, order);
+      document.getElementById('campaigns-order').onchange = (e)=> renderCampaigns(page, pageSize, sort, e.target.value);
+      document.getElementById('campaigns-prev').onclick = ()=> renderCampaigns(page-1, pageSize, sort, order);
+      document.getElementById('campaigns-next').onclick = ()=> renderCampaigns(page+1, pageSize, sort, order);
+    }
+
+    async function renderLeads(page = 1, pageSize = 10, sort = 'created_at', order = 'desc', status = '', campaignId = '') {
+      const section = document.getElementById('dashboard-section');
+      section.innerHTML = `<div class='card'><h2>Leads <small id='leads-last-updated' class='chip'></small></h2><div id='leads-controls'></div><div id='leads-list'>Loading...</div><div id='leads-activity' class='mt'></div></div>`;
+      const params = { page, pageSize, sort, order };
+      if (status) params.status = status;
+      if (campaignId) params.campaignId = campaignId;
+      const qs = new URLSearchParams(params);
+      const res = await fetch(`/api/leads?${qs.toString()}`, { credentials: 'include' });
+      const total = parseInt(res.headers.get('X-Total-Count') || '0', 10);
+      const data = await res.json();
+      const rows = (data.leads || []);
+      const latest = rows.reduce((acc, r) => {
+        const t = r.updated_at || r.created_at;
+        const ms = t ? new Date(t).getTime() : 0;
+        return ms > acc ? ms : acc;
+      }, 0);
+      if (latest) {
+        const chip = document.getElementById('leads-last-updated');
+        chip.textContent = timeAgo(latest);
+        chip.className = 'chip ' + chipColor(latest);
+      }
+      const list = rows.map(l => `<tr><td>${l.id}</td><td>${l.campaign_id}</td><td>${l.name||''}</td><td>${l.status||''}</td><td>${new Date(l.created_at).toLocaleString()}</td><td>${l.updated_at ? new Date(l.updated_at).toLocaleString() : ''}</td></tr>`).join('');
+      const controls = `
+        <div class='row'>
+          <label>Status <input id='leads-status' value='${status}'></label>
+          <label>Campaign <input id='leads-campaign' value='${campaignId}'></label>
+          <label>Sort
+            <select id='leads-sort'>
+              <option value='created_at' ${sort==='created_at'?'selected':''}>Created</option>
+              <option value='updated_at' ${sort==='updated_at'?'selected':''}>Updated</option>
+              <option value='status' ${sort==='status'?'selected':''}>Status</option>
+            </select>
+          </label>
+          <label>Order
+            <select id='leads-order'>
+              <option value='desc' ${order==='desc'?'selected':''}>Desc</option>
+              <option value='asc' ${order==='asc'?'selected':''}>Asc</option>
+            </select>
+          </label>
+          <button id='leads-apply'>Apply</button>
+          <button id='leads-prev' ${page<=1?'disabled':''}>Prev</button>
+          <span>Page ${page}</span>
+          <button id='leads-next' ${(page*pageSize)>=total?'disabled':''}>Next</button>
+        </div>`;
+      document.getElementById('leads-controls').innerHTML = controls;
+      document.getElementById('leads-list').innerHTML = `<table class='table'><thead><tr><th>ID</th><th>Campaign</th><th>Name</th><th>Status</th><th>Created</th><th>Updated</th></tr></thead><tbody>${list}</tbody></table>`;
+
+      // Recent lead activity
+      try {
+        const actRes = await fetch('/api/audit/leads?limit=10', { credentials: 'include' });
+        const act = await actRes.json();
+        const items = (act.events || []).map(e => `<li>${new Date(e.occurred_at).toLocaleString()} - ${e.action}</li>`).join('');
+        document.getElementById('leads-activity').innerHTML = `<h3>Recent Lead Activity</h3><ul>${items}</ul>`;
+      } catch {}
+      document.getElementById('leads-sort').onchange = (e)=> renderLeads(page, pageSize, e.target.value, order, status, campaignId);
+      document.getElementById('leads-order').onchange = (e)=> renderLeads(page, pageSize, sort, e.target.value, status, campaignId);
+      document.getElementById('leads-prev').onclick = ()=> renderLeads(page-1, pageSize, sort, order, status, campaignId);
+      document.getElementById('leads-next').onclick = ()=> renderLeads(page+1, pageSize, sort, order, status, campaignId);
+      document.getElementById('leads-apply').onclick = ()=> {
+        const st = document.getElementById('leads-status').value.trim();
+        const cid = document.getElementById('leads-campaign').value.trim();
+        renderLeads(1, pageSize, sort, order, st, cid);
+      };
+    }
+
+    async function loadSidebarActivity() {
+      try {
+        const res = await fetch('/api/audit/recent?limit=5', { credentials: 'include' });
+        const data = await res.json();
+        const list = (data.events || []).map(e => `<li>${new Date(e.occurred_at).toLocaleTimeString()} — ${e.action}</li>`).join('');
+        const ul = document.getElementById('sidebar-activity');
+        if (ul) ul.innerHTML = list || '<li>No recent activity</li>';
+      } catch {}
+    }
   </script>
   <script src="/static/dist/app.js"></script>
 </body>
 </html>
+    function timeAgo(ts) {
+      const ms = Date.now() - ts;
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return `${s}s ago`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      const d = Math.floor(h / 24);
+      return `${d}d ago`;
+    }
+
+    function chipColor(ts) {
+      const ageMs = Date.now() - ts;
+      if (ageMs < 3600000) return 'chip-green';
+      if (ageMs < 86400000) return 'chip-yellow';
+      return 'chip-red';
+    }
+
+    async function loadRecentActivity() {
+      try {
+        const res = await fetch('/api/audit/recent?limit=5', { credentials: 'include' });
+        const data = await res.json();
+        const list = (data.events || []).map(e => `<li>${new Date(e.occurred_at).toLocaleString()} - ${e.action}</li>`).join('');
+        const ul = document.getElementById('activity-list');
+        if (ul) ul.innerHTML = list || '<li>No recent activity</li>';
+      } catch {}
+    }

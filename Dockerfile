@@ -7,7 +7,7 @@ COPY package*.json ./
 # Install deps without running scripts; then run explicit build
 RUN npm ci --ignore-scripts
 COPY . .
-RUN npm run build
+RUN npm run build && npm run openapi
 
 #############################################
 # runner: minimal image for runtime
@@ -23,6 +23,8 @@ RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 # Copy application source and built assets
 COPY --from=builder /app/public/dist /app/public/dist
 COPY . .
+# Ensure generated OpenAPI is present even if not in source
+COPY --from=builder /app/docs/openapi.json /app/docs/openapi.json
 
 # Ensure non-root
 USER node

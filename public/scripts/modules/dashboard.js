@@ -93,7 +93,17 @@ class RENNApp {
 
 async function logout() {
   try {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    let csrfToken;
+    try {
+      const t = await fetch('/api/csrf-token', { credentials: 'include' });
+      const td = await t.json();
+      csrfToken = td.csrfToken;
+    } catch {}
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
+    });
   } catch (err) {
     console.error('Logout failed', err);
   } finally {

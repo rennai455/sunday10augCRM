@@ -31,7 +31,10 @@ const authenticateWeb = (req, res, next) => {
     return res.redirect('/Login.html');
   }
   try {
-    jwt.verify(token, JWT_SECRET);
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.userId = payload.userId;
+    req.agencyId = payload.agencyId;
+    req.isAdmin = payload.isAdmin;
     next();
   } catch {
     res.redirect('/Login.html');

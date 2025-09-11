@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit - Renn.AI CRM</title>
+  <link rel="stylesheet" href="/static/dist/main.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="layout">
+    <main class="layout__main main-content" id="main-content">
+      <header class="layout__header">
+        <h1>Audit Explorer</h1>
+      </header>
+      <section class="layout__content">
+        <div class="card">
+          <h2>Filters</h2>
+          <div class="row">
+            <label>Action prefix <input type="text" id="f-action" placeholder="e.g. lead:"></label>
+            <label>From <input type="datetime-local" id="f-from"></label>
+            <label>To <input type="datetime-local" id="f-to"></label>
+            <label>Limit <input type="number" id="f-limit" min="1" max="200" value="50"></label>
+            <label><input type="checkbox" id="f-auto" checked> Auto-refresh</label>
+            <button id="f-apply" class="btn btn-primary">Apply</button>
+          </div>
+        </div>
+        <div class="card mt">
+          <h2>Results</h2>
+          <div id="results">Loading...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    let timer;
+    async function load() {
+      const params = new URLSearchParams();
+      const action = document.getElementById('f-action').value.trim();
+      const from = document.getElementById('f-from').value;
+      const to = document.getElementById('f-to').value;
+      const limit = document.getElementById('f-limit').value;
+      if (action) params.set('action', action);
+      if (from) params.set('from', new Date(from).toISOString());
+      if (to) params.set('to', new Date(to).toISOString());
+      if (limit) params.set('limit', limit);
+      const res = await fetch('/api/audit/search?' + params.toString(), { credentials: 'include' });
+      const data = await res.json();
+      const items = (data.events || []).map(e => `<tr><td>${new Date(e.occurred_at).toLocaleString()}</td><td>${e.action}</td></tr>`).join('');
+      document.getElementById('results').innerHTML = `<table class='table'><thead><tr><th>Time</th><th>Action</th></tr></thead><tbody>${items}</tbody></table>`;
+    }
+    function schedule() {
+      clearInterval(timer);
+      if (document.getElementById('f-auto').checked) {
+        timer = setInterval(load, 60000);
+      }
+    }
+    document.getElementById('f-apply').onclick = () => { load(); schedule(); };
+    document.getElementById('f-auto').onchange = () => schedule();
+    window.addEventListener('load', () => { load(); schedule(); });
+  </script>
+</body>
+</html>
+

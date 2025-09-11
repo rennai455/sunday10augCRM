@@ -1,0 +1,69 @@
+{
+  "name": "Send lead to CRM with HMAC",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            { "name": "id", "value": "={{$json.id || $uuid()}}" },
+            { "name": "timestamp", "value": "={{Date.now()}}" },
+            { "name": "name", "value": "John Doe" },
+            { "name": "email", "value": "john@example.com" }
+          ]
+        }
+      },
+      "id": "Set_Lead",
+      "name": "Set Lead",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const payload = { name: $json.name, email: $json.email, source: 'n8n' };\n$json.raw = JSON.stringify(payload);\nreturn items;"
+      },
+      "id": "Compose_Raw",
+      "name": "Compose Raw",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "hmac",
+        "algorithm": "sha256",
+        "value":"={{$json.id + '.' + $json.timestamp + '.' + $json.raw}}",
+        "encoding":"hex",
+        "secretPropertyName":"={{$env.WEBHOOK_SECRET || 'CHANGE_ME'}}"
+      },
+      "id": "HMAC",
+      "name": "HMAC",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.CRM_URL || 'http://localhost:3002'}}/webhook",
+        "options": {},
+        "sendBinaryData": false,
+        "jsonParameters": false,
+        "sendBody": true,
+        "contentType": "raw",
+        "responseFormat": "string",
+        "headerParametersJson": "={\n  \"content-type\": \"application/json\",\n  \"x-id\": \"{{$json.id}}\",\n  \"x-timestamp\": \"{{$json.timestamp}}\",\n  \"x-signature\": \"{{$json.data}}\"\n}"
+      },
+      "id": "HTTP",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 5,
+      "position": [920, 300]
+    }
+  ],
+  "connections": {
+    "Set_Lead": { "main": [[{ "node": "Compose Raw", "type": "main", "index": 0 }]] },
+    "Compose_Raw": { "main": [[{ "node": "HMAC", "type": "main", "index": 0 }]] },
+    "HMAC": { "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]] }
+  }
+}
+

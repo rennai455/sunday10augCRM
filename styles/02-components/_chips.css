@@ -1,0 +1,12 @@
+.chip {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.8em;
+  line-height: 1.2;
+  color: #111827;
+}
+.chip-green { background: #d1fae5; }
+.chip-yellow { background: #fef9c3; }
+.chip-red { background: #fee2e2; }
+

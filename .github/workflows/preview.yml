@@ -49,11 +49,17 @@ jobs:
       - name: Migrate and seed
         run: |
           npm run db:migrate
-          npm run db:seed
+          npm run migrate:pg:up
+          npm run db:seed || true
+          node scripts/seed-preview.js || true
       - name: Run smoke tests
         run: npm run smoke:direct || npm run smoke
       - name: Run test suite
         run: npm test
+      - name: Generate API docs
+        run: |
+          npm run schemas
+          npm run openapi
       - name: Upload preview artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -62,9 +68,10 @@ jobs:
             coverage
             public/dist
             lhr*.json
+            docs/api-schemas.json
+            docs/openapi.json
       - name: Note preview deployment (optional)
         if: ${{ secrets.PREVIEW_URL != '' }}
         run: |
           echo "Preview URL: ${{ secrets.PREVIEW_URL }}"
           echo "Set PREVIEW_URL secret to surface a real preview endpoint."
-

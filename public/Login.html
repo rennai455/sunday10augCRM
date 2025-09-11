@@ -43,9 +43,16 @@
         submitBtn.textContent = 'Logging in...';
 
         try {
+          // Fetch CSRF token
+          let csrfToken;
+          try {
+            const t = await fetch('/api/csrf-token', { credentials: 'include' });
+            const td = await t.json();
+            csrfToken = td.csrfToken;
+          } catch {}
           const res = await fetch('/api/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: Object.assign({ 'Content-Type': 'application/json' }, csrfToken ? { 'x-csrf-token': csrfToken } : {}),
             body: JSON.stringify({ email, password }),
             credentials: 'include'
           });
