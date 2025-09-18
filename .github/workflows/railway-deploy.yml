@@ -1,0 +1,57 @@
+name: Deploy to Railway
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: railway-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Verify Railway auth
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway whoami || true
+
+      - name: Deploy (Dockerfile auto-detected)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_NAME: ${{ secrets.RAILWAY_SERVICE_NAME }}
+        run: |
+          set -euo pipefail
+          ARGS=( )
+          if [ -n "${RAILWAY_PROJECT_ID:-}" ]; then ARGS+=( --project "$RAILWAY_PROJECT_ID" ); fi
+          if [ -n "${RAILWAY_SERVICE_NAME:-}" ]; then ARGS+=( --service "$RAILWAY_SERVICE_NAME" ); fi
+          # Deploy current commit; CLI will build with Dockerfile in CI mode
+          railway up --ci --detach "${ARGS[@]}"
+
+      - name: Output service URL
+        if: always()
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          railway status ${RAILWAY_PROJECT_ID:+--project $RAILWAY_PROJECT_ID} || true
+
+      # Optional: block until healthy (requires service exposes /healthz)
+      - name: Wait for health (optional)
+        if: ${{ false }} # set to true to enable a basic wait step
+        run: |
+          echo "Enable this step if you want to curl your Railway URL until /health returns 200."
+
