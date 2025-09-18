@@ -142,13 +142,31 @@ function applyPostMiddleware(app) {
   app.use(cookieParser());
 
   // CSRF protection (double submit cookie). Exempt safe routes and webhooks.
-  const csrfProtection = csurf({ cookie: { key: 'csrf_token', sameSite: 'lax', httpOnly: true, secure: NODE_ENV === 'production' } });
-  const csrfExempt = new Set(['/webhook', '/metrics', '/health', '/healthz', '/readyz', '/readiness']);
+  const csrfProtection = csurf({
+    cookie: {
+      key: 'csrf_token',
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: NODE_ENV === 'production',
+    },
+  });
+  const csrfExempt = new Set([
+    '/webhook',
+    '/metrics',
+    '/health',
+    '/healthz',
+    '/readyz',
+    '/readiness',
+  ]);
   app.use((req, res, next) => {
     if (NODE_ENV === 'test') return next();
     // Only protect state-changing API routes
     const method = req.method.toUpperCase();
-    const unsafe = method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE';
+    const unsafe =
+      method === 'POST' ||
+      method === 'PUT' ||
+      method === 'PATCH' ||
+      method === 'DELETE';
     if (!unsafe) return next();
     if (csrfExempt.has(req.path)) return next();
     return csrfProtection(req, res, (err) => {
@@ -176,7 +194,14 @@ function applyPostMiddleware(app) {
   app.get('/api/csrf-token', (req, res) => {
     try {
       // Generate a token by invoking the middleware on demand
-      csurf({ cookie: { key: 'csrf_token', sameSite: 'lax', httpOnly: true, secure: NODE_ENV === 'production' } })(req, res, () => {
+      csurf({
+        cookie: {
+          key: 'csrf_token',
+          sameSite: 'lax',
+          httpOnly: true,
+          secure: NODE_ENV === 'production',
+        },
+      })(req, res, () => {
         res.json({ csrfToken: req.csrfToken?.() });
       });
     } catch (e) {
@@ -195,29 +220,43 @@ function applyPostMiddleware(app) {
       skip: () => NODE_ENV === 'development',
       store,
       handler: (req, res, _next, options) => {
-        const labels = { route: req.path || req.baseUrl || 'unknown', type: typeLabel || 'api' };
-        if (metrics.rateLimitBlockedTotal && typeof metrics.rateLimitBlockedTotal.inc === 'function') {
+        const labels = {
+          route: req.path || req.baseUrl || 'unknown',
+          type: typeLabel || 'api',
+        };
+        if (
+          metrics.rateLimitBlockedTotal &&
+          typeof metrics.rateLimitBlockedTotal.inc === 'function'
+        ) {
           metrics.rateLimitBlockedTotal.inc(labels);
         }
         res.status(options.statusCode || 429).json({ error: message });
       },
     });
   };
-  app.use('/api/', makeLimiter(API_RATE_WINDOW_MS, API_RATE_MAX, 'Too many requests', 'api'));
+  app.use(
+    '/api/',
+    makeLimiter(API_RATE_WINDOW_MS, API_RATE_MAX, 'Too many requests', 'api')
+  );
   app.use(
     '/api/auth/',
-    makeLimiter(AUTH_RATE_WINDOW_MS, AUTH_RATE_MAX, 'Too many auth attempts', 'auth')
+    makeLimiter(
+      AUTH_RATE_WINDOW_MS,
+      AUTH_RATE_MAX,
+      'Too many auth attempts',
+      'auth'
+    )
   );
 
   const slowDownConfig = {
     windowMs: 15 * 60 * 1000,
     delayAfter: 50,
-    delayMs: 500,
+    // Use function form to avoid deprecation/warning and keep consistent behavior
+    delayMs: () => 500,
     maxDelayMs: 20000,
+    // Disable validation warnings for delayMs behavior
+    validate: { delayMs: false, trustProxy: NODE_ENV === 'production' },
   };
-  if (NODE_ENV !== 'production') {
-    slowDownConfig.validate = { delayMs: false, trustProxy: false };
-  }
   app.use(slowDown(slowDownConfig));
 }
 
