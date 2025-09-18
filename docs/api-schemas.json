@@ -1,0 +1,227 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "renn-ai-crm API Schemas",
+  "definitions": {
+    "loginBody": {
+      "$ref": "#/definitions/loginBody",
+      "definitions": {
+        "loginBody": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 256
+            },
+            "password": {
+              "type": "string",
+              "minLength": 6,
+              "maxLength": 256
+            }
+          },
+          "required": ["email", "password"],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "idParam": {
+      "$ref": "#/definitions/idParam",
+      "definitions": {
+        "idParam": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "paginationQuery": {
+      "$ref": "#/definitions/paginationQuery",
+      "definitions": {
+        "paginationQuery": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pageSize": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "sort": {
+              "type": "string",
+              "enum": ["created_at", "updated_at"]
+            },
+            "order": {
+              "type": "string",
+              "enum": ["asc", "desc"]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "leadsFilterQuery": {
+      "$ref": "#/definitions/leadsFilterQuery",
+      "definitions": {
+        "leadsFilterQuery": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pageSize": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "campaignId": {
+              "type": "integer"
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "sort": {
+              "type": "string",
+              "enum": ["created_at", "status", "updated_at"]
+            },
+            "order": {
+              "type": "string",
+              "enum": ["asc", "desc"]
+            },
+            "from": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "to": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "auditLimitQuery": {
+      "$ref": "#/definitions/auditLimitQuery",
+      "definitions": {
+        "auditLimitQuery": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "auditSearchQuery": {
+      "$ref": "#/definitions/auditSearchQuery",
+      "definitions": {
+        "auditSearchQuery": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "action": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "from": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "to": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "leadCreateBody": {
+      "$ref": "#/definitions/leadCreateBody",
+      "definitions": {
+        "leadCreateBody": {
+          "type": "object",
+          "properties": {
+            "campaign_id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 128
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "required": ["campaign_id"],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "leadUpdateBody": {
+      "$ref": "#/definitions/leadUpdateBody",
+      "definitions": {
+        "leadUpdateBody": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 128
+            },
+            "phone": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  }
+}

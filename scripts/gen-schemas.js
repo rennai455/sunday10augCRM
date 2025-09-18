@@ -15,7 +15,12 @@ for (const [name, schema] of Object.entries(schemas)) {
   out.definitions[name] = zodToJsonSchema(schema, name);
 }
 
-const outPath = path.join(__dirname, '..', 'docs', 'api-schemas.json');
+const outDir = path.join(__dirname, '..', 'docs');
+const outPath = path.join(outDir, 'api-schemas.json');
+try {
+  fs.mkdirSync(outDir, { recursive: true });
+} catch (e) {
+  if (!e || e.code !== 'EEXIST') throw e;
+}
 fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
 console.log('Wrote', outPath);
-
