@@ -8,8 +8,12 @@ try {
 }
 const { cleanEnv, str, num, bool } = require('envalid');
 
-const env = cleanEnv(process.env, {
-  NODE_ENV: str({ choices: ['development', 'test', 'production'], default: 'development' }),
+// Use a shallow, extensible wrapper around the frozen cleanEnv result
+const baseEnv = cleanEnv(process.env, {
+  NODE_ENV: str({
+    choices: ['development', 'test', 'production'],
+    default: 'development',
+  }),
   PORT: num({ default: 3002 }),
   DATABASE_URL: str(),
   PG_SSL: bool({ default: false }),
@@ -35,12 +39,18 @@ const env = cleanEnv(process.env, {
   AUTH_RATE_MAX: num({ default: 10 }),
 });
 
+const env = { ...baseEnv };
+
 // Helper: return array of webhook secrets (rotation-friendly)
 Object.defineProperty(env, 'WEBHOOK_SECRET_LIST', {
   enumerable: true,
   get() {
-    const list = [env.WEBHOOK_SECRET]
-      .concat((env.WEBHOOK_SECRETS || '').split(',').map((s) => s.trim()).filter(Boolean));
+    const list = [env.WEBHOOK_SECRET].concat(
+      (env.WEBHOOK_SECRETS || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
     // De-duplicate while preserving order
     return Array.from(new Set(list.filter(Boolean)));
   },

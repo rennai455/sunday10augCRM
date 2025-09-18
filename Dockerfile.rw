@@ -1,0 +1,18 @@
+# --- Builder stage: install with dev deps and build assets ---
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+# If you actually build assets, this will run them; otherwise it's a harmless echo.
+RUN npm run build || true
+RUN npm prune --omit=dev
+
+# --- Runtime stage: tiny, production-only footprint ---
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+# copy everything after pruning dev deps
+COPY --from=builder /app /app
+EXPOSE 8080
+CMD ["npm","start"]
