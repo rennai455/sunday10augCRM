@@ -14,7 +14,7 @@ const baseEnv = cleanEnv(process.env, {
     choices: ['development', 'test', 'production'],
     default: 'development',
   }),
-  PORT: num({ default: 3002 }),
+  PORT: num({ default: 3005 }),
   DATABASE_URL: str(),
   PG_SSL: bool({ default: false }),
   ALLOWED_ORIGINS: str({ default: '' }),

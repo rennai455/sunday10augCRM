@@ -29,82 +29,92 @@ function timingSafeEqHexHex(aHex, bHex) {
 }
 
 function registerWebhook(app) {
-  app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-    const signature = req.get('x-signature');
-    if (!signature) {
-      metrics.webhookEventsTotal?.inc({ outcome: 'missing_sig' });
-      return res.status(401).json({ error: 'Missing signature' });
-    }
-
-    const id = req.get('x-id');
-    const ts = req.get('x-timestamp');
-
-    // Prefer signing scheme with id+timestamp for replay protection; otherwise fallback
-    const toSign =
-      id && ts
-        ? Buffer.concat([
-            Buffer.from(String(id)),
-            Buffer.from('.'),
-            Buffer.from(String(ts)),
-            Buffer.from('.'),
-            Buffer.from(req.body),
-          ])
-        : Buffer.from(req.body);
-
-    const secrets = config.WEBHOOK_SECRET_LIST || [WEBHOOK_SECRET];
-    let valid = false;
-    for (const s of secrets) {
-      const expected = crypto.createHmac('sha256', s).update(toSign).digest('hex');
-      if (timingSafeEqHexHex(signature, expected)) { valid = true; break; }
-    }
-    if (!valid) {
-      metrics.webhookEventsTotal?.inc({ outcome: 'invalid_sig' });
-      return res.status(400).json({ error: 'Invalid signature' });
-    }
-
-    // Replay guard when id/timestamp provided
-    if (id && ts) {
-      const now = Date.now();
-      const tsNum = Number(ts);
-      if (!Number.isFinite(tsNum) || Math.abs(now - tsNum) > REPLAY_TTL_MS) {
-        metrics.webhookEventsTotal?.inc({ outcome: 'stale' });
-        return res.status(408).json({ error: 'Stale timestamp' });
+  app.post(
+    '/webhook',
+    express.raw({ type: 'application/json' }),
+    (req, res) => {
+      const signature = req.get('x-signature');
+      if (!signature) {
+        metrics.webhookEventsTotal?.inc({ outcome: 'missing_sig' });
+        return res.status(401).json({ error: 'Missing signature' });
       }
-      // Check and set replay marker (Redis or in-memory fallback)
-      // If marker already exists, it's a replay
-      checkAndSetReplay(id, REPLAY_TTL_MS)
-        .then((isReplay) => {
-          if (isReplay) {
-            metrics.webhookEventsTotal?.inc({ outcome: 'replay' });
-            return res.status(409).json({ error: 'Replay detected' });
-          }
-          try {
-            const payload = JSON.parse(req.body.toString('utf8'));
-            req.log?.info({ id, ts, payload }, 'Webhook received');
-            metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
-            recordAudit(req, 'webhook:received', { id, ts });
-            return res.json({ received: true });
-          } catch {
-            metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
-            return res.status(400).json({ error: 'Invalid JSON' });
-          }
-        })
-        .catch(() => res.status(500).json({ error: 'Replay guard failure' }));
-      return; // Response handled in promise
-    }
 
-    // No id/timestamp: legacy signing over raw body only
-    try {
-      const payload = JSON.parse(req.body.toString('utf8'));
-      req.log?.info({ id, ts, payload }, 'Webhook received');
-      metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
-      recordAudit(req, 'webhook:received', { id, ts });
-      return res.json({ received: true });
-    } catch {
-      metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
-      return res.status(400).json({ error: 'Invalid JSON' });
+      const id = req.get('x-id');
+      const ts = req.get('x-timestamp');
+
+      // Prefer signing scheme with id+timestamp for replay protection; otherwise fallback
+      const toSign =
+        id && ts
+          ? Buffer.concat([
+              Buffer.from(String(id)),
+              Buffer.from('.'),
+              Buffer.from(String(ts)),
+              Buffer.from('.'),
+              Buffer.from(req.body),
+            ])
+          : Buffer.from(req.body);
+
+      const secrets = config.WEBHOOK_SECRET_LIST || [WEBHOOK_SECRET];
+      let valid = false;
+      for (const s of secrets) {
+        const expected = crypto
+          .createHmac('sha256', s)
+          .update(toSign)
+          .digest('hex');
+        if (timingSafeEqHexHex(signature, expected)) {
+          valid = true;
+          break;
+        }
+      }
+      if (!valid) {
+        metrics.webhookEventsTotal?.inc({ outcome: 'invalid_sig' });
+        return res.status(400).json({ error: 'Invalid signature' });
+      }
+
+      // Replay guard when id/timestamp provided
+      if (id && ts) {
+        const now = Date.now();
+        const tsNum = Number(ts);
+        if (!Number.isFinite(tsNum) || Math.abs(now - tsNum) > REPLAY_TTL_MS) {
+          metrics.webhookEventsTotal?.inc({ outcome: 'stale' });
+          return res.status(408).json({ error: 'Stale timestamp' });
+        }
+        // Check and set replay marker (Redis or in-memory fallback)
+        // If marker already exists, it's a replay
+        checkAndSetReplay(id, REPLAY_TTL_MS)
+          .then((isReplay) => {
+            if (isReplay) {
+              metrics.webhookEventsTotal?.inc({ outcome: 'replay' });
+              return res.status(409).json({ error: 'Replay detected' });
+            }
+            try {
+              const payload = JSON.parse(req.body.toString('utf8'));
+              req.log?.info({ id, ts, payload }, 'Webhook received');
+              metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
+              recordAudit(req, 'webhook:received', { id, ts });
+              return res.json({ received: true });
+            } catch {
+              metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
+              return res.status(400).json({ error: 'Invalid JSON' });
+            }
+          })
+          .catch(() => res.status(500).json({ error: 'Replay guard failure' }));
+        return; // Response handled in promise
+      }
+
+      // No id/timestamp: legacy signing over raw body only
+      try {
+        const payload = JSON.parse(req.body.toString('utf8'));
+        req.log?.info({ id, ts, payload }, 'Webhook received');
+        metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
+        recordAudit(req, 'webhook:received', { id, ts });
+        return res.json({ received: true });
+      } catch {
+        metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
+        return res.status(400).json({ error: 'Invalid JSON' });
+      }
     }
-  });
+  );
 }
 
 function registerRoutes(app) {
@@ -128,7 +138,9 @@ function registerRoutes(app) {
         if (rc && typeof rc.ping === 'function') {
           await Promise.race([
             rc.ping(),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('Redis ping timeout')), 1500)),
+            new Promise((_, rej) =>
+              setTimeout(() => rej(new Error('Redis ping timeout')), 1500)
+            ),
           ]);
         }
       } catch (e) {
@@ -164,46 +176,56 @@ function registerRoutes(app) {
     res.sendFile(path.join(__dirname, '..', 'public', 'Audit.html'));
   });
 
-  app.post('/api/auth/login', validate({ body: schemas.loginBody }), async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Email and password required' });
-    }
-
-    try {
-      const result = await pool.query(
-        'SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1',
-        [email]
-      );
-      const user = result.rows[0];
-      if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+  app.post(
+    '/api/auth/login',
+    validate({ body: schemas.loginBody }),
+    async (req, res) => {
+      const { email, password } = req.body;
+      if (!email || !password) {
         return res
-          .status(401)
-          .json({ success: false, message: 'Invalid credentials' });
+          .status(400)
+          .json({ success: false, message: 'Email and password required' });
       }
 
-      const token = jwt.sign(
-        { userId: user.id, agencyId: user.agency_id, isAdmin: user.is_admin },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      try {
+        const result = await pool.query(
+          'SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1',
+          [email]
+        );
+        const user = result.rows[0];
+        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+          return res
+            .status(401)
+            .json({ success: false, message: 'Invalid credentials' });
+        }
 
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000,
-      });
-      // Audit login success (no PII stored, only IDs)
-      recordAudit(req, 'auth:login', { userId: user.id, agencyId: user.agency_id });
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
+        const token = jwt.sign(
+          { userId: user.id, agencyId: user.agency_id, isAdmin: user.is_admin },
+          JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+        // Audit login success (no PII stored, only IDs)
+        recordAudit(req, 'auth:login', {
+          userId: user.id,
+          agencyId: user.agency_id,
+        });
+        // For SPA/frontends on separate domains, also return the JWT so they can use Bearer auth
+        res.json({ success: true, token, expiresIn: 24 * 60 * 60 });
+      } catch (error) {
+        console.error('Login error:', error);
+        res
+          .status(500)
+          .json({ success: false, message: 'Internal server error' });
+      }
     }
-  });
+  );
 
   app.post('/api/auth/logout', (req, res) => {
     res.clearCookie('token', {
@@ -217,7 +239,10 @@ function registerRoutes(app) {
 
   app.get('/api/auth/me', auth, async (req, res) => {
     try {
-      const result = await pool.query('SELECT email, agency_id FROM users WHERE id = $1', [req.userId]);
+      const result = await pool.query(
+        'SELECT email, agency_id FROM users WHERE id = $1',
+        [req.userId]
+      );
       const user = result.rows[0];
       if (!user) {
         return res
@@ -225,7 +250,10 @@ function registerRoutes(app) {
           .json({ success: false, message: 'User not found' });
       }
 
-      const agencyResult = await pool.query('SELECT name FROM agencies WHERE id = $1', [user.agency_id]);
+      const agencyResult = await pool.query(
+        'SELECT name FROM agencies WHERE id = $1',
+        [user.agency_id]
+      );
       const agency = agencyResult.rows[0]?.name;
 
       res.json({
@@ -236,52 +264,71 @@ function registerRoutes(app) {
       });
     } catch (error) {
       console.error('Get user error:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
+      res
+        .status(500)
+        .json({ success: false, message: 'Internal server error' });
     }
   });
 
-  app.get('/api/campaigns', auth, validate({ query: schemas.paginationQuery }), async (req, res) => {
-    try {
-      const page = req.query.page || 1;
-      const pageSize = req.query.pageSize || 50;
-      const sortCol = req.query.sort === 'updated_at' ? 'updated_at' : 'created_at';
-      const orderDir = req.query.order === 'asc' ? 'ASC' : 'DESC';
-      const offset = (page - 1) * pageSize;
+  app.get(
+    '/api/campaigns',
+    auth,
+    validate({ query: schemas.paginationQuery }),
+    async (req, res) => {
+      try {
+        const page = req.query.page || 1;
+        const pageSize = req.query.pageSize || 50;
+        const sortCol =
+          req.query.sort === 'updated_at' ? 'updated_at' : 'created_at';
+        const orderDir = req.query.order === 'asc' ? 'ASC' : 'DESC';
+        const offset = (page - 1) * pageSize;
 
-      const result = await withAgencyContext(req.agencyId, async (client) => {
-        const countRes = await client.query('SELECT COUNT(*)::int AS total FROM campaigns WHERE agency_id = $1', [req.agencyId]);
-        const total = countRes.rows[0]?.total || 0;
-        const rows = (
-          await client.query(
-            `SELECT * FROM campaigns WHERE agency_id = $1 ORDER BY ${sortCol} ${orderDir} LIMIT $2 OFFSET $3`,
-            [req.agencyId, pageSize, offset]
-          )
-        ).rows;
-        return { rows, total };
-      });
-      res.set('X-Total-Count', String(result.total));
-      res.json({ campaigns: result.rows });
-    } catch (error) {
-      console.error('Get campaigns error:', error);
-      res.status(500).json({ error: 'Failed to fetch campaigns' });
-    }
-  });
-
-  app.get('/api/campaigns/:id', auth, validate({ params: schemas.idParam }), async (req, res) => {
-    const { id } = req.params;
-    try {
-      const result = await withAgencyContext(req.agencyId, (client) =>
-        client.query('SELECT * FROM campaigns WHERE id = $1 AND agency_id = $2', [id, req.agencyId])
-      );
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: 'Campaign not found' });
+        const result = await withAgencyContext(req.agencyId, async (client) => {
+          const countRes = await client.query(
+            'SELECT COUNT(*)::int AS total FROM campaigns WHERE agency_id = $1',
+            [req.agencyId]
+          );
+          const total = countRes.rows[0]?.total || 0;
+          const rows = (
+            await client.query(
+              `SELECT * FROM campaigns WHERE agency_id = $1 ORDER BY ${sortCol} ${orderDir} LIMIT $2 OFFSET $3`,
+              [req.agencyId, pageSize, offset]
+            )
+          ).rows;
+          return { rows, total };
+        });
+        res.set('X-Total-Count', String(result.total));
+        res.json({ campaigns: result.rows });
+      } catch (error) {
+        console.error('Get campaigns error:', error);
+        res.status(500).json({ error: 'Failed to fetch campaigns' });
       }
-      res.json(result.rows[0]);
-    } catch (error) {
-      console.error('Get campaign error:', error);
-      res.status(500).json({ error: 'Failed to fetch campaign' });
     }
-  });
+  );
+
+  app.get(
+    '/api/campaigns/:id',
+    auth,
+    validate({ params: schemas.idParam }),
+    async (req, res) => {
+      const { id } = req.params;
+      try {
+        const result = await withAgencyContext(req.agencyId, (client) =>
+          client.query(
+            'SELECT * FROM campaigns WHERE id = $1 AND agency_id = $2',
+            [id, req.agencyId]
+          )
+        );
+        if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+        res.json(result.rows[0]);
+      } catch (error) {
+        console.error('Get campaign error:', error);
+        res.status(500).json({ error: 'Failed to fetch campaign' });
+      }
+    }
+  );
 
   // Leads CRUD (tenant-scoped)
   app.get(
@@ -289,19 +336,44 @@ function registerRoutes(app) {
     auth,
     validate({ query: schemas.leadsFilterQuery }),
     async (req, res) => {
-      const { page = 1, pageSize = 50, campaignId, status, sort, order, from, to } = req.query;
+      const {
+        page = 1,
+        pageSize = 50,
+        campaignId,
+        status,
+        sort,
+        order,
+        from,
+        to,
+      } = req.query;
       const offset = (page - 1) * pageSize;
-      const sortMap = { created_at: 'l.created_at', status: 'l.status', updated_at: 'l.updated_at' };
+      const sortMap = {
+        created_at: 'l.created_at',
+        status: 'l.status',
+        updated_at: 'l.updated_at',
+      };
       const sortCol = sortMap[sort] || 'l.created_at';
       const orderDir = order === 'asc' ? 'ASC' : 'DESC';
       try {
         const result = await withAgencyContext(req.agencyId, async (client) => {
           const where = ['c.agency_id = $1'];
           const params = [req.agencyId];
-          if (campaignId) { where.push('l.campaign_id = $' + (params.length + 1)); params.push(campaignId); }
-          if (status) { where.push('l.status = $' + (params.length + 1)); params.push(status); }
-          if (from) { where.push('l.created_at >= $' + (params.length + 1)); params.push(new Date(from)); }
-          if (to) { where.push('l.created_at <= $' + (params.length + 1)); params.push(new Date(to)); }
+          if (campaignId) {
+            where.push('l.campaign_id = $' + (params.length + 1));
+            params.push(campaignId);
+          }
+          if (status) {
+            where.push('l.status = $' + (params.length + 1));
+            params.push(status);
+          }
+          if (from) {
+            where.push('l.created_at >= $' + (params.length + 1));
+            params.push(new Date(from));
+          }
+          if (to) {
+            where.push('l.created_at <= $' + (params.length + 1));
+            params.push(new Date(to));
+          }
           const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
           const countRes = await client.query(
             `SELECT COUNT(*)::int AS total FROM leads l JOIN campaigns c ON l.campaign_id = c.id ${whereSql}`,
@@ -358,16 +430,28 @@ function registerRoutes(app) {
       const { campaign_id, name, email, phone, status } = req.body;
       try {
         await withAgencyContext(req.agencyId, async (client) => {
-          const c = await client.query('SELECT id FROM campaigns WHERE id = $1 AND agency_id = $2', [
-            campaign_id,
-            req.agencyId,
-          ]);
-          if (c.rowCount === 0) return res.status(404).json({ error: 'Campaign not found' });
+          const c = await client.query(
+            'SELECT id FROM campaigns WHERE id = $1 AND agency_id = $2',
+            [campaign_id, req.agencyId]
+          );
+          if (c.rowCount === 0)
+            return res.status(404).json({ error: 'Campaign not found' });
           const ins = await client.query(
             'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-            [campaign_id, name || null, email || null, phone || null, status || null, JSON.stringify([])]
+            [
+              campaign_id,
+              name || null,
+              email || null,
+              phone || null,
+              status || null,
+              JSON.stringify([]),
+            ]
           );
-          recordAudit(req, 'lead:create', { id: ins.rows[0].id, campaign_id, status: status || null });
+          recordAudit(req, 'lead:create', {
+            id: ins.rows[0].id,
+            campaign_id,
+            status: status || null,
+          });
           res.status(201).json(ins.rows[0]);
         });
       } catch (error) {
@@ -392,16 +476,24 @@ function registerRoutes(app) {
           values.push(req.body[f]);
         }
       });
-      if (set.length === 0) return res.status(400).json({ error: 'No fields to update' });
+      if (set.length === 0)
+        return res.status(400).json({ error: 'No fields to update' });
       try {
-        const updated = await withAgencyContext(req.agencyId, async (client) => {
-          const sql = `UPDATE leads l SET ${set.join(', ')} FROM campaigns c WHERE l.campaign_id = c.id AND l.id = $$
+        const updated = await withAgencyContext(
+          req.agencyId,
+          async (client) => {
+            const sql =
+              `UPDATE leads l SET ${set.join(', ')} FROM campaigns c WHERE l.campaign_id = c.id AND l.id = $$
             {idx} AND c.agency_id = $$ {aid} RETURNING l.*`
-            .replace('$$\n            {idx}', `$${set.length + 1}`)
-            .replace('$$ {aid}', `$${set.length + 2}`);
-          const resu = await client.query(sql, values.concat([id, req.agencyId]));
-          return resu.rows[0];
-        });
+                .replace('$$\n            {idx}', `$${set.length + 1}`)
+                .replace('$$ {aid}', `$${set.length + 2}`);
+            const resu = await client.query(
+              sql,
+              values.concat([id, req.agencyId])
+            );
+            return resu.rows[0];
+          }
+        );
         if (!updated) return res.status(404).json({ error: 'Lead not found' });
         recordAudit(req, 'lead:update', { id, fields: Object.keys(req.body) });
         res.json(updated);
@@ -419,13 +511,16 @@ function registerRoutes(app) {
     async (req, res) => {
       const { id } = req.params;
       try {
-        const deleted = await withAgencyContext(req.agencyId, async (client) => {
-          const del = await client.query(
-            'DELETE FROM leads USING campaigns WHERE leads.campaign_id = campaigns.id AND leads.id = $1 AND campaigns.agency_id = $2',
-            [id, req.agencyId]
-          );
-          return del.rowCount > 0;
-        });
+        const deleted = await withAgencyContext(
+          req.agencyId,
+          async (client) => {
+            const del = await client.query(
+              'DELETE FROM leads USING campaigns WHERE leads.campaign_id = campaigns.id AND leads.id = $1 AND campaigns.agency_id = $2',
+              [id, req.agencyId]
+            );
+            return del.rowCount > 0;
+          }
+        );
         if (!deleted) return res.status(404).json({ error: 'Lead not found' });
         recordAudit(req, 'lead:delete', { id });
         res.status(204).end();
@@ -460,7 +555,8 @@ function registerRoutes(app) {
   app.get(
     '/api/audit/search',
     auth,
-    (req, res, next) => (req.isAdmin ? next() : res.status(403).json({ error: 'Forbidden' })),
+    (req, res, next) =>
+      req.isAdmin ? next() : res.status(403).json({ error: 'Forbidden' }),
     validate({ query: schemas.auditSearchQuery }),
     async (req, res) => {
       const { limit = 50, action, from, to } = req.query;

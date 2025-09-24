@@ -25,6 +25,25 @@ services:
     ports:
       - "6379:6379"
 
+  app:
+    # Dev-friendly: build the app image and run it alongside DB/Redis
+    build: .
+    container_name: renn-ai-app
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.env
+    environment:
+      # When running inside the compose network, use service names for hosts
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/renn_ai
+      REDIS_URL: redis://redis:6379
+      PG_SSL: "false"
+      NODE_ENV: development
+    ports:
+      - "3005:3005"
+    restart: unless-stopped
+
 volumes:
   renn-ai-db-data:
 

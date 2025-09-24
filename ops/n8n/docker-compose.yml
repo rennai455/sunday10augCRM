@@ -27,7 +27,7 @@ services:
     env_file:
       - ./.env
     environment:
-      - N8N_USER_FOLDER=/home/node/.n8n
+      - N8N_USER_FOLDER=/home/node
       # If you enable queue mode, uncomment:
       # - EXECUTIONS_MODE=${EXECUTIONS_MODE}
       # - QUEUE_BULL_REDIS_HOST=${QUEUE_BULL_REDIS_HOST}

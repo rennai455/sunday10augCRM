@@ -32,9 +32,9 @@
       "parameters": {
         "operation": "hmac",
         "algorithm": "sha256",
-        "value":"={{$json.id + '.' + $json.timestamp + '.' + $json.raw}}",
-        "encoding":"hex",
-        "secretPropertyName":"={{$env.WEBHOOK_SECRET || 'CHANGE_ME'}}"
+        "value": "={{$json.id + '.' + $json.timestamp + '.' + $json.raw}}",
+        "encoding": "hex",
+        "secretPropertyName": "={{$env.WEBHOOK_SECRET || 'CHANGE_ME'}}"
       },
       "id": "HMAC",
       "name": "HMAC",
@@ -44,7 +44,7 @@
     },
     {
       "parameters": {
-        "url": "={{$env.CRM_URL || 'http://localhost:3002'}}/webhook",
+        "url": "={{$env.CRM_URL || 'http://localhost:3005'}}/webhook",
         "options": {},
         "sendBinaryData": false,
         "jsonParameters": false,
@@ -61,9 +61,14 @@
     }
   ],
   "connections": {
-    "Set_Lead": { "main": [[{ "node": "Compose Raw", "type": "main", "index": 0 }]] },
-    "Compose_Raw": { "main": [[{ "node": "HMAC", "type": "main", "index": 0 }]] },
-    "HMAC": { "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]] }
+    "Set_Lead": {
+      "main": [[{ "node": "Compose Raw", "type": "main", "index": 0 }]]
+    },
+    "Compose_Raw": {
+      "main": [[{ "node": "HMAC", "type": "main", "index": 0 }]]
+    },
+    "HMAC": {
+      "main": [[{ "node": "HTTP Request", "type": "main", "index": 0 }]]
+    }
   }
 }
-

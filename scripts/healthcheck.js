@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const http = require('http');
 
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3005;
 const options = {
   hostname: '127.0.0.1',
   port,
@@ -24,4 +24,3 @@ req.on('timeout', () => {
 });
 req.on('error', () => process.exit(1));
 req.end();
-

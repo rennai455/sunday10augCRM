@@ -30,7 +30,7 @@ COPY --from=builder /app/docs/openapi.json /app/docs/openapi.json
 USER node
 
 # Expose and healthcheck
-EXPOSE 3002
+EXPOSE 3005
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node /app/scripts/healthcheck.js || exit 1
 
