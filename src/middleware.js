@@ -87,8 +87,9 @@ function applyPreMiddleware(app) {
       origin: (origin, cb) => {
         // Allow non-browser/server-to-server requests without CORS header
         if (!origin) return cb(null, true);
-        // Default deny when allowlist is empty
-        if (ALLOWLIST.length === 0) return cb(null, false);
+        if (ALLOWLIST.length === 0) {
+          return cb(null, true);
+        }
         cb(null, ALLOWLIST.includes(origin));
       },
       credentials: true,
@@ -98,32 +99,37 @@ function applyPreMiddleware(app) {
 
   app.use((req, res, next) => {
     res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+    const directives = {
+      'default-src': ["'self'"],
+      'script-src': [
+        "'self'",
+        'https://cdn.tailwindcss.com',
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+        'https://cdn.jsdelivr.net',
+        `'nonce-${res.locals.cspNonce}'`,
+      ],
+      'style-src': [
+        "'self'",
+        'https://cdn.tailwindcss.com',
+        'https://fonts.googleapis.com',
+        `'nonce-${res.locals.cspNonce}'`,
+      ],
+      'font-src': ["'self'", 'https://fonts.gstatic.com'],
+      'img-src': ["'self'", 'data:'],
+      'connect-src': ["'self'"],
+      'frame-ancestors': ["'none'"],
+    };
+    if (NODE_ENV !== 'production') {
+      directives['upgrade-insecure-requests'] = null;
+    }
     helmet({
       crossOriginEmbedderPolicy: false,
       contentSecurityPolicy: {
         useDefaults: true,
-        directives: {
-          'default-src': ["'self'"],
-          'script-src': [
-            "'self'",
-            'https://cdn.tailwindcss.com',
-            'https://cdn.jsdelivr.net',
-            'https://cdnjs.cloudflare.com',
-            'https://cdn.jsdelivr.net',
-            `'nonce-${res.locals.cspNonce}'`,
-          ],
-          'style-src': [
-            "'self'",
-            'https://cdn.tailwindcss.com',
-            'https://fonts.googleapis.com',
-            `'nonce-${res.locals.cspNonce}'`,
-          ],
-          'font-src': ["'self'", 'https://fonts.gstatic.com'],
-          'img-src': ["'self'", 'data:'],
-          'connect-src': ["'self'"],
-          'frame-ancestors': ["'none'"],
-        },
+        directives,
       },
+      hsts: NODE_ENV === 'production' ? undefined : false,
     })(req, res, next);
   });
 
@@ -157,6 +163,7 @@ function applyPostMiddleware(app) {
     '/healthz',
     '/readyz',
     '/readiness',
+    '/api/auth/login',
   ]);
   app.use((req, res, next) => {
     if (NODE_ENV === 'test') return next();
@@ -219,6 +226,7 @@ function applyPostMiddleware(app) {
       message: { error: message },
       skip: () => NODE_ENV === 'development',
       store,
+      validate: { trustProxy: config.RATE_LIMIT_TRUST_PROXY },
       handler: (req, res, _next, options) => {
         const labels = {
           route: req.path || req.baseUrl || 'unknown',

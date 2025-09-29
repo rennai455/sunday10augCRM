@@ -27,7 +27,7 @@ module.exports = [
       },
     },
     rules: {
-      'no-console': 'warn',
+      'no-console': 'off',
       'no-unused-vars': 'error',
       'prefer-const': 'error',
       'no-var': 'error',

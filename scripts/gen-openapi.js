@@ -57,6 +57,37 @@ openapi.components.schemas.Lead = {
     created_at: { type: 'string', format: 'date-time' },
   },
 };
+openapi.components.schemas.DashboardTotals = {
+  type: 'object',
+  required: ['campaigns', 'leads', 'averageScore', 'activeClients'],
+  properties: {
+    campaigns: { type: 'integer' },
+    leads: { type: 'integer' },
+    averageScore: { type: 'integer' },
+    activeClients: { type: 'integer' },
+  },
+};
+openapi.components.schemas.DashboardCampaignSummary = {
+  type: 'object',
+  properties: {
+    id: { type: 'integer' },
+    client: { type: 'string', nullable: true },
+    status: { type: 'string' },
+    leads: { type: 'integer' },
+    started_at: { type: 'string', format: 'date-time' },
+  },
+};
+openapi.components.schemas.DashboardResponse = {
+  type: 'object',
+  required: ['totals', 'recentCampaigns'],
+  properties: {
+    totals: { $ref: '#/components/schemas/DashboardTotals' },
+    recentCampaigns: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/DashboardCampaignSummary' },
+    },
+  },
+};
 
 // Paths
 openapi.paths['/api/auth/login'] = {
@@ -164,6 +195,22 @@ openapi.paths['/api/csrf-token'] = {
   get: {
     summary: 'Issue CSRF token',
     responses: { 200: { description: 'OK' } },
+  },
+};
+openapi.paths['/api/dashboard'] = {
+  get: {
+    summary: 'Aggregated dashboard metrics and recent campaigns',
+    responses: {
+      200: {
+        description: 'OK',
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/DashboardResponse' },
+          },
+        },
+      },
+      401: { description: 'Unauthorized' },
+    },
   },
 };
 openapi.paths['/webhook'] = {

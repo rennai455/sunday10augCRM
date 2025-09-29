@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RENN.AI - Dashboard (Test)</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="styles/assets/shared.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="manifest" href="manifest.json" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+      defer
+    ></script>
+    <style>
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        background: #f5f5f5;
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+      }
+      body.dark-mode {
+        background: #0f172a;
+        color: #e5e7eb;
+      }
+      .sidebar {
+        background: linear-gradient(180deg, #000 0%, #18181b 100%);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .sidebar-nav a {
+        transition:
+          background 0.2s ease,
+          transform 0.2s ease;
+      }
+      .sidebar-nav a:hover,
+      .sidebar-nav a:focus {
+        background: rgba(255, 255, 255, 0.12);
+        transform: translateX(4px);
+        outline: none;
+      }
+      .main-content {
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+      }
+      body.dark-mode .main-content {
+        background: #0f172a;
+      }
+      .card {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 10px 30px -25px rgba(15, 23, 42, 0.7);
+        padding: 24px;
+      }
+      body.dark-mode .card {
+        background: #111827;
+        color: #e5e7eb;
+        box-shadow: none;
+      }
+      .metric-card p {
+        margin: 0;
+      }
+      .metric-value {
+        font-size: clamp(1.8rem, 3vw, 2.4rem);
+        font-weight: 700;
+      }
+      table thead {
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.78rem;
+      }
+      table tbody tr:hover {
+        background: rgba(37, 99, 235, 0.08);
+      }
+      body.dark-mode table tbody tr:hover {
+        background: rgba(148, 163, 184, 0.16);
+      }
+      .fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #000;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 1.4rem;
+      }
+      @media (max-width: 1024px) {
+        body {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: fixed;
+          inset: 0 auto 0 0;
+          width: 260px;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+          z-index: 40;
+        }
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        .main-content {
+          margin-left: 0;
+        }
+        .fab {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside id="sidebar" class="sidebar">
+      <div class="p-6 border-b border-gray-800">
+        <h1 class="text-2xl font-bold tracking-wide">RENN.AI</h1>
+        <p class="text-gray-400 text-xs mt-1">Lead Intelligence Suite</p>
+      </div>
+      <nav class="sidebar-nav flex-1 mt-4">
+        <a
+          href="#"
+          data-section="overview"
+          class="nav-item active block px-6 py-3"
+          >Overview</a
+        >
+        <a href="#" data-section="lead-gen" class="nav-item block px-6 py-3"
+          >Lead Generation</a
+        >
+        <a href="#" data-section="drip" class="nav-item block px-6 py-3"
+          >Drip Campaigns</a
+        >
+        <a href="#" data-section="clients" class="nav-item block px-6 py-3"
+          >Client Manager</a
+        >
+        <a href="#" data-section="analytics" class="nav-item block px-6 py-3"
+          >Analytics</a
+        >
+        <a href="#" data-section="settings" class="nav-item block px-6 py-3"
+          >Settings</a
+        >
+      </nav>
+      <div class="p-6 border-t border-gray-800">
+        <div class="flex items-center mb-4">
+          <div
+            class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-3"
+          >
+            DA
+          </div>
+          <div>
+            <p class="font-medium">Demo Agency</p>
+            <p class="text-xs text-gray-400">demo@renn.ai</p>
+          </div>
+        </div>
+        <button id="logoutBtn" class="text-sm text-gray-300 hover:text-white">
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header
+        class="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 px-8 py-5 flex flex-wrap gap-4 justify-between items-center"
+      >
+        <div>
+          <p
+            id="welcomeMessage"
+            class="text-sm text-gray-500 dark:text-slate-400"
+          >
+            Welcome back, admin@renn.ai
+          </p>
+          <h2 id="section-title" class="text-3xl font-semibold">Overview</h2>
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            id="darkModeToggle"
+            class="bg-gray-200 dark:bg-slate-700 text-sm px-3 py-2 rounded"
+          >
+            Toggle Dark Mode
+          </button>
+          <button
+            id="newCampaign"
+            class="bg-black text-white px-4 py-2 rounded"
+          >
+            + New Campaign
+          </button>
+          <button
+            id="notificationsBtn"
+            class="p-2 rounded border border-gray-200 dark:border-slate-700"
+          >
+            <span class="sr-only">Notifications</span>
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              ></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section id="overview-section" class="p-8 space-y-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+          <article class="card">
+            <p class="text-gray-500 text-sm">Total Campaigns</p>
+            <p id="total-campaigns" class="metric-value">0</p>
+            <p class="text-xs text-gray-400">+12% vs last month</p>
+          </article>
+          <article class="card">
+            <p class="text-gray-500 text-sm">Total Leads</p>
+            <p id="total-leads" class="metric-value">0</p>
+            <p class="text-xs text-gray-400">Conversion rate ↑ 8%</p>
+          </article>
+          <article class="card">
+            <p class="text-gray-500 text-sm">Average Score</p>
+            <p id="avg-score" class="metric-value">0</p>
+            <p class="text-xs text-gray-400">Quality threshold 40</p>
+          </article>
+          <article class="card">
+            <p class="text-gray-500 text-sm">Active Clients</p>
+            <p id="active-clients" class="metric-value">0</p>
+            <p class="text-xs text-gray-400">3 new this week</p>
+          </article>
+        </div>
+
+        <div class="card space-y-4">
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <h3 class="text-xl font-semibold">Recent Campaigns</h3>
+            <div class="flex gap-2">
+              <button
+                id="exportCsvBtn"
+                class="bg-black text-white px-4 py-2 rounded text-sm"
+              >
+                Export CSV
+              </button>
+              <button
+                id="exportPdfBtn"
+                class="bg-black text-white px-4 py-2 rounded text-sm"
+              >
+                Export PDF
+              </button>
+            </div>
+          </div>
+          <input
+            id="campaignSearch"
+            type="search"
+            placeholder="Search campaigns…"
+            class="w-full md:w-80 px-4 py-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-gray-900"
+          />
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-gray-200">
+                  <th class="text-left py-3 px-4">Campaign ID</th>
+                  <th class="text-left py-3 px-4">Client</th>
+                  <th class="text-left py-3 px-4">Status</th>
+                  <th class="text-left py-3 px-4">Leads</th>
+                  <th class="text-left py-3 px-4">Started</th>
+                </tr>
+              </thead>
+              <tbody id="campaigns-table">
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-gray-500">
+                    Loading campaigns…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="analytics-section" class="hidden p-8">
+        <div class="card">
+          <h3 class="text-xl font-semibold mb-6">Performance Analytics</h3>
+          <canvas id="analytics-chart" height="220"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <button class="fab md:hidden" id="sidebarToggle" type="button">☰</button>
+
+    <div
+      id="add-client-modal"
+      class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4"
+    >
+      <div
+        class="bg-white dark:bg-slate-900 rounded-xl p-6 w-full max-w-md space-y-4"
+      >
+        <h3 class="text-xl font-semibold">Add New Client</h3>
+        <form id="addClientForm" class="space-y-3">
+          <div>
+            <label class="block text-sm font-medium mb-1" for="client-name"
+              >Client Name</label
+            >
+            <input
+              id="client-name"
+              type="text"
+              class="w-full px-4 py-2 border border-gray-200 rounded"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" for="client-email"
+              >Contact Email</label
+            >
+            <input
+              id="client-email"
+              type="email"
+              class="w-full px-4 py-2 border border-gray-200 rounded"
+              required
+            />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              id="cancelAddClient"
+              class="px-4 py-2 border border-gray-200 rounded"
+            >
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 bg-black text-white rounded">
+              Add Client
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const darkModeToggle = document.getElementById('darkModeToggle');
+      const campaignSearch = document.getElementById('campaignSearch');
+      const campaignsTable = document.getElementById('campaigns-table');
+      const exportCsvBtn = document.getElementById('exportCsvBtn');
+      const exportPdfBtn = document.getElementById('exportPdfBtn');
+      const addClientModal = document.getElementById('add-client-modal');
+      const addClientForm = document.getElementById('addClientForm');
+      const cancelAddClient = document.getElementById('cancelAddClient');
+
+      let campaignsData = [];
+      let chartInstance;
+
+      function toggleSidebar() {
+        sidebar.classList.toggle('open');
+      }
+
+      function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem(
+          'darkMode',
+          document.body.classList.contains('dark-mode')
+        );
+      }
+
+      function restoreDarkModePreference() {
+        if (localStorage.getItem('darkMode') === 'true') {
+          document.body.classList.add('dark-mode');
+        }
+      }
+
+      function renderCampaignRows(rows) {
+        campaignsTable.innerHTML = '';
+        if (!rows.length) {
+          const emptyRow = document.createElement('tr');
+          const emptyCell = document.createElement('td');
+          emptyCell.colSpan = 5;
+          emptyCell.textContent = 'No campaigns available yet.';
+          emptyCell.className = 'py-6 text-center text-gray-500';
+          emptyRow.appendChild(emptyCell);
+          campaignsTable.appendChild(emptyRow);
+          return;
+        }
+        rows.forEach((campaign) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+          <td class="py-3 px-4">${campaign.id || '—'}</td>
+          <td class="py-3 px-4">${campaign.client || '—'}</td>
+          <td class="py-3 px-4">${campaign.status || '—'}</td>
+          <td class="py-3 px-4">${campaign.leads ?? '—'}</td>
+          <td class="py-3 px-4">${campaign.started_at || '—'}</td>
+        `;
+          campaignsTable.appendChild(tr);
+        });
+      }
+
+      function filterCampaigns(query) {
+        const q = (query || '').toLowerCase();
+        if (!q) {
+          renderCampaignRows(campaignsData);
+          return;
+        }
+        const filtered = campaignsData.filter((campaign) => {
+          return ['id', 'client', 'status'].some((key) => {
+            const value = campaign[key];
+            return value && String(value).toLowerCase().includes(q);
+          });
+        });
+        renderCampaignRows(filtered);
+      }
+
+      function exportTableToCSV() {
+        const rows = Array.from(campaignsTable.querySelectorAll('tr'));
+        const csv = rows.map((row) => {
+          const cols = Array.from(row.querySelectorAll('td, th'));
+          return cols
+            .map((col) => `"${col.innerText.replace(/"/g, '""')}"`)
+            .join(',');
+        });
+        const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'campaigns.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function exportTableToPDF() {
+        const tableWrapper = campaignsTable.closest('.card');
+        if (!tableWrapper) return;
+        html2pdf()
+          .from(tableWrapper)
+          .set({
+            margin: 0.5,
+            filename: 'campaigns.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+          })
+          .save();
+      }
+
+      function showAddClientModal() {
+        addClientModal.classList.remove('hidden');
+        addClientModal.classList.add('flex');
+      }
+
+      function hideAddClientModal() {
+        addClientModal.classList.remove('flex');
+        addClientModal.classList.add('hidden');
+        addClientForm.reset();
+      }
+
+      function initChart() {
+        const ctx = document.getElementById('analytics-chart');
+        if (!ctx) return;
+        chartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [
+              {
+                label: 'Leads',
+                data: [30, 48, 72, 61],
+                borderColor: '#111827',
+                backgroundColor: 'rgba(17, 24, 39, 0.12)',
+                tension: 0.35,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } },
+          },
+        });
+      }
+
+      function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js').catch(() => {
+              console.log(
+                'Service worker registration failed (expected in test mode).'
+              );
+            });
+          });
+        }
+      }
+
+      function fakeLoadCampaigns() {
+        campaignsData = [
+          {
+            id: 'RENN-2401',
+            client: 'Acme Corp',
+            status: 'Active',
+            leads: 128,
+            started_at: '2024-01-12',
+          },
+          {
+            id: 'RENN-2402',
+            client: 'TechStart',
+            status: 'Paused',
+            leads: 64,
+            started_at: '2024-02-04',
+          },
+          {
+            id: 'RENN-2403',
+            client: 'HealthPlus',
+            status: 'Draft',
+            leads: 0,
+            started_at: '—',
+          },
+        ];
+        renderCampaignRows(campaignsData);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        restoreDarkModePreference();
+        registerServiceWorker();
+        fakeLoadCampaigns();
+        initChart();
+
+        sidebarToggle?.addEventListener('click', toggleSidebar);
+        darkModeToggle?.addEventListener('click', toggleDarkMode);
+        logoutBtn?.addEventListener('click', () =>
+          console.log('Logout should call API')
+        );
+        campaignSearch?.addEventListener('input', (event) =>
+          filterCampaigns(event.target.value)
+        );
+        exportCsvBtn?.addEventListener('click', exportTableToCSV);
+        exportPdfBtn?.addEventListener('click', exportTableToPDF);
+        document
+          .querySelector('.nav-item[data-section="analytics"]')
+          .addEventListener('click', initChart);
+
+        document.querySelectorAll('.nav-item').forEach((link) => {
+          link.addEventListener('click', (event) => {
+            event.preventDefault();
+            const target = event.currentTarget.getAttribute('data-section');
+            document.querySelectorAll('[id$="-section"]').forEach((section) => {
+              section.classList.toggle(
+                'hidden',
+                section.id !== `${target}-section`
+              );
+            });
+            document.getElementById('section-title').textContent =
+              event.currentTarget.textContent.trim();
+          });
+        });
+
+        document
+          .getElementById('newCampaign')
+          ?.addEventListener('click', showAddClientModal);
+        cancelAddClient?.addEventListener('click', hideAddClientModal);
+        addClientForm?.addEventListener('submit', (event) => {
+          event.preventDefault();
+          hideAddClientModal();
+          // Dispatch custom event so backend/other scripts can hook in
+          window.dispatchEvent(new CustomEvent('dashboard:add-client'));
+        });
+      });
+    </script>
+  </body>
+</html>

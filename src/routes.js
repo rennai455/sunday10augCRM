@@ -237,6 +237,69 @@ function registerRoutes(app) {
     return res.json({ success: true });
   });
 
+  app.post(
+    '/api/admin/users',
+    auth,
+    validate({ body: schemas.userCreateBody }),
+    async (req, res) => {
+      if (!req.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const {
+        email,
+        password,
+        isAdmin: makeAdmin = false,
+        agencyId,
+      } = req.body;
+      const targetAgencyId = agencyId ?? req.agencyId;
+      if (!targetAgencyId) {
+        return res.status(400).json({ error: 'Agency context required' });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+
+      try {
+        const agencyCheck = await pool.query(
+          'SELECT id FROM agencies WHERE id = $1',
+          [targetAgencyId]
+        );
+        if (agencyCheck.rowCount === 0) {
+          return res.status(404).json({ error: 'Agency not found' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+        const insert = await pool.query(
+          'INSERT INTO users (email, password_hash, agency_id, is_admin) VALUES ($1, $2, $3, $4) RETURNING id, email, agency_id, is_admin, created_at',
+          [normalizedEmail, passwordHash, targetAgencyId, makeAdmin]
+        );
+
+        const created = insert.rows[0];
+        await recordAudit(req, 'admin:user:create', {
+          newUserId: created.id,
+          agencyId: created.agency_id,
+          isAdmin: created.is_admin,
+        });
+
+        return res.status(201).json({
+          user: {
+            id: created.id,
+            email: created.email,
+            agencyId: created.agency_id,
+            isAdmin: created.is_admin,
+            createdAt: created.created_at,
+          },
+        });
+      } catch (err) {
+        if (err?.code === '23505') {
+          return res.status(409).json({ error: 'Email already exists' });
+        }
+        req.log?.error({ err }, 'Failed to create user');
+        return res.status(500).json({ error: 'Failed to create user' });
+      }
+    }
+  );
+
   app.get('/api/auth/me', auth, async (req, res) => {
     try {
       const result = await pool.query(
@@ -611,6 +674,93 @@ function registerRoutes(app) {
       }
     }
   );
+
+  app.get('/api/dashboard', auth, async (req, res) => {
+    if (!req.agencyId) {
+      return res.status(400).json({ error: 'Agency context required' });
+    }
+    try {
+      const data = await withAgencyContext(req.agencyId, async (client) => {
+        const totals = {
+          campaigns: 0,
+          leads: 0,
+          averageScore: 0,
+          activeClients: 0,
+        };
+
+        const campaignsCount = await client.query(
+          'SELECT COUNT(*)::int AS count FROM campaigns WHERE agency_id = $1',
+          [req.agencyId]
+        );
+        totals.campaigns = Number(campaignsCount.rows[0]?.count || 0);
+
+        const leadsCount = await client.query(
+          `SELECT COUNT(*)::int AS count
+             FROM leads l
+             JOIN campaigns c ON l.campaign_id = c.id
+            WHERE c.agency_id = $1`,
+          [req.agencyId]
+        );
+        totals.leads = Number(leadsCount.rows[0]?.count || 0);
+
+        const activeClientsResult = await client.query(
+          `SELECT COUNT(DISTINCT identifier)::int AS count
+             FROM (
+               SELECT COALESCE(NULLIF(TRIM(l.email), ''), NULLIF(TRIM(l.name), '')) AS identifier
+                 FROM leads l
+                 JOIN campaigns c ON l.campaign_id = c.id
+                WHERE c.agency_id = $1
+             ) s
+            WHERE identifier IS NOT NULL`,
+          [req.agencyId]
+        );
+        totals.activeClients = Number(activeClientsResult.rows[0]?.count || 0);
+
+        const dealsTable = await client.query(
+          "SELECT to_regclass('public.deals') IS NOT NULL AS exists"
+        );
+        if (dealsTable.rows[0]?.exists) {
+          const averageScoreResult = await client.query(
+            `SELECT COALESCE(AVG(d.probability)::int, 0) AS average_score
+               FROM deals d
+               JOIN leads l ON d.lead_id = l.id
+               JOIN campaigns c ON l.campaign_id = c.id
+              WHERE c.agency_id = $1`,
+            [req.agencyId]
+          );
+          totals.averageScore = Number(
+            averageScoreResult.rows[0]?.average_score || 0
+          );
+        }
+
+        const recentCampaigns = await client.query(
+          `SELECT
+             c.id,
+             (SELECT name
+                FROM leads l
+               WHERE l.campaign_id = c.id
+                 AND l.name IS NOT NULL
+               ORDER BY l.created_at ASC
+               LIMIT 1) AS client,
+             c.status,
+             (SELECT COUNT(*)::int FROM leads l WHERE l.campaign_id = c.id) AS leads,
+             c.created_at AS started_at
+           FROM campaigns c
+          WHERE c.agency_id = $1
+          ORDER BY c.created_at DESC
+          LIMIT 10`,
+          [req.agencyId]
+        );
+
+        return { totals, recentCampaigns: recentCampaigns.rows };
+      });
+
+      res.json(data);
+    } catch (error) {
+      console.error('Dashboard metrics error:', error);
+      res.status(500).json({ error: 'Failed to load dashboard data' });
+    }
+  });
 
   const sendDashboard = (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));

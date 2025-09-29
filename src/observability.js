@@ -1,6 +1,6 @@
 const config = require('../config');
 
-function initSentry(app) {
+function initSentry() {
   if (!config.SENTRY_DSN) return;
   const Sentry = require('@sentry/node');
   Sentry.init({
@@ -15,8 +15,12 @@ function initSentry(app) {
 function initOtel() {
   if (!config.OTEL_EXPORTER_OTLP_ENDPOINT) return;
   const { NodeSDK } = require('@opentelemetry/sdk-node');
-  const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
-  const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+  const {
+    getNodeAutoInstrumentations,
+  } = require('@opentelemetry/auto-instrumentations-node');
+  const {
+    OTLPTraceExporter,
+  } = require('@opentelemetry/exporter-trace-otlp-http');
 
   const traceExporter = new OTLPTraceExporter({
     url: config.OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -25,14 +29,15 @@ function initOtel() {
   const sdk = new NodeSDK({
     serviceName: config.OTEL_SERVICE_NAME,
     traceExporter,
-    instrumentations: [getNodeAutoInstrumentations({
-      '@opentelemetry/instrumentation-http': { enabled: true },
-      '@opentelemetry/instrumentation-express': { enabled: true },
-      '@opentelemetry/instrumentation-pg': { enabled: true },
-    })],
+    instrumentations: [
+      getNodeAutoInstrumentations({
+        '@opentelemetry/instrumentation-http': { enabled: true },
+        '@opentelemetry/instrumentation-express': { enabled: true },
+        '@opentelemetry/instrumentation-pg': { enabled: true },
+      }),
+    ],
   });
   sdk.start().catch((e) => console.error('OTel start error', e));
 }
 
 module.exports = { initSentry, initOtel };
-

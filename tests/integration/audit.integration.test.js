@@ -8,10 +8,14 @@ describe('Recent audit endpoint', () => {
   let token;
 
   beforeAll(async () => {
-    const a = await pool.query("INSERT INTO agencies (name) VALUES ('Audit Agency') RETURNING id");
+    const a = await pool.query(
+      "INSERT INTO agencies (name) VALUES ('Audit Agency') RETURNING id"
+    );
     agencyId = a.rows[0].id;
     const secret = process.env.JWT_SECRET || 'testsecretjwt';
-    token = jwt.sign({ userId: 999, agencyId, isAdmin: true }, secret, { expiresIn: '1h' });
+    token = jwt.sign({ userId: 999, agencyId, isAdmin: true }, secret, {
+      expiresIn: '1h',
+    });
 
     // Seed 6 events so we can test limit=5
     for (let i = 0; i < 6; i++) {
@@ -23,8 +27,12 @@ describe('Recent audit endpoint', () => {
   });
 
   afterAll(async () => {
-    try { await pool.query('DELETE FROM audit_log WHERE agency_id = $1', [agencyId]); } catch {}
-    try { await pool.query('DELETE FROM agencies WHERE id = $1', [agencyId]); } catch {}
+    await pool
+      .query('DELETE FROM audit_log WHERE agency_id = $1', [agencyId])
+      .catch(() => null);
+    await pool
+      .query('DELETE FROM agencies WHERE id = $1', [agencyId])
+      .catch(() => null);
     if (server && server.listening) server.close();
   });
 
@@ -39,4 +47,3 @@ describe('Recent audit endpoint', () => {
     expect(res.body.events[0].action).toMatch('test:event');
   });
 });
-

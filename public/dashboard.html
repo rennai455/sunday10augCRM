@@ -3,305 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RENN.AI - Dashboard</title>
+  <title>RENN.AI – Dashboard</title>
   <link rel="stylesheet" href="/static/dist/main.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="manifest" href="manifest.json">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
 <body>
-  <!-- Main Layout Container -->
-  <div class="layout">
-    <aside class="layout__sidebar sidebar" id="sidebar">
-      <nav class="nav">
-        <a href="#" class="nav__item nav-item active" id="nav-dashboard">Dashboard</a>
-        <a href="#" class="nav__item nav-item" id="nav-campaigns">Campaigns</a>
-        <a href="#" class="nav__item nav-item" id="nav-leads">Leads</a>
-        <a href="#" class="nav__item nav-item" id="nav-settings">Settings</a>
-        <a href="/docs" class="nav__item nav-item" id="nav-docs" data-roles="admin">API Docs</a>
-        <a href="/Audit.html" class="nav__item nav-item" id="nav-audit" data-roles="admin">Audit</a>
-        <button class="btn btn-secondary btn-block mt-4" onclick="window.logout()">Logout</button>
-      </nav>
-      <footer class="sidebar__footer">
-        <div id="user-chip" class="user-chip">
-          <span class="user-chip__avatar"></span>
-          <span class="user-chip__email"></span>
-        </div>
-        <div class="mt">
-          <h3 style="font-size: 0.9rem;">Recent Activity</h3>
-          <ul id="sidebar-activity" style="font-size: 0.85rem; max-height: 160px; overflow:auto;"></ul>
-        </div>
-      </footer>
-    </aside>
-
-    <main class="layout__main main-content" id="main-content">
-      <header class="layout__header">
-        <h1>Welcome to Renn.AI CRM</h1>
-        <span id="user-role" class="badge"></span>
-      </header>
-      <section class="layout__content" id="dashboard-section"></section>
-    </main>
-  </div>
-
-  <button id="sidebar-toggle-btn" class="btn btn-primary sidebar-toggle">☰</button>
-  <button class="btn btn-primary fab" id="fab-sidebar-toggle-2">☰</button>
-
-  <div id="add-client-modal" class="modal hidden">
-    <div class="card">
-      <h2>Add New Client</h2>
-      <form id="add-client-form">
-        <div class="form-group">
-          <input type="text" name="clientName" placeholder="Client Name" required>
-        </div>
-        <div class="form-group">
-          <input type="email" name="clientEmail" placeholder="Client Email" required>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">Add Client</button>
-      </form>
-      <button class="btn btn-secondary btn-block mt" onclick="window.hideAddClientModal()">Cancel</button>
+  <aside class="sidebar" aria-label="Main navigation">
+    <div class="sidebar__brand">RENN.AI</div>
+    <nav class="sidebar__nav">
+      <a href="#" data-section="overview">Overview</a>
+      <a href="#" data-section="lead-gen">Lead Generation</a>
+      <a href="#" data-section="drip">Drip Campaigns</a>
+      <a href="#" data-section="clients">Client Manager</a>
+      <a href="#" data-section="analytics">Analytics</a>
+      <a href="#" data-section="settings">Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar__agency">
+        <strong id="sidebarAgency">Demo Agency</strong>
+        <span id="sidebarEmail">demo@renn.ai</span>
+      </div>
+      <button id="signOutBtn" class="sidebar__signout" type="button">Sign Out</button>
     </div>
-  </div>
+  </aside>
+  <main>
+    <header class="dashboard-header">
+      <div>
+        <p id="welcomeMessage" style="margin:0;color:rgba(17,24,39,0.55);font-weight:500;">Welcome back</p>
+        <h1 id="sectionTitle">Overview</h1>
+      </div>
+      <div class="header-actions">
+        <button id="toggleDarkMode" class="btn secondary" type="button">Toggle Dark Mode</button>
+        <button id="newCampaignBtn" class="btn primary" type="button">+ New Campaign</button>
+      </div>
+    </header>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Fetch user info and populate sidebar chip & dashboard
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success) {
-            window.location.href = '/Login.html';
-          } else {
-            document.getElementById('user-role').textContent = `Role: ${data.role || 'admin'}`;
-            document.getElementById('dashboard-section').innerHTML =
-              `<div class='card'><h2>Hello, ${data.email}</h2><p>Agency: ${data.agency || 'N/A'}</p></div>
-               <div class='card mt'>
-                 <h2>Recent Activity</h2>
-                 <ul id='activity-list' class='mt'></ul>
-               </div>`;
-            loadRecentActivity();
+    <section aria-label="Key metrics">
+      <div class="metrics-grid">
+        <article class="metric-card">
+          <h3>Total Campaigns</h3>
+          <span id="totalCampaigns" class="metric-value">—</span>
+          <!-- populated dynamically -->
+        </article>
+        <article class="metric-card">
+          <h3>Total Leads</h3>
+          <span id="totalLeads" class="metric-value">—</span>
+          <!-- populated dynamically -->
+        </article>
+        <article class="metric-card">
+          <h3>Average Score</h3>
+          <span id="averageScore" class="metric-value">—</span>
+          <!-- populated dynamically -->
+        </article>
+        <article class="metric-card">
+          <h3>Active Clients</h3>
+          <span id="activeClients" class="metric-value">—</span>
+          <!-- populated dynamically -->
+        </article>
+      </div>
+    </section>
 
-            const parts = (data.name || data.email).split(/[\\s@]+/);
-            const initials = (parts[0] ? parts[0][0] : '') + (parts[1] ? parts[1][0] : '');
-            const chip = document.getElementById('user-chip');
-            chip.querySelector('.user-chip__avatar').textContent = initials.toUpperCase();
-            chip.querySelector('.user-chip__email').textContent = data.email;
+    <section class="panel" aria-labelledby="recentCampaignsHeading">
+      <div class="panel__header">
+        <h2 id="recentCampaignsHeading" style="margin:0;">Recent Campaigns</h2>
+        <div class="panel__actions">
+          <button id="exportCsvBtn" class="btn secondary" type="button">Export CSV</button>
+          <button id="exportPdfBtn" class="btn secondary" type="button">Export PDF</button>
+        </div>
+      </div>
+      <input id="searchCampaigns" class="input-search" type="search" placeholder="Search campaigns" aria-label="Search campaigns">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Campaign ID</th>
+              <th scope="col">Client</th>
+              <th scope="col">Status</th>
+              <th scope="col">Leads</th>
+              <th scope="col">Started</th>
+            </tr>
+          </thead>
+          <tbody id="campaignTable">
+            <!-- Campaign rows will be injected by dashboard.js -->
+          </tbody>
+        </table>
+      </div>
+      <p id="campaignError" class="panel__status-message">Unable to load recent campaigns. Please refresh.</p>
+    </section>
+  </main>
 
-            // Hide items not allowed for role
-            document.querySelectorAll('.nav-item').forEach((item) => {
-              const roles = item.getAttribute('data-roles');
-              if (roles && !roles.includes(data.role)) {
-                item.style.display = 'none';
-              }
-            });
-            // Load sidebar activity initially and every 60s
-            loadSidebarActivity();
-            setInterval(loadSidebarActivity, 60000);
-          }
-        })
-        .catch(() => window.location.href = '/Login.html');
-
-      // Sidebar toggles
-      document.getElementById('sidebar-toggle-btn')
-        .addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-      document.getElementById('fab-sidebar-toggle-2')
-        .addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
-
-      // Navigation handlers
-      document.getElementById('nav-dashboard').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Dashboard</h2><p>Overview of your campaigns and leads.</p></div>`;
-      });
-      document.getElementById('nav-campaigns').addEventListener('click', () => {
-        renderCampaigns();
-      });
-      document.getElementById('nav-leads').addEventListener('click', () => {
-        renderLeads();
-      });
-      document.getElementById('nav-settings').addEventListener('click', () => {
-        document.getElementById('dashboard-section').innerHTML =
-          `<div class='card'><h2>Settings</h2><p>Settings form will appear here.</p></div>`;
-      });
-
-      // Add client modal
-      window.showAddClientModal = () => document.getElementById('add-client-modal').classList.remove('hidden');
-      window.hideAddClientModal = () => document.getElementById('add-client-modal').classList.add('hidden');
-      document.getElementById('add-client-form').addEventListener('submit', e => {
-        e.preventDefault();
-        window.hideAddClientModal();
-      });
-
-      // Logout
-      window.logout = async () => {
-        try {
-          let csrfToken;
-          try {
-            const t = await fetch('/api/csrf-token', { credentials: 'include' });
-            const td = await t.json();
-            csrfToken = td.csrfToken;
-          } catch {}
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
-            headers: csrfToken ? { 'x-csrf-token': csrfToken } : {}
-          });
-        } finally {
-          window.location.href = '/Login.html';
-        }
-      };
-      // Expose render functions if needed
-      window.renderCampaigns = renderCampaigns;
-      window.renderLeads = renderLeads;
-    });
-
-    async function renderCampaigns(page = 1, pageSize = 10, sort = 'created_at', order = 'desc') {
-      const section = document.getElementById('dashboard-section');
-      section.innerHTML = `<div class='card'><h2>Campaigns <small id='campaigns-last-updated' class='chip'></small></h2><div id='campaigns-controls'></div><div id='campaigns-list'>Loading...</div></div>`;
-      const qs = new URLSearchParams({ page, pageSize, sort, order });
-      const res = await fetch(`/api/campaigns?${qs.toString()}`, { credentials: 'include' });
-      const total = parseInt(res.headers.get('X-Total-Count') || '0', 10);
-      const data = await res.json();
-      const rows = (data.campaigns || []);
-      // Last updated chip
-      const latest = rows.reduce((acc, r) => {
-        const t = r.updated_at || r.created_at;
-        const ms = t ? new Date(t).getTime() : 0;
-        return ms > acc ? ms : acc;
-      }, 0);
-      if (latest) {
-        const chip = document.getElementById('campaigns-last-updated');
-        chip.textContent = timeAgo(latest);
-        chip.className = 'chip ' + chipColor(latest);
-      }
-      const list = rows.map(c => `<tr><td>${c.id}</td><td>${c.name}</td><td>${c.status}</td><td>${new Date(c.created_at).toLocaleString()}</td><td>${c.updated_at ? new Date(c.updated_at).toLocaleString() : ''}</td></tr>`).join('');
-      const controls = `
-        <div class='row'>
-          <label>Sort
-            <select id='campaigns-sort'>
-              <option value='created_at' ${sort==='created_at'?'selected':''}>Created</option>
-              <option value='updated_at' ${sort==='updated_at'?'selected':''}>Updated</option>
-            </select>
-          </label>
-          <label>Order
-            <select id='campaigns-order'>
-              <option value='desc' ${order==='desc'?'selected':''}>Desc</option>
-              <option value='asc' ${order==='asc'?'selected':''}>Asc</option>
-            </select>
-          </label>
-          <button id='campaigns-prev' ${page<=1?'disabled':''}>Prev</button>
-          <span>Page ${page}</span>
-          <button id='campaigns-next' ${(page*pageSize)>=total?'disabled':''}>Next</button>
-        </div>`;
-      document.getElementById('campaigns-controls').innerHTML = controls;
-      document.getElementById('campaigns-list').innerHTML = `<table class='table'><thead><tr><th>ID</th><th>Name</th><th>Status</th><th>Created</th><th>Updated</th></tr></thead><tbody>${list}</tbody></table>`;
-      document.getElementById('campaigns-sort').onchange = (e)=> renderCampaigns(page, pageSize, e.target.value, order);
-      document.getElementById('campaigns-order').onchange = (e)=> renderCampaigns(page, pageSize, sort, e.target.value);
-      document.getElementById('campaigns-prev').onclick = ()=> renderCampaigns(page-1, pageSize, sort, order);
-      document.getElementById('campaigns-next').onclick = ()=> renderCampaigns(page+1, pageSize, sort, order);
-    }
-
-    async function renderLeads(page = 1, pageSize = 10, sort = 'created_at', order = 'desc', status = '', campaignId = '') {
-      const section = document.getElementById('dashboard-section');
-      section.innerHTML = `<div class='card'><h2>Leads <small id='leads-last-updated' class='chip'></small></h2><div id='leads-controls'></div><div id='leads-list'>Loading...</div><div id='leads-activity' class='mt'></div></div>`;
-      const params = { page, pageSize, sort, order };
-      if (status) params.status = status;
-      if (campaignId) params.campaignId = campaignId;
-      const qs = new URLSearchParams(params);
-      const res = await fetch(`/api/leads?${qs.toString()}`, { credentials: 'include' });
-      const total = parseInt(res.headers.get('X-Total-Count') || '0', 10);
-      const data = await res.json();
-      const rows = (data.leads || []);
-      const latest = rows.reduce((acc, r) => {
-        const t = r.updated_at || r.created_at;
-        const ms = t ? new Date(t).getTime() : 0;
-        return ms > acc ? ms : acc;
-      }, 0);
-      if (latest) {
-        const chip = document.getElementById('leads-last-updated');
-        chip.textContent = timeAgo(latest);
-        chip.className = 'chip ' + chipColor(latest);
-      }
-      const list = rows.map(l => `<tr><td>${l.id}</td><td>${l.campaign_id}</td><td>${l.name||''}</td><td>${l.status||''}</td><td>${new Date(l.created_at).toLocaleString()}</td><td>${l.updated_at ? new Date(l.updated_at).toLocaleString() : ''}</td></tr>`).join('');
-      const controls = `
-        <div class='row'>
-          <label>Status <input id='leads-status' value='${status}'></label>
-          <label>Campaign <input id='leads-campaign' value='${campaignId}'></label>
-          <label>Sort
-            <select id='leads-sort'>
-              <option value='created_at' ${sort==='created_at'?'selected':''}>Created</option>
-              <option value='updated_at' ${sort==='updated_at'?'selected':''}>Updated</option>
-              <option value='status' ${sort==='status'?'selected':''}>Status</option>
-            </select>
-          </label>
-          <label>Order
-            <select id='leads-order'>
-              <option value='desc' ${order==='desc'?'selected':''}>Desc</option>
-              <option value='asc' ${order==='asc'?'selected':''}>Asc</option>
-            </select>
-          </label>
-          <button id='leads-apply'>Apply</button>
-          <button id='leads-prev' ${page<=1?'disabled':''}>Prev</button>
-          <span>Page ${page}</span>
-          <button id='leads-next' ${(page*pageSize)>=total?'disabled':''}>Next</button>
-        </div>`;
-      document.getElementById('leads-controls').innerHTML = controls;
-      document.getElementById('leads-list').innerHTML = `<table class='table'><thead><tr><th>ID</th><th>Campaign</th><th>Name</th><th>Status</th><th>Created</th><th>Updated</th></tr></thead><tbody>${list}</tbody></table>`;
-
-      // Recent lead activity
-      try {
-        const actRes = await fetch('/api/audit/leads?limit=10', { credentials: 'include' });
-        const act = await actRes.json();
-        const items = (act.events || []).map(e => `<li>${new Date(e.occurred_at).toLocaleString()} - ${e.action}</li>`).join('');
-        document.getElementById('leads-activity').innerHTML = `<h3>Recent Lead Activity</h3><ul>${items}</ul>`;
-      } catch {}
-      document.getElementById('leads-sort').onchange = (e)=> renderLeads(page, pageSize, e.target.value, order, status, campaignId);
-      document.getElementById('leads-order').onchange = (e)=> renderLeads(page, pageSize, sort, e.target.value, status, campaignId);
-      document.getElementById('leads-prev').onclick = ()=> renderLeads(page-1, pageSize, sort, order, status, campaignId);
-      document.getElementById('leads-next').onclick = ()=> renderLeads(page+1, pageSize, sort, order, status, campaignId);
-      document.getElementById('leads-apply').onclick = ()=> {
-        const st = document.getElementById('leads-status').value.trim();
-        const cid = document.getElementById('leads-campaign').value.trim();
-        renderLeads(1, pageSize, sort, order, st, cid);
-      };
-    }
-
-    async function loadSidebarActivity() {
-      try {
-        const res = await fetch('/api/audit/recent?limit=5', { credentials: 'include' });
-        const data = await res.json();
-        const list = (data.events || []).map(e => `<li>${new Date(e.occurred_at).toLocaleTimeString()} — ${e.action}</li>`).join('');
-        const ul = document.getElementById('sidebar-activity');
-        if (ul) ul.innerHTML = list || '<li>No recent activity</li>';
-      } catch {}
-    }
-  </script>
-  <script src="/static/dist/app.js"></script>
+  <script type="module" src="/static/scripts/pages/dashboard.js"></script>
 </body>
 </html>
-    function timeAgo(ts) {
-      const ms = Date.now() - ts;
-      const s = Math.floor(ms / 1000);
-      if (s < 60) return `${s}s ago`;
-      const m = Math.floor(s / 60);
-      if (m < 60) return `${m}m ago`;
-      const h = Math.floor(m / 60);
-      if (h < 24) return `${h}h ago`;
-      const d = Math.floor(h / 24);
-      return `${d}d ago`;
-    }
-
-    function chipColor(ts) {
-      const ageMs = Date.now() - ts;
-      if (ageMs < 3600000) return 'chip-green';
-      if (ageMs < 86400000) return 'chip-yellow';
-      return 'chip-red';
-    }
-
-    async function loadRecentActivity() {
-      try {
-        const res = await fetch('/api/audit/recent?limit=5', { credentials: 'include' });
-        const data = await res.json();
-        const list = (data.events || []).map(e => `<li>${new Date(e.occurred_at).toLocaleString()} - ${e.action}</li>`).join('');
-        const ul = document.getElementById('activity-list');
-        if (ul) ul.innerHTML = list || '<li>No recent activity</li>';
-      } catch {}
-    }

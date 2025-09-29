@@ -31,7 +31,11 @@ const withTransaction = async (fn) => {
 const withAgencyContext = async (agencyId, fn) => {
   if (!agencyId) return withTransaction(fn);
   return withTransaction(async (client) => {
-    await client.query("SET LOCAL app.current_agency_id = $1", [String(agencyId)]);
+    const coerced = Number(agencyId);
+    if (!Number.isFinite(coerced)) {
+      throw new Error('Invalid agencyId for context');
+    }
+    await client.query(`SET LOCAL app.current_agency_id = ${coerced}`);
     return fn(client);
   });
 };

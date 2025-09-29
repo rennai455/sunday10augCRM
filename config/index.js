@@ -37,6 +37,7 @@ const baseEnv = cleanEnv(process.env, {
   API_RATE_MAX: num({ default: 1000 }),
   AUTH_RATE_WINDOW_MS: num({ default: 900000 }),
   AUTH_RATE_MAX: num({ default: 10 }),
+  RATE_LIMIT_TRUST_PROXY: bool({ default: false }),
 });
 
 const env = { ...baseEnv };

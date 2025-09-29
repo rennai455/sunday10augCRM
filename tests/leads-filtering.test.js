@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const hashedPassword = bcrypt.hashSync('password123', 10);
 
 // Mock DB layer
-const poolQuery = jest.fn();
+const mockPoolQuery = jest.fn();
 const withAgencyContext = async (_agencyId, fn) => {
   const client = {
     query: jest.fn(async (sql, params) => {
@@ -14,8 +14,20 @@ const withAgencyContext = async (_agencyId, fn) => {
       if (/SELECT l\.\* FROM leads/i.test(sql)) {
         return {
           rows: [
-            { id: 1, campaign_id: params[0] || 1, name: 'John', status: 'new', created_at: new Date().toISOString() },
-            { id: 2, campaign_id: params[0] || 1, name: 'Jane', status: 'active', created_at: new Date().toISOString() },
+            {
+              id: 1,
+              campaign_id: params[0] || 1,
+              name: 'John',
+              status: 'new',
+              created_at: new Date().toISOString(),
+            },
+            {
+              id: 2,
+              campaign_id: params[0] || 1,
+              name: 'Jane',
+              status: 'active',
+              created_at: new Date().toISOString(),
+            },
           ],
         };
       }
@@ -26,10 +38,10 @@ const withAgencyContext = async (_agencyId, fn) => {
 };
 
 jest.mock('../src/db/pool', () => ({
-  query: (...args) => poolQuery(...args),
-  withTransaction: async (fn) => fn({ query: poolQuery }),
+  query: (...args) => mockPoolQuery(...args),
+  withTransaction: async (fn) => fn({ query: mockPoolQuery }),
   withAgencyContext,
-  pool: { query: poolQuery, end: jest.fn() },
+  pool: { query: mockPoolQuery, end: jest.fn() },
   smokeTest: jest.fn(),
 }));
 
@@ -42,8 +54,10 @@ describe('Leads filtering API', () => {
 
   it('lists leads with pagination and filters', async () => {
     // Mock login user row
-    poolQuery.mockResolvedValueOnce({
-      rows: [{ id: 1, password_hash: hashedPassword, agency_id: 1, is_admin: false }],
+    mockPoolQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, password_hash: hashedPassword, agency_id: 1, is_admin: false },
+      ],
     });
 
     const agent = request.agent(app);
@@ -58,4 +72,3 @@ describe('Leads filtering API', () => {
     expect(Array.isArray(res.body.leads)).toBe(true);
   });
 });
-

@@ -7,6 +7,7 @@
 3. Run `npm install` to install dependencies.
 4. Run `npm run db:migrate` to apply DB schema (idempotent).
 5. Run `npm run db:seed` to insert admin/sample data.
+   - Need additional users? Authenticate as the admin, then `POST /api/admin/users` with `{ "email": "user@example.com", "password": "StrongPass123", "isAdmin": false }`.
 6. Run `npm install --dev && npm run diagnostics` to verify config and security.
 7. Start server: `npm start`.
 

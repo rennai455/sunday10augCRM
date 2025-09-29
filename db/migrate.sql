@@ -33,8 +33,12 @@ CREATE TABLE IF NOT EXISTS leads (
     phone VARCHAR(32),
     status VARCHAR(32),
     status_history JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE leads
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- Performance indexes (idempotent)
 CREATE INDEX IF NOT EXISTS idx_campaigns_agency_created ON campaigns(agency_id, created_at DESC);
@@ -56,3 +60,23 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_agency_time ON audit_log(agency_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit_log(user_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_action_time ON audit_log(action, occurred_at DESC);
+
+-- Ensure leads updated_at trigger exists
+CREATE OR REPLACE FUNCTION set_leads_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'trg_leads_set_updated_at'
+  ) THEN
+    CREATE TRIGGER trg_leads_set_updated_at
+    BEFORE UPDATE ON leads
+    FOR EACH ROW EXECUTE FUNCTION set_leads_updated_at();
+  END IF;
+END$$;

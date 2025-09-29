@@ -96,10 +96,7 @@
             "name": "sort",
             "schema": {
               "type": "string",
-              "enum": [
-                "created_at",
-                "updated_at"
-              ]
+              "enum": ["created_at", "updated_at"]
             }
           },
           {
@@ -107,10 +104,7 @@
             "name": "order",
             "schema": {
               "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
+              "enum": ["asc", "desc"]
             }
           }
         ],
@@ -173,6 +167,26 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dashboard": {
+      "get": {
+        "summary": "Aggregated dashboard metrics and recent campaigns",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -267,11 +281,7 @@
             "name": "sort",
             "schema": {
               "type": "string",
-              "enum": [
-                "created_at",
-                "status",
-                "updated_at"
-              ]
+              "enum": ["created_at", "status", "updated_at"]
             }
           },
           {
@@ -279,10 +289,7 @@
             "name": "order",
             "schema": {
               "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
+              "enum": ["asc", "desc"]
             }
           },
           {
@@ -356,9 +363,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "campaign_id"
-                ]
+                "required": ["campaign_id"]
               }
             }
           }
@@ -536,10 +541,7 @@
     "schemas": {
       "LoginBody": {
         "type": "object",
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "properties": {
           "email": {
             "type": "string",
@@ -567,17 +569,11 @@
           },
           "sort": {
             "type": "string",
-            "enum": [
-              "created_at",
-              "updated_at"
-            ]
+            "enum": ["created_at", "updated_at"]
           },
           "order": {
             "type": "string",
-            "enum": [
-              "asc",
-              "desc"
-            ]
+            "enum": ["asc", "desc"]
           }
         }
       },
@@ -647,6 +643,61 @@
           "created_at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "DashboardTotals": {
+        "type": "object",
+        "required": ["campaigns", "leads", "averageScore", "activeClients"],
+        "properties": {
+          "campaigns": {
+            "type": "integer"
+          },
+          "leads": {
+            "type": "integer"
+          },
+          "averageScore": {
+            "type": "integer"
+          },
+          "activeClients": {
+            "type": "integer"
+          }
+        }
+      },
+      "DashboardCampaignSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "client": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "leads": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DashboardResponse": {
+        "type": "object",
+        "required": ["totals", "recentCampaigns"],
+        "properties": {
+          "totals": {
+            "$ref": "#/components/schemas/DashboardTotals"
+          },
+          "recentCampaigns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DashboardCampaignSummary"
+            }
           }
         }
       }
