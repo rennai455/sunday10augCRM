@@ -1,229 +1,149 @@
-(function initDashboardPage() {
-  function createCustomEvent(name, detail) {
-    if (typeof window.CustomEvent === 'function') {
-      return new window.CustomEvent(name, { detail: detail });
-    }
-    var e = document.createEvent('Event');
-    e.initEvent(name, true, true);
-    e.detail = detail;
-    return e;
-  }
-  var metrics = {
+// dashboard.js
+// All logic scoped externally — CSP compliant
+
+document.addEventListener('DOMContentLoaded', () => {
+  const metrics = {
     totalCampaigns: document.getElementById('totalCampaigns'),
     totalLeads: document.getElementById('totalLeads'),
     averageScore: document.getElementById('averageScore'),
     activeClients: document.getElementById('activeClients'),
   };
-  var campaignTable = document.getElementById('campaignTable');
-  var searchInput = document.getElementById('searchCampaigns');
-  var sidebarAgency = document.getElementById('sidebarAgency');
-  var sidebarEmail = document.getElementById('sidebarEmail');
-  var welcomeMessage = document.getElementById('welcomeMessage');
-  var campaignError = document.getElementById('campaignError');
-  var signOutBtn = document.getElementById('signOutBtn');
-  var toggleDarkModeBtn = document.getElementById('toggleDarkMode');
-  var newCampaignBtn = document.getElementById('newCampaignBtn');
-  var exportCsvBtn = document.getElementById('exportCsvBtn');
-  var exportPdfBtn = document.getElementById('exportPdfBtn');
 
-  var campaignData = [];
+  const campaignTable = document.getElementById('campaignTable');
+  const searchInput = document.getElementById('searchCampaigns');
+  const campaignError = document.getElementById('campaignError');
 
-  function setMetricValue(id, value) {
-    var el = metrics[id];
-    if (!el) return;
-    var output =
-      value === null || value === undefined || value === '' ? '—' : value;
-    el.textContent = output;
-  }
+  const avatar = document.getElementById('profileAvatar');
+  const profilePanel = document.getElementById('profilePanel');
+  const toggleDarkBtn = document.getElementById('toggleDarkMode');
+  const exportCsvBtn = document.getElementById('exportCsvBtn');
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
 
-  function renderCampaignRows(rows) {
-    if (!campaignTable) return;
-    campaignTable.innerHTML = '';
-    if (campaignError) campaignError.style.display = 'none';
-    if (!rows || rows.length === 0) {
-      var emptyRow = document.createElement('tr');
-      var emptyCell = document.createElement('td');
-      emptyCell.colSpan = 5;
-      emptyCell.textContent = 'No campaigns available yet.';
-      emptyCell.style.textAlign = 'center';
-      emptyCell.style.padding = '24px';
-      emptyRow.appendChild(emptyCell);
-      campaignTable.appendChild(emptyRow);
-      return;
-    }
-    rows.forEach(function (campaign) {
-      var tr = document.createElement('tr');
-
-      var idCell = document.createElement('td');
-      idCell.textContent = campaign.id || '—';
-      tr.appendChild(idCell);
-
-      var clientCell = document.createElement('td');
-      clientCell.textContent = campaign.client || campaign.client_name || '—';
-      tr.appendChild(clientCell);
-
-      var statusCell = document.createElement('td');
-      statusCell.textContent = campaign.status || '—';
-      statusCell.title = statusCell.textContent;
-      tr.appendChild(statusCell);
-
-      var leadsCell = document.createElement('td');
-      leadsCell.textContent =
-        typeof campaign.leads === 'number' ? String(campaign.leads) : '—';
-      tr.appendChild(leadsCell);
-
-      var startedCell = document.createElement('td');
-      if (campaign.started_at) {
-        var date = new Date(campaign.started_at);
-        startedCell.textContent = isNaN(date.getTime())
-          ? '—'
-          : date.toLocaleDateString();
-      } else if (campaign.created_at) {
-        var created = new Date(campaign.created_at);
-        startedCell.textContent = isNaN(created.getTime())
-          ? '—'
-          : created.toLocaleDateString();
-      } else {
-        startedCell.textContent = '—';
-      }
-      tr.appendChild(startedCell);
-
-      campaignTable.appendChild(tr);
-    });
-  }
-
-  function filterCampaigns(query) {
-    if (!query) {
-      renderCampaignRows(campaignData);
-      return;
-    }
-    var lower = query.toLowerCase();
-    var filtered = campaignData.filter(function (campaign) {
-      var values = [
-        campaign.id,
-        campaign.client,
-        campaign.client_name,
-        campaign.status,
-      ];
-      return values.some(function (value) {
-        if (!value) return false;
-        return String(value).toLowerCase().indexOf(lower) !== -1;
-      });
-    });
-    renderCampaignRows(filtered);
-  }
-
-  function fetchProfile() {
-    return fetch('/api/auth/me', { credentials: 'include' })
-      .then(function (response) {
-        if (response.status === 401) {
-          window.location.href = '/Login.html';
-          return null;
-        }
-        return response.json();
-      })
-      .then(function (data) {
-        if (!data || !data.success) return;
-        if (sidebarAgency)
-          sidebarAgency.textContent = data.agency || 'Demo Agency';
-        if (sidebarEmail)
-          sidebarEmail.textContent = data.email || 'demo@renn.ai';
-        if (welcomeMessage) {
-          welcomeMessage.textContent =
-            'Welcome back, ' + (data.email || 'admin@renn.ai');
-        }
-      })
-      .catch(function () {
-        // silent fail – placeholders remain
-      });
-  }
-
-  function fetchDashboardData() {
-    return fetch('/api/dashboard', { credentials: 'include' })
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error('Dashboard endpoint unavailable');
-        }
-        return response.json();
-      })
-      .then(function (payload) {
-        var totals = payload && payload.totals ? payload.totals : {};
-        setMetricValue('totalCampaigns', totals.campaigns);
-        setMetricValue('totalLeads', totals.leads);
-        setMetricValue('averageScore', totals.averageScore);
-        setMetricValue('activeClients', totals.activeClients);
-
-        campaignData = Array.isArray(payload && payload.recentCampaigns)
-          ? payload.recentCampaigns
-          : [];
-        renderCampaignRows(campaignData);
-        if (campaignError && campaignData.length === 0) {
-          campaignError.style.display = 'none';
-        }
-      })
-      .catch(function () {
-        campaignData = [];
-        renderCampaignRows(campaignData);
-        Object.keys(metrics).forEach(function (key) {
-          setMetricValue(key, null);
-        });
-        if (campaignError) {
-          campaignError.style.display = 'block';
-        }
-      });
-  }
-
-  function handleSignOut() {
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .catch(function () {
-        // ignore network errors during logout
-      })
-      .finally(function () {
-        window.location.href = '/Login.html';
-      });
-  }
-
-  function wireEvents() {
-    if (searchInput) {
-      searchInput.addEventListener('input', function (event) {
-        filterCampaigns(event.target.value);
-      });
-    }
-    if (signOutBtn) {
-      signOutBtn.addEventListener('click', handleSignOut);
-    }
-    if (toggleDarkModeBtn) {
-      toggleDarkModeBtn.addEventListener('click', function () {
-        document.body.classList.toggle('dark');
-      });
-    }
-    if (newCampaignBtn) {
-      newCampaignBtn.addEventListener('click', function () {
-        window.dispatchEvent(createCustomEvent('dashboard:new-campaign'));
-      });
-    }
-    if (exportCsvBtn) {
-      exportCsvBtn.addEventListener('click', function () {
-        window.dispatchEvent(
-          createCustomEvent('dashboard:export', { format: 'csv' })
-        );
-      });
-    }
-    if (exportPdfBtn) {
-      exportPdfBtn.addEventListener('click', function () {
-        window.dispatchEvent(
-          createCustomEvent('dashboard:export', { format: 'pdf' })
-        );
-      });
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    wireEvents();
-    fetchProfile();
-    fetchDashboardData();
+  // === Dark Mode Toggle ===
+  toggleDarkBtn?.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark'));
   });
-})();
+
+  // === Load theme preference ===
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+  }
+
+  // === Toggle Profile Panel ===
+  avatar?.addEventListener('click', () => {
+    profilePanel?.classList.toggle('open');
+  });
+
+  // === Search Campaigns ===
+  searchInput?.addEventListener('keyup', () => {
+    if (!campaignTable) return;
+    const search = searchInput.value.toLowerCase();
+    const rows = campaignTable.querySelectorAll('tr');
+    rows.forEach((row) => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(search) ? '' : 'none';
+    });
+  });
+
+  // === Export to CSV ===
+  exportCsvBtn?.addEventListener('click', () => {
+    if (!campaignTable) return;
+    const rows = campaignTable.querySelectorAll('tr');
+    const csv = [];
+    rows.forEach((row) => {
+      const cols = row.querySelectorAll('td, th');
+      const rowData = Array.from(cols).map((col) => `"${col.innerText}"`);
+      csv.push(rowData.join(','));
+    });
+    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'campaigns.csv';
+    a.click();
+  });
+
+  // === Export to PDF ===
+  exportPdfBtn?.addEventListener('click', () => {
+    if (!campaignTable) return;
+    import(
+      'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+    ).then(() => {
+      const table = campaignTable.parentElement;
+      if (!table) return;
+      html2pdf().from(table).save('campaigns.pdf');
+    });
+  });
+
+  const hideCampaignError = () => {
+    if (!campaignError) return;
+    campaignError.textContent = '';
+    campaignError.classList.add('hidden');
+  };
+
+  const showCampaignError = (message) => {
+    if (!campaignError) return;
+    campaignError.textContent = message;
+    campaignError.classList.remove('hidden');
+  };
+
+  // === API: /auth/me ===
+  fetch('/api/auth/me', {
+    credentials: 'include',
+  })
+    .then((res) => {
+      if (res.status === 401) window.location.href = '/Login.html';
+      return res.json();
+    })
+    .then((user) => {
+      const agencyEl = document.getElementById('sidebarAgency');
+      if (agencyEl) agencyEl.textContent = user.agency;
+      const emailEl = document.getElementById('sidebarEmail');
+      if (emailEl) emailEl.textContent = user.email;
+      const welcomeEl = document.getElementById('welcomeMessage');
+      if (welcomeEl) welcomeEl.textContent = `Hello, ${user.email}`;
+    })
+    .catch(() => {
+      // Silently fail; placeholders remain.
+    });
+
+  // === API: /dashboard ===
+  fetch('/api/dashboard', {
+    credentials: 'include',
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      const totals = (data && data.totals) || {};
+      metrics.totalCampaigns &&
+        (metrics.totalCampaigns.textContent = totals.campaigns ?? '—');
+      metrics.totalLeads &&
+        (metrics.totalLeads.textContent = totals.leads ?? '—');
+      metrics.averageScore &&
+        (metrics.averageScore.textContent = totals.averageScore ?? '—');
+      metrics.activeClients &&
+        (metrics.activeClients.textContent = totals.activeClients ?? '—');
+
+      if (!campaignTable) return;
+      campaignTable.innerHTML = '';
+
+      const campaigns = Array.isArray(data && data.recentCampaigns)
+        ? data.recentCampaigns
+        : [];
+      campaigns.forEach((c) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${c.id}</td>
+          <td>${c.client ?? '—'}</td>
+          <td><span class="status-chip ${(c.status || '').toLowerCase()}">${c.status ?? '—'}</span></td>
+          <td>${c.leads ?? '—'}</td>
+          <td>${c.started_at ? new Date(c.started_at).toLocaleDateString() : '—'}</td>
+        `;
+        campaignTable.appendChild(row);
+      });
+
+      hideCampaignError();
+    })
+    .catch(() => {
+      showCampaignError('⚠️ Error loading campaigns.');
+    });
+});

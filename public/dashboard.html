@@ -1,78 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RENN.AI – Dashboard</title>
-  <link rel="stylesheet" href="/static/dist/main.css">
-  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Renn.AI Dashboard</title>
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
+  <script type="module" src="/scripts/pages/dashboard.js" defer></script>
 </head>
-<body>
-  <aside class="sidebar" aria-label="Main navigation">
-    <div class="sidebar__brand">RENN.AI</div>
-    <nav class="sidebar__nav">
-      <a href="#" data-section="overview">Overview</a>
-      <a href="#" data-section="lead-gen">Lead Generation</a>
-      <a href="#" data-section="drip">Drip Campaigns</a>
-      <a href="#" data-section="clients">Client Manager</a>
-      <a href="#" data-section="analytics">Analytics</a>
-      <a href="#" data-section="settings">Settings</a>
-    </nav>
-    <div class="sidebar__footer">
-      <div class="sidebar__agency">
-        <strong id="sidebarAgency">Demo Agency</strong>
-        <span id="sidebarEmail">demo@renn.ai</span>
-      </div>
-      <button id="signOutBtn" class="sidebar__signout" type="button">Sign Out</button>
-    </div>
-  </aside>
-  <main>
-    <header class="dashboard-header">
-      <div>
-        <p id="welcomeMessage" style="margin:0;color:rgba(17,24,39,0.55);font-weight:500;">Welcome back</p>
-        <h1 id="sectionTitle">Overview</h1>
-      </div>
-      <div class="header-actions">
-        <button id="toggleDarkMode" class="btn secondary" type="button">Toggle Dark Mode</button>
-        <button id="newCampaignBtn" class="btn primary" type="button">+ New Campaign</button>
-      </div>
-    </header>
+<body class="dark">
+  <div id="app">
 
-    <section aria-label="Key metrics">
-      <div class="metrics-grid">
-        <article class="metric-card">
-          <h3>Total Campaigns</h3>
-          <span id="totalCampaigns" class="metric-value">—</span>
-          <!-- populated dynamically -->
-        </article>
-        <article class="metric-card">
-          <h3>Total Leads</h3>
-          <span id="totalLeads" class="metric-value">—</span>
-          <!-- populated dynamically -->
-        </article>
-        <article class="metric-card">
-          <h3>Average Score</h3>
-          <span id="averageScore" class="metric-value">—</span>
-          <!-- populated dynamically -->
-        </article>
-        <article class="metric-card">
-          <h3>Active Clients</h3>
-          <span id="activeClients" class="metric-value">—</span>
-          <!-- populated dynamically -->
-        </article>
-      </div>
-    </section>
-
-    <section class="panel" aria-labelledby="recentCampaignsHeading">
-      <div class="panel__header">
-        <h2 id="recentCampaignsHeading" style="margin:0;">Recent Campaigns</h2>
-        <div class="panel__actions">
-          <button id="exportCsvBtn" class="btn secondary" type="button">Export CSV</button>
-          <button id="exportPdfBtn" class="btn secondary" type="button">Export PDF</button>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h1 class="logo">Renn.AI</h1>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#" data-section="overview">Overview</a></li>
+          <li><a href="#" data-section="lead-gen">Lead Gen</a></li>
+          <li><a href="#" data-section="drip">Drip</a></li>
+          <li><a href="#" data-section="clients">Clients</a></li>
+          <li><a href="#" data-section="analytics">Analytics</a></li>
+          <li><a href="#" data-section="settings">Settings</a></li>
+        </ul>
+      </nav>
+      <div class="user-card">
+        <div class="avatar" id="profileAvatar">R</div>
+        <div class="user-info">
+          <p id="sidebarAgency">Demo Agency</p>
+          <p id="sidebarEmail">demo@renn.ai</p>
         </div>
       </div>
-      <input id="searchCampaigns" class="input-search" type="search" placeholder="Search campaigns" aria-label="Search campaigns">
-      <div class="table-wrapper">
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="main-header">
+        <h2 id="sectionTitle">Overview</h2>
+        <div class="actions">
+          <button id="toggleDarkMode">🌓</button>
+          <button id="exportCsvBtn">CSV</button>
+          <button id="exportPdfBtn">PDF</button>
+        </div>
+      </header>
+
+      <section class="welcome">
+        <h3 id="welcomeMessage">Hello, User</h3>
+      </section>
+
+      <!-- Metric Cards -->
+      <section class="metrics">
+        <div class="card">
+          <h4>Total Leads</h4>
+          <p id="totalLeads">—</p>
+        </div>
+        <div class="card">
+          <h4>Campaigns</h4>
+          <p id="totalCampaigns">—</p>
+        </div>
+        <div class="card">
+          <h4>Average Score</h4>
+          <p id="averageScore">—</p>
+        </div>
+        <div class="card">
+          <h4>Active Clients</h4>
+          <p id="activeClients">—</p>
+        </div>
+      </section>
+
+      <!-- Campaigns Table -->
+      <section class="campaigns">
+        <input type="text" id="searchCampaigns" placeholder="Search campaigns..." />
+        <div id="campaignError" class="error hidden"></div>
         <table>
           <thead>
             <tr>
@@ -84,14 +83,17 @@
             </tr>
           </thead>
           <tbody id="campaignTable">
-            <!-- Campaign rows will be injected by dashboard.js -->
+            <tr><td colspan="5">Loading...</td></tr>
           </tbody>
         </table>
-      </div>
-      <p id="campaignError" class="panel__status-message">Unable to load recent campaigns. Please refresh.</p>
-    </section>
-  </main>
+      </section>
+    </main>
 
-  <script type="module" src="/static/scripts/pages/dashboard.js"></script>
+    <!-- Profile Panel -->
+    <aside id="profilePanel" class="profile-panel">
+      <h3>Business Stats</h3>
+      <p>Future insights and advanced analytics coming here.</p>
+    </aside>
+  </div>
 </body>
 </html>
