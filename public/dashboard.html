@@ -1,99 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Renn.AI Dashboard</title>
-  <link rel="stylesheet" href="/css/dashboard.css" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" />
-  <script type="module" src="/scripts/pages/dashboard.js" defer></script>
-</head>
-<body class="dark">
-  <div id="app">
-
-    <!-- Sidebar -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RENN.AI – Dashboard</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <script type="module" src="/scripts/pages/dashboard.js" defer></script>
+  </head>
+  <body>
     <aside class="sidebar">
-      <h1 class="logo">Renn.AI</h1>
+      <h1 class="logo">RENN.AI</h1>
       <nav>
         <ul class="nav-links">
-          <li><a href="#" data-section="overview">Overview</a></li>
-          <li><a href="#" data-section="lead-gen">Lead Gen</a></li>
-          <li><a href="#" data-section="drip">Drip</a></li>
-          <li><a href="#" data-section="clients">Clients</a></li>
-          <li><a href="#" data-section="analytics">Analytics</a></li>
-          <li><a href="#" data-section="settings">Settings</a></li>
+          <li><a href="#">Overview</a></li>
+          <li><a href="#">Lead Generation</a></li>
+          <li><a href="#">Drip Campaigns</a></li>
+          <li><a href="#">Client Manager</a></li>
+          <li><a href="#">Analytics</a></li>
+          <li><a href="#">Settings</a></li>
         </ul>
       </nav>
-      <div class="user-card">
-        <div class="avatar" id="profileAvatar">R</div>
-        <div class="user-info">
-          <p id="sidebarAgency">Demo Agency</p>
-          <p id="sidebarEmail">demo@renn.ai</p>
+      <div class="user-profile">
+        <div id="profileAvatar" class="avatar">R</div>
+        <div class="user-details">
+          <p id="sidebarAgency" class="agency">Demo Agency</p>
+          <p id="sidebarEmail" class="email">admin@renn.ai</p>
         </div>
+        <button id="signOutBtn" class="signout" type="button">Sign Out</button>
       </div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="main">
-      <header class="main-header">
-        <h2 id="sectionTitle">Overview</h2>
-        <div class="actions">
-          <button id="toggleDarkMode">🌓</button>
-          <button id="exportCsvBtn">CSV</button>
-          <button id="exportPdfBtn">PDF</button>
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div class="header-text">
+          <p id="welcomeMessage" class="subtitle">Welcome</p>
+          <h2 id="sectionTitle">Overview</h2>
         </div>
+        <button id="newCampaignBtn" class="primary-button" type="button">+ New Campaign</button>
       </header>
 
-      <section class="welcome">
-        <h3 id="welcomeMessage">Hello, User</h3>
-      </section>
-
-      <!-- Metric Cards -->
-      <section class="metrics">
+      <section class="metrics" aria-label="Key metrics">
         <div class="card">
-          <h4>Total Leads</h4>
-          <p id="totalLeads">—</p>
+          <p class="label">Leads Scored</p>
+          <span id="totalLeads" class="value">—</span>
         </div>
         <div class="card">
-          <h4>Campaigns</h4>
-          <p id="totalCampaigns">—</p>
+          <p class="label">Campaigns</p>
+          <span id="totalCampaigns" class="value">—</span>
         </div>
         <div class="card">
-          <h4>Average Score</h4>
-          <p id="averageScore">—</p>
+          <p class="label">Suggestions</p>
+          <span id="averageScore" class="value">—</span>
         </div>
         <div class="card">
-          <h4>Active Clients</h4>
-          <p id="activeClients">—</p>
+          <p class="label">Active Clients</p>
+          <span id="activeClients" class="value">—</span>
         </div>
       </section>
 
-      <!-- Campaigns Table -->
-      <section class="campaigns">
-        <input type="text" id="searchCampaigns" placeholder="Search campaigns..." />
-        <div id="campaignError" class="error hidden"></div>
+      <section class="search-export">
+        <input type="search" id="searchCampaigns" placeholder="Search campaigns..." aria-label="Search campaigns" />
+        <div class="actions">
+          <button id="exportCsvBtn" type="button">Export CSV</button>
+          <button id="exportPdfBtn" type="button">Export PDF</button>
+        </div>
+      </section>
+
+      <section class="campaigns" aria-labelledby="recentCampaignsHeading">
+        <h3 id="recentCampaignsHeading">Recent Campaigns</h3>
         <table>
           <thead>
             <tr>
-              <th scope="col">Campaign ID</th>
+              <th scope="col">ID</th>
               <th scope="col">Client</th>
               <th scope="col">Status</th>
               <th scope="col">Leads</th>
               <th scope="col">Started</th>
             </tr>
           </thead>
-          <tbody id="campaignTable">
-            <tr><td colspan="5">Loading...</td></tr>
-          </tbody>
+          <tbody id="campaignTable"></tbody>
         </table>
+        <p id="campaignError" class="error hidden">Failed to load campaigns.</p>
       </section>
     </main>
 
-    <!-- Profile Panel -->
-    <aside id="profilePanel" class="profile-panel">
+    <aside id="profilePanel" class="profile-panel" aria-label="Profile panel">
       <h3>Business Stats</h3>
       <p>Future insights and advanced analytics coming here.</p>
     </aside>
-  </div>
-</body>
+  </body>
 </html>
