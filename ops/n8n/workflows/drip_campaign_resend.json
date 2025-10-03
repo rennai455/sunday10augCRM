@@ -1,0 +1,110 @@
+{
+  "name": "Drip Campaign – Resend",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "webhook/new-lead",
+        "responseMode": "onReceived",
+        "options": {
+          "responseBody": "{\n  \"status\": \"received\"\n}",
+          "responseContentType": "application/json"
+        }
+      },
+      "id": "Webhook",
+      "name": "New Lead Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "const { name, email, company, painPoint } = items[0].json;\nconst fallbackCompany = company || 'your team';\nconst emails = [\n  { dayOffset: 0, subject: `Let's scale ${fallbackCompany}`, template: 'growth' },\n  { dayOffset: 2, subject: `The 3-step funnel for ${fallbackCompany}`, template: 'funnel' },\n  { dayOffset: 4, subject: 'Still thinking about growth?', template: 'followup' },\n  { dayOffset: 7, subject: 'Free brand strategy session?', template: 'strategy' },\n];\n\nreturn emails.map(entry => ({\n  json: {\n    name: name || 'there',\n    email,\n    company: fallbackCompany,\n    painPoint: painPoint || 'marketing growth',\n    subject: entry.subject,\n    body: `<p>Hi ${name || 'there'},</p><p>We thought ${fallbackCompany} would appreciate a quick note about ${entry.template} strategies.</p><p>If you have questions, just reply to this email.</p>`,\n    dayOffset: entry.dayOffset\n  }\n}));"
+      },
+      "id": "Prepare_Emails",
+      "name": "Prepare Drip Emails",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "Split_Batch",
+      "name": "Loop Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "amount": "={{$json.dayOffset}}",
+        "unit": "days"
+      },
+      "id": "Wait_Delay",
+      "name": "Wait Until Scheduled",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.resend.com/emails",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "options": {},
+        "responseFormat": "string",
+        "headerParametersJson": "={\n  \"Content-Type\": \"application/json\",\n  \"Authorization\": \"Bearer {{$env.RESEND_API_KEY || 'REPLACE_WITH_API_KEY'}}\"\n}",
+        "body": "={\n  \"from\": \"you@yourdomain.com\",\n  \"to\": \"{{$json.email}}\",\n  \"subject\": \"{{$json.subject}}\",\n  \"html\": \"{{$json.body}}\"\n}"
+      },
+      "id": "Resend_Email",
+      "name": "Send via Resend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 5,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "operation": "prepare",
+        "mode": "chat",
+        "systemMessage": "You are a helpful SDR assistant who writes concise, friendly outreach emails.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Rewrite this email to sound more personal.\nName: {{$json.name}}\nCompany: {{$json.company}}\nPain point: {{$json.painPoint}}\nSubject: {{$json.subject}}\nBody: {{$json.body}}"
+          }
+        ]
+      },
+      "id": "OpenAI_Personalize",
+      "name": "Personalize Email (Optional)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [880, 120],
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "New Lead Webhook": {
+      "main": [[{ "node": "Prepare Drip Emails", "type": "main", "index": 0 }]]
+    },
+    "Prepare Drip Emails": {
+      "main": [[{ "node": "Loop Emails", "type": "main", "index": 0 }]]
+    },
+    "Loop Emails": {
+      "main": [
+        [{ "node": "Wait Until Scheduled", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Wait Until Scheduled": {
+      "main": [[{ "node": "Send via Resend", "type": "main", "index": 0 }]]
+    },
+    "Send via Resend": {
+      "main": [[{ "node": "Loop Emails", "type": "main", "index": 1 }]]
+    },
+    "Personalize Email (Optional)": {
+      "main": [[{ "node": "Send via Resend", "type": "main", "index": 0 }]]
+    }
+  }
+}
