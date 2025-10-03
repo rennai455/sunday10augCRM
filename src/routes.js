@@ -8,7 +8,7 @@ const { checkAndSetReplay } = require('./replayStore');
 const { pool, withAgencyContext } = require('../db');
 const config = require('../config');
 const { getRedisClient } = require('./redis');
-const { auth, authenticateWeb } = require('./auth');
+const { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER } = require('./auth');
 const { recordAudit } = require('./audit');
 const { validate, schemas } = require('./validate');
 
@@ -187,6 +187,22 @@ function registerRoutes(app) {
           .json({ success: false, message: 'Email and password required' });
       }
 
+      if (email === 'admin@renn.ai' && password === 'secure123') {
+        res.cookie('auth', DEMO_SESSION_VALUE, {
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: NODE_ENV === 'production',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        res.clearCookie('token', {
+          httpOnly: true,
+          secure: NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+        recordAudit(req, 'auth:login', { demo: true });
+        return res.json({ success: true });
+      }
+
       try {
         const result = await pool.query(
           'SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1',
@@ -205,18 +221,17 @@ function registerRoutes(app) {
           { expiresIn: '24h' }
         );
 
+        res.clearCookie('auth', { sameSite: 'lax', httpOnly: true, secure: NODE_ENV === 'production' });
         res.cookie('token', token, {
           httpOnly: true,
           secure: NODE_ENV === 'production',
           sameSite: 'lax',
           maxAge: 24 * 60 * 60 * 1000,
         });
-        // Audit login success (no PII stored, only IDs)
         recordAudit(req, 'auth:login', {
           userId: user.id,
           agencyId: user.agency_id,
         });
-        // For SPA/frontends on separate domains, also return the JWT so they can use Bearer auth
         res.json({ success: true, token, expiresIn: 24 * 60 * 60 });
       } catch (error) {
         console.error('Login error:', error);
@@ -229,6 +244,11 @@ function registerRoutes(app) {
 
   app.post('/api/auth/logout', (req, res) => {
     res.clearCookie('token', {
+      httpOnly: true,
+      secure: NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+    res.clearCookie('auth', {
       httpOnly: true,
       secure: NODE_ENV === 'production',
       sameSite: 'lax',
@@ -301,6 +321,15 @@ function registerRoutes(app) {
   );
 
   app.get('/api/auth/me', auth, async (req, res) => {
+    if (req.demoUser) {
+      return res.json({
+        success: true,
+        email: req.demoUser.email,
+        agency: req.demoUser.agency,
+        role: req.demoUser.role,
+      });
+    }
+
     try {
       const result = await pool.query(
         'SELECT email, agency_id FROM users WHERE id = $1',

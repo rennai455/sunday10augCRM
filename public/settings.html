@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RENN.AI – Settings</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <script type="module" src="/scripts/pages/settings.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <h1 class="logo">RENN.AI</h1>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/dashboard.html" data-path="/dashboard.html">Overview</a></li>
+          <li><a href="/leads.html" data-path="/leads.html">Lead Generation</a></li>
+          <li><a href="/campaigns.html" data-path="/campaigns.html">Drip Campaigns</a></li>
+          <li><a href="/clients.html" data-path="/clients.html">Client Manager</a></li>
+          <li><a href="/analytics.html" data-path="/analytics.html">Analytics</a></li>
+          <li><a href="/settings.html" data-path="/settings.html">Settings</a></li>
+        </ul>
+      </nav>
+      <div class="user-profile">
+        <div id="profileAvatar" class="avatar">R</div>
+        <div class="user-details">
+          <p id="sidebarAgency" class="agency">Demo Agency</p>
+          <p id="sidebarEmail" class="email">admin@renn.ai</p>
+        </div>
+        <button id="signOutBtn" class="signout" type="button">Sign Out</button>
+      </div>
+    </aside>
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div class="header-text">
+          <p id="welcomeMessage" class="subtitle">Welcome</p>
+          <h2 id="sectionTitle">Settings</h2>
+        </div>
+      </header>
+
+      <section class="page-content" aria-labelledby="appearanceHeading">
+        <h3 id="appearanceHeading">Appearance</h3>
+        <div class="card">
+          <p class="subtitle" id="themeStatus">Currently in Light Mode</p>
+          <p>Toggle dark mode to reduce screen glare and match client preferences.</p>
+          <div class="actions">
+            <button id="toggleThemeBtn" class="primary-button" type="button">Toggle Dark Mode</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page-content" aria-labelledby="accountHeading">
+        <h3 id="accountHeading">Account</h3>
+        <div class="card">
+          <p><strong>Email:</strong> <span id="settingsEmail">admin@renn.ai</span></p>
+          <p><strong>Notifications:</strong> Enabled</p>
+          <div class="actions">
+            <button id="requestPasswordReset" type="button">Send Password Reset</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <aside id="profilePanel" class="profile-panel" aria-label="Profile panel">
+      <h3>Business Stats</h3>
+      <p>Future insights and advanced analytics coming here.</p>
+    </aside>
+  </body>
+</html>

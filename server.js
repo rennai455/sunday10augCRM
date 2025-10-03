@@ -1,68 +1,86 @@
-// server.js
-const express = require('express');
-const config = require('./config');
-const { initSentry, initOtel } = require('./src/observability');
-const { applyPreMiddleware, applyPostMiddleware } = require('./src/middleware');
-const { registerWebhook, registerRoutes } = require('./src/routes');
-const { auth } = require('./src/auth');
-const { pool } = require('./src/db/pool');
-const { getRedisClient } = require('./src/redis');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const { PORT, NODE_ENV } = config;
+import config from './config/index.js';
+import observability from './src/observability.js';
+import middleware from './src/middleware.js';
+import routes from './src/routes.js';
+import authModule from './src/auth.js';
+import db from './src/db/pool.js';
+import redis from './src/redis.js';
 
-// Initialize observability early so instrumentations patch modules
-initOtel();
-initSentry();
+const { initSentry, initOtel } = observability;
+const { applyPreMiddleware, applyPostMiddleware } = middleware;
+const { registerWebhook, registerRoutes } = routes;
+const { auth } = authModule;
+const { pool } = db;
+const { getRedisClient } = redis;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const { PORT = 3005, NODE_ENV } = config ?? {};
+
+initOtel?.();
+initSentry?.();
 
 const app = express();
 app.disable('x-powered-by');
-app.enable('trust proxy'); // Railway/NGINX proxy
+app.enable('trust proxy');
 
-applyPreMiddleware(app);
-registerWebhook(app);
-applyPostMiddleware(app);
-registerRoutes(app);
+applyPreMiddleware?.(app);
+registerWebhook?.(app);
+applyPostMiddleware?.(app);
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/static', express.static(path.join(__dirname, 'public', 'dist')));
+
+registerRoutes?.(app);
 
 let server;
-if (require.main === module) {
+const isPrimaryModule = process.argv[1] === __filename;
+
+if (isPrimaryModule) {
   server = app.listen(PORT, () => {
-  console.log(`🚀 RENN.AI Ultra-Optimized Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${NODE_ENV}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`✅ Server running at http://localhost:${PORT}`);
+    if (NODE_ENV) console.log(`📍 Environment: ${NODE_ENV}`);
   });
 
   const shutdown = async (signal, err) => {
     console.log(`🛑 ${signal} received, shutting down gracefully`);
     if (err) console.error('Reason:', err);
     try {
-      // Stop accepting new connections
       await new Promise((resolve) => server.close(resolve));
       console.log('✅ HTTP server closed');
-    } catch (e) {
-      console.error('Error closing HTTP server', e);
+    } catch (error) {
+      console.error('Error closing HTTP server', error);
     }
+
     try {
-      await pool.end();
+      await pool?.end?.();
       console.log('✅ Postgres pool closed');
-    } catch (e) {
-      console.error('Error closing Postgres pool', e);
+    } catch (error) {
+      console.error('Error closing Postgres pool', error);
     }
+
     try {
       const rc = getRedisClient?.();
       if (rc && rc.quit) {
         await rc.quit();
         console.log('✅ Redis client closed');
       }
-    } catch (e) {
-      console.error('Error closing Redis client', e);
+    } catch (error) {
+      console.error('Error closing Redis client', error);
     }
+
     process.exit(err ? 1 : 0);
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('unhandledRejection', (reason) => shutdown('unhandledRejection', reason));
-  process.on('uncaughtException', (err) => shutdown('uncaughtException', err));
+  process.on('uncaughtException', (error) => shutdown('uncaughtException', error));
 }
 
-module.exports = { app, server, auth };
+export { app, server, __dirname, auth };

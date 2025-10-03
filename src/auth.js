@@ -2,7 +2,31 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const { JWT_SECRET } = config;
 
+const DEMO_SESSION_VALUE = 'demo-session';
+const DEMO_USER = {
+  email: 'admin@renn.ai',
+  agency: 'Demo Agency',
+  role: 'admin',
+  isAdmin: true,
+};
+
+function applyDemoSession(req) {
+  const session = req.cookies?.auth;
+  if (session === DEMO_SESSION_VALUE) {
+    req.userId = null;
+    req.agencyId = null;
+    req.isAdmin = true;
+    req.demoUser = { ...DEMO_USER };
+    return true;
+  }
+  return false;
+}
+
 const auth = async (req, res, next) => {
+  if (applyDemoSession(req)) {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   const cookieToken = req.cookies?.token;
 
@@ -26,6 +50,10 @@ const auth = async (req, res, next) => {
 };
 
 const authenticateWeb = (req, res, next) => {
+  if (applyDemoSession(req)) {
+    return next();
+  }
+
   const token = req.cookies?.token;
   if (!token) {
     return res.redirect('/Login.html');
@@ -41,4 +69,4 @@ const authenticateWeb = (req, res, next) => {
   }
 };
 
-module.exports = { auth, authenticateWeb };
+module.exports = { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER };

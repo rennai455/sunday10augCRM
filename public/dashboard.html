@@ -12,12 +12,12 @@
       <h1 class="logo">RENN.AI</h1>
       <nav>
         <ul class="nav-links">
-          <li><a href="#">Overview</a></li>
-          <li><a href="#">Lead Generation</a></li>
-          <li><a href="#">Drip Campaigns</a></li>
-          <li><a href="#">Client Manager</a></li>
-          <li><a href="#">Analytics</a></li>
-          <li><a href="#">Settings</a></li>
+          <li><a href="/dashboard.html" data-path="/dashboard.html">Overview</a></li>
+          <li><a href="/leads.html" data-path="/leads.html">Lead Generation</a></li>
+          <li><a href="/campaigns.html" data-path="/campaigns.html">Drip Campaigns</a></li>
+          <li><a href="/clients.html" data-path="/clients.html">Client Manager</a></li>
+          <li><a href="/analytics.html" data-path="/analytics.html">Analytics</a></li>
+          <li><a href="/settings.html" data-path="/settings.html">Settings</a></li>
         </ul>
       </nav>
       <div class="user-profile">
@@ -29,7 +29,6 @@
         <button id="signOutBtn" class="signout" type="button">Sign Out</button>
       </div>
     </aside>
-
     <main class="dashboard">
       <header class="dashboard-header">
         <div class="header-text">
@@ -84,6 +83,17 @@
       </section>
     </main>
 
+    <div id="newCampaignModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="newCampaignTitle">
+      <div class="modal-content">
+        <h3 id="newCampaignTitle">New Campaign</h3>
+        <label for="newClientName">Client name</label>
+        <input id="newClientName" name="client" placeholder="Client name" autocomplete="off" />
+        <div class="modal-actions">
+          <button id="cancelNewCampaignBtn" type="button">Cancel</button>
+          <button id="submitNewCampaign" class="primary-button" type="button">Start</button>
+        </div>
+      </div>
+    </div>
     <aside id="profilePanel" class="profile-panel" aria-label="Profile panel">
       <h3>Business Stats</h3>
       <p>Future insights and advanced analytics coming here.</p>

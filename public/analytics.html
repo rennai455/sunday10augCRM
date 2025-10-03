@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RENN.AI – Analytics</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <script type="module" src="/scripts/pages/analytics.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <h1 class="logo">RENN.AI</h1>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/dashboard.html" data-path="/dashboard.html">Overview</a></li>
+          <li><a href="/leads.html" data-path="/leads.html">Lead Generation</a></li>
+          <li><a href="/campaigns.html" data-path="/campaigns.html">Drip Campaigns</a></li>
+          <li><a href="/clients.html" data-path="/clients.html">Client Manager</a></li>
+          <li><a href="/analytics.html" data-path="/analytics.html">Analytics</a></li>
+          <li><a href="/settings.html" data-path="/settings.html">Settings</a></li>
+        </ul>
+      </nav>
+      <div class="user-profile">
+        <div id="profileAvatar" class="avatar">R</div>
+        <div class="user-details">
+          <p id="sidebarAgency" class="agency">Demo Agency</p>
+          <p id="sidebarEmail" class="email">admin@renn.ai</p>
+        </div>
+        <button id="signOutBtn" class="signout" type="button">Sign Out</button>
+      </div>
+    </aside>
+    <main class="dashboard">
+      <header class="dashboard-header">
+        <div class="header-text">
+          <p id="welcomeMessage" class="subtitle">Welcome</p>
+          <h2 id="sectionTitle">Analytics</h2>
+        </div>
+      </header>
+
+      <section class="page-content" aria-labelledby="analyticsHeading">
+        <h3 id="analyticsHeading">Engagement Overview</h3>
+        <canvas id="analyticsChart" width="640" height="320" role="img" aria-label="Mock engagement chart"></canvas>
+        <p id="analyticsPlaceholder" class="loading-state">Preparing analytics…</p>
+        <p id="analyticsError" class="error hidden" role="alert">Unable to load analytics right now.</p>
+      </section>
+    </main>
+    <aside id="profilePanel" class="profile-panel" aria-label="Profile panel">
+      <h3>Business Stats</h3>
+      <p>Future insights and advanced analytics coming here.</p>
+    </aside>
+  </body>
+</html>
