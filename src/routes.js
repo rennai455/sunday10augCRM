@@ -10,6 +10,7 @@ const config = require('../config');
 const { getRedisClient } = require('./redis');
 const { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER } = require('./auth');
 const { recordAudit } = require('./audit');
+const { sendLeadToDrip } = require('./utils/dripIntegration');
 const { validate, schemas } = require('./validate');
 
 const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET } = config;
@@ -521,14 +522,16 @@ function registerRoutes(app) {
     async (req, res) => {
       const { campaign_id, name, email, phone, status } = req.body;
       try {
-        await withAgencyContext(req.agencyId, async (client) => {
-          const c = await client.query(
+        const result = await withAgencyContext(req.agencyId, async (client) => {
+          const campaign = await client.query(
             'SELECT id FROM campaigns WHERE id = $1 AND agency_id = $2',
             [campaign_id, req.agencyId]
           );
-          if (c.rowCount === 0)
-            return res.status(404).json({ error: 'Campaign not found' });
-          const ins = await client.query(
+          if (campaign.rowCount === 0) {
+            return { error: 'campaign-not-found' };
+          }
+
+          const insert = await client.query(
             'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
             [
               campaign_id,
@@ -539,13 +542,34 @@ function registerRoutes(app) {
               JSON.stringify([]),
             ]
           );
+
+          const createdLead = insert.rows[0];
           recordAudit(req, 'lead:create', {
-            id: ins.rows[0].id,
+            id: createdLead.id,
             campaign_id,
             status: status || null,
           });
-          res.status(201).json(ins.rows[0]);
+
+          return { lead: createdLead };
         });
+
+        if (result?.error === 'campaign-not-found') {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+
+        const createdLead = result?.lead;
+        if (!createdLead) {
+          return res.status(500).json({ error: 'Failed to create lead' });
+        }
+
+        await sendLeadToDrip({
+          name: createdLead.name || name || null,
+          email: createdLead.email || email || null,
+          company: req.body.company || null,
+          painPoint: req.body.painPoint || null,
+        });
+
+        res.status(201).json(createdLead);
       } catch (error) {
         console.error('Create lead error:', error);
         res.status(500).json({ error: 'Failed to create lead' });
