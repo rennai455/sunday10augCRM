@@ -1,18 +1,22 @@
-const express = require('express');
-const path = require('path');
-const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const rateLimit = require('express-rate-limit');
-const RedisStore = require('rate-limit-redis');
-const { getRedisClient } = require('./redis');
-const slowDown = require('express-slow-down');
-const pinoHttp = require('pino-http');
-const crypto = require('crypto');
-const cookieParser = require('cookie-parser');
-const metrics = require('../metrics');
-const config = require('../config');
-const csurf = require('csurf');
+import express from 'express';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { getRedisClient } from './redis.js';
+import slowDown from 'express-slow-down';
+import pinoHttp from 'pino-http';
+import crypto from 'node:crypto';
+import cookieParser from 'cookie-parser';
+import metrics from '../metrics.js';
+import config from '../config/index.js';
+import csurf from 'csurf';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const {
   NODE_ENV,
@@ -164,6 +168,8 @@ function applyPostMiddleware(app) {
     '/readyz',
     '/readiness',
     '/api/auth/login',
+    // Public lead intake form (HMAC-protected)
+    '/api/leads/form',
   ]);
   app.use((req, res, next) => {
     if (NODE_ENV === 'test') return next();
@@ -270,4 +276,5 @@ function applyPostMiddleware(app) {
   app.use(slowDown(slowDownConfig));
 }
 
-module.exports = { applyPreMiddleware, applyPostMiddleware };
+export { applyPreMiddleware, applyPostMiddleware };
+export default { applyPreMiddleware, applyPostMiddleware };

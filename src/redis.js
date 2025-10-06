@@ -1,5 +1,5 @@
-const { createClient } = require('redis');
-const config = require('../config');
+import { createClient } from 'redis';
+import config from '../config/index.js';
 
 let client;
 
@@ -25,5 +25,5 @@ function getRedisClient() {
   }
 }
 
-module.exports = { getRedisClient };
-
+export { getRedisClient };
+export default { getRedisClient };

@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS leads (
     campaign_id INTEGER REFERENCES campaigns(id) ON DELETE CASCADE,
     name VARCHAR(128),
     email VARCHAR(128),
+    score INTEGER,
     phone VARCHAR(32),
     status VARCHAR(32),
     status_history JSONB,
@@ -80,3 +81,6 @@ BEGIN
     FOR EACH ROW EXECUTE FUNCTION set_leads_updated_at();
   END IF;
 END$$;
+
+-- Add score column for existing databases (idempotent)
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS score INTEGER;

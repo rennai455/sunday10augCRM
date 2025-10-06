@@ -1,5 +1,5 @@
-const { Pool } = require('pg');
-const config = require('../../config');
+import { Pool } from 'pg';
+import config from '../../config/index.js';
 
 const connectionString = config.DATABASE_URL;
 const ssl = config.PG_SSL ? { rejectUnauthorized: false } : undefined;
@@ -42,4 +42,5 @@ const withAgencyContext = async (agencyId, fn) => {
 
 const smokeTest = async () => pool.query('SELECT 1');
 
-module.exports = { query, withTransaction, withAgencyContext, pool, smokeTest };
+export { query, withTransaction, withAgencyContext, pool, smokeTest };
+export default { query, withTransaction, withAgencyContext, pool, smokeTest };

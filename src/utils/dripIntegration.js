@@ -60,4 +60,5 @@ async function safeReadBody(response) {
   }
 }
 
-module.exports = { sendLeadToDrip };
+export { sendLeadToDrip };
+export default { sendLeadToDrip };

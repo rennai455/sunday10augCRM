@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const config = require('../config');
+import jwt from 'jsonwebtoken';
+import config from '../config/index.js';
 const { JWT_SECRET } = config;
 
 const DEMO_SESSION_VALUE = 'demo-session';
@@ -69,4 +69,5 @@ const authenticateWeb = (req, res, next) => {
   }
 };
 
-module.exports = { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER };
+export { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER };
+export default { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER };

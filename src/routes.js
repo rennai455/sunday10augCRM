@@ -1,17 +1,22 @@
-const path = require('path');
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const metrics = require('../metrics');
-const { checkAndSetReplay } = require('./replayStore');
-const { pool, withAgencyContext } = require('../db');
-const config = require('../config');
-const { getRedisClient } = require('./redis');
-const { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER } = require('./auth');
-const { recordAudit } = require('./audit');
-const { sendLeadToDrip } = require('./utils/dripIntegration');
-const { validate, schemas } = require('./validate');
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import crypto from 'node:crypto';
+import metrics from '../metrics.js';
+import { checkAndSetReplay } from './replayStore.js';
+import { pool, withAgencyContext } from './db/pool.js';
+import config from '../config/index.js';
+import { getRedisClient } from './redis.js';
+import { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER } from './auth.js';
+import { recordAudit } from './audit.js';
+import { sendLeadToDrip } from './utils/dripIntegration.js';
+import { validate, schemas } from './validate.js';
+import { scoreLead } from './utils/leadScoring.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET } = config;
 
@@ -521,6 +526,16 @@ function registerRoutes(app) {
     validate({ body: schemas.leadCreateBody }),
     async (req, res) => {
       const { campaign_id, name, email, phone, status } = req.body;
+      // Compute lead score based on provided payload
+      const { score: computedScore, reasons: scoreReasons } = scoreLead({
+        email,
+        website: req.body.website,
+        painPoint: req.body.painPoint,
+      });
+      if (scoreReasons?.length) {
+        // Optional logging for visibility; consider persisting later
+        req.log?.info?.({ score: computedScore, reasons: scoreReasons }, 'Lead scored');
+      }
       try {
         const result = await withAgencyContext(req.agencyId, async (client) => {
           const campaign = await client.query(
@@ -532,13 +547,14 @@ function registerRoutes(app) {
           }
 
           const insert = await client.query(
-            'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+            'INSERT INTO leads (campaign_id, name, email, phone, status, score, status_history) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
             [
               campaign_id,
               name || null,
               email || null,
               phone || null,
               status || null,
+              computedScore ?? null,
               JSON.stringify([]),
             ]
           );
@@ -548,6 +564,7 @@ function registerRoutes(app) {
             id: createdLead.id,
             campaign_id,
             status: status || null,
+            score: computedScore ?? null,
           });
 
           return { lead: createdLead };
@@ -646,6 +663,220 @@ function registerRoutes(app) {
       }
     }
   );
+
+  // Lead intake: manual (authenticated)
+  app.post(
+    '/api/leads/manual',
+    auth,
+    validate({ body: schemas.leadManualBody }),
+    async (req, res) => {
+      const { campaign_id, name, email, phone, status, triggerDrip } = req.body;
+      try {
+        const created = await withAgencyContext(req.agencyId, async (client) => {
+          const campaign = await client.query(
+            'SELECT id FROM campaigns WHERE id = $1 AND agency_id = $2',
+            [campaign_id, req.agencyId]
+          );
+          if (campaign.rowCount === 0) return { error: 'campaign-not-found' };
+          const insert = await client.query(
+            'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+            [campaign_id, name || null, email || null, phone || null, status || null, JSON.stringify([])]
+          );
+          return insert.rows[0];
+        });
+        if (created?.error === 'campaign-not-found') {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+
+        recordAudit(req, 'lead:intake:manual', { id: created.id, campaign_id });
+        if (triggerDrip) {
+          await sendLeadToDrip({
+            name: created.name || name || null,
+            email: created.email || email || null,
+            company: req.body.company || null,
+            painPoint: req.body.painPoint || null,
+          });
+        }
+
+        return res.status(201).json(created);
+      } catch (error) {
+        console.error('Manual lead intake error:', error);
+        return res.status(500).json({ error: 'Failed to create lead' });
+      }
+    }
+  );
+
+  // Lead intake: public form (no auth; HMAC protected)
+  app.post(
+    '/api/leads/form',
+    express.raw({ type: 'application/json' }),
+    async (req, res) => {
+      try {
+        const signature = req.get('x-signature');
+        if (!signature) return res.status(401).json({ error: 'Missing signature' });
+        const secrets = config.WEBHOOK_SECRET_LIST || [config.WEBHOOK_SECRET];
+        let valid = false;
+        for (const s of secrets) {
+          const expected = crypto.createHmac('sha256', s).update(req.body).digest('hex');
+          if (expected === signature) { valid = true; break; }
+        }
+        if (!valid) return res.status(400).json({ error: 'Invalid signature' });
+
+        // Parse payload after HMAC verification
+        const parsed = JSON.parse(req.body.toString('utf8')) || {};
+        const { campaign_id, name, email, phone, status } = parsed;
+        if (!campaign_id) return res.status(400).json({ error: 'campaign_id required' });
+
+        // Derive agency from campaign
+        const campaignRes = await pool.query('SELECT agency_id FROM campaigns WHERE id = $1', [campaign_id]);
+        const agencyId = campaignRes.rows[0]?.agency_id;
+        if (!agencyId) return res.status(404).json({ error: 'Campaign not found' });
+
+        const created = await withAgencyContext(agencyId, async (client) => {
+          const insert = await client.query(
+            'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+            [campaign_id, name || null, email || null, phone || null, status || null, JSON.stringify([])]
+          );
+          return insert.rows[0];
+        });
+
+        recordAudit(req, 'lead:intake:form', { id: created.id, campaign_id });
+        await sendLeadToDrip({
+          name: created.name || name || null,
+          email: created.email || email || null,
+          company: parsed.company || null,
+          painPoint: parsed.painPoint || null,
+        });
+
+        return res.status(201).json(created);
+      } catch (error) {
+        console.error('Form lead intake error:', error);
+        return res.status(500).json({ error: 'Failed to create lead' });
+      }
+    }
+  );
+
+  // Lead intake: bulk import (JSON or CSV). Admin-only.
+  app.post(
+    '/api/leads/import',
+    auth,
+    // Admin gate similar to /docs
+    (req, res, next) => (req.isAdmin ? next() : res.status(403).json({ error: 'Forbidden' })),
+    async (req, res) => {
+      try {
+        const ct = (req.headers['content-type'] || '').toLowerCase();
+        let items = [];
+        let triggerDrip = false;
+
+        if (ct.includes('application/json')) {
+          // Expect JSON body with { items, triggerDrip? }
+          const body = req.body && typeof req.body === 'object' ? req.body : {};
+          const arr = Array.isArray(body.items) ? body.items : Array.isArray(body) ? body : [];
+          items = arr.map((x) => ({
+            campaign_id: Number(x.campaign_id),
+            name: x.name ?? null,
+            email: x.email ?? null,
+            phone: x.phone ?? null,
+            status: x.status ?? null,
+          }));
+          triggerDrip = Boolean(body.triggerDrip);
+        } else if (ct.includes('text/csv')) {
+          // Naive CSV parser (header line required). For complex CSVs, use a proper parser.
+          const text = typeof req.body === 'string' ? req.body : req.body?.toString?.('utf8');
+          if (!text) return res.status(400).json({ error: 'Empty CSV' });
+          const [headerLine, ...rows] = text.split(/\r?\n/).filter(Boolean);
+          const headers = headerLine.split(',').map((h) => h.trim());
+          items = rows.map((line) => {
+            const cols = line.split(',');
+            const obj = {};
+            headers.forEach((h, i) => (obj[h] = cols[i] ?? ''));
+            return {
+              campaign_id: Number(obj['campaign_id']),
+              name: obj['name'] || null,
+              email: obj['email'] || null,
+              phone: obj['phone'] || null,
+              status: obj['status'] || null,
+            };
+          });
+          triggerDrip = false;
+        } else {
+          return res.status(415).json({ error: 'Unsupported Content-Type' });
+        }
+
+        if (!items.length) return res.status(400).json({ error: 'No items to import' });
+
+        const results = await withAgencyContext(req.agencyId, async (client) => {
+          const out = { inserted: 0, failures: 0, errors: [] };
+          // Verify all campaigns belong to agency
+          const campaignIds = Array.from(new Set(items.map((i) => i.campaign_id))).filter((n) => Number.isFinite(n));
+          if (campaignIds.length) {
+            const chk = await client.query(
+              `SELECT id FROM campaigns WHERE agency_id = $1 AND id = ANY($2::int[])`,
+              [req.agencyId, campaignIds]
+            );
+            const ok = new Set(chk.rows.map((r) => r.id));
+            for (const id of campaignIds) {
+              if (!ok.has(id)) return { error: 'campaign-out-of-scope', id };
+            }
+          }
+
+          for (const item of items) {
+            try {
+              const insert = await client.query(
+                'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+                [item.campaign_id, item.name, item.email, item.phone, item.status, JSON.stringify([])]
+              );
+              const created = insert.rows[0];
+              out.inserted++;
+              recordAudit(req, 'lead:intake:import', { id: created.id, campaign_id: item.campaign_id });
+              if (triggerDrip) {
+                // Fire and forget drip
+                sendLeadToDrip({
+                  name: created.name || item.name || null,
+                  email: created.email || item.email || null,
+                  company: null,
+                  painPoint: null,
+                }).catch(() => {});
+              }
+            } catch (e) {
+              out.failures++;
+              out.errors.push({ campaign_id: item.campaign_id, message: String(e?.message || e) });
+            }
+          }
+          return out;
+        });
+
+        if (results?.error === 'campaign-out-of-scope') {
+          return res.status(403).json({ error: 'Campaign outside your agency', campaign_id: results.id });
+        }
+
+        return res.status(202).json(results);
+      } catch (error) {
+        console.error('Import leads error:', error);
+        return res.status(500).json({ error: 'Failed to import leads' });
+      }
+    }
+  );
+
+  // Lead sources summary (from audit log)
+  app.get('/api/leads/sources', auth, async (req, res) => {
+    try {
+      const data = await withAgencyContext(req.agencyId, (client) =>
+        client.query(
+          `SELECT COALESCE(regexp_replace(action, '^lead:intake:', ''), 'unknown') AS source, COUNT(*)::int AS count
+             FROM audit_log
+            WHERE agency_id = $1 AND action LIKE 'lead:intake:%'
+            GROUP BY source
+            ORDER BY count DESC`,
+          [req.agencyId]
+        )
+      );
+      return res.json({ sources: data.rows });
+    } catch (error) {
+      console.error('Lead sources error:', error);
+      return res.status(500).json({ error: 'Failed to fetch lead sources' });
+    }
+  });
 
   // Recent lead activity (audit)
   app.get(
@@ -839,4 +1070,5 @@ function registerRoutes(app) {
   });
 }
 
-module.exports = { registerWebhook, registerRoutes };
+export { registerWebhook, registerRoutes };
+export default { registerWebhook, registerRoutes };

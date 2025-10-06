@@ -1,12 +1,5 @@
-let dotenv;
-try {
-  // Optional in environments where dotenv is not installed
-  dotenv = require('dotenv');
-  dotenv.config();
-} catch {
-  // eslint-disable-next-line no-empty
-}
-const { cleanEnv, str, num, bool } = require('envalid');
+import 'dotenv/config';
+import { cleanEnv, str, num, bool } from 'envalid';
 
 // Use a shallow, extensible wrapper around the frozen cleanEnv result
 const baseEnv = cleanEnv(process.env, {
@@ -57,4 +50,4 @@ Object.defineProperty(env, 'WEBHOOK_SECRET_LIST', {
   },
 });
 
-module.exports = env;
+export default env;

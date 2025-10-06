@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const { pool } = require('../db');
+import crypto from 'node:crypto';
+import { pool } from './db/pool.js';
 
 function hashPayload(payload) {
   if (!payload) return null;
@@ -30,5 +30,5 @@ async function recordAudit(req, action, payload) {
   }
 }
 
-module.exports = { recordAudit };
-
+export { recordAudit };
+export default { recordAudit };

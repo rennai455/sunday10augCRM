@@ -1,4 +1,6 @@
-const config = require('../config');
+import config from '../config/index.js';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 function initSentry() {
   if (!config.SENTRY_DSN) return;
@@ -40,4 +42,5 @@ function initOtel() {
   sdk.start().catch((e) => console.error('OTel start error', e));
 }
 
-module.exports = { initSentry, initOtel };
+export { initSentry, initOtel };
+export default { initSentry, initOtel };

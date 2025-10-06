@@ -49,11 +49,12 @@ function renderLeads(leads) {
   tbody.innerHTML = "";
   leads.forEach((lead) => {
     const row = document.createElement("tr");
+    const scoreVal = safeGet(lead, ["score"], null);
     row.innerHTML = `
       <td>${safeGet(lead, ["name"], "—")}</td>
       <td>${safeGet(lead, ["company"], "—")}</td>
       <td>${renderStatus(safeGet(lead, ["status"], "Unknown"))}</td>
-      <td>${formatScore(safeGet(lead, ["score"], "—"))}</td>
+      <td>${renderScore(scoreVal)}</td>
     `;
     tbody.appendChild(row);
   });
@@ -65,9 +66,22 @@ function renderStatus(status) {
   return `<span class="status-chip ${slug}">${status}</span>`;
 }
 
-function formatScore(score) {
-  if (typeof score === "number") return score.toString();
-  return score ?? "—";
+function renderScore(score) {
+  if (typeof score !== "number" || isNaN(score)) return "—";
+  const level = scoreLevel(score);
+  const color =
+    level === "high" ? "#16a34a" : // green-600
+    level === "medium" ? "#f59e0b" : // amber-500
+    "#dc2626"; // red-600
+  const textColor = "#fff";
+  const label = level.charAt(0).toUpperCase() + level.slice(1);
+  return `<span class="score-badge ${level}" style="display:inline-block;min-width:2.25rem;text-align:center;padding:2px 6px;border-radius:9999px;background:${color};color:${textColor};font-weight:600;" aria-label="${label} score">${score}</span>`;
+}
+
+function scoreLevel(score) {
+  if (score > 40) return "high";
+  if (score >= 20) return "medium";
+  return "low";
 }
 
 function showError(errorEl, message) {

@@ -1,4 +1,4 @@
-const { getRedisClient } = require('./redis');
+import { getRedisClient } from './redis.js';
 
 // In-memory fallback store
 const localCache = new Map(); // id -> timestamp(ms)
@@ -32,5 +32,5 @@ async function checkAndSetReplay(id, ttlMs) {
   return false;
 }
 
-module.exports = { checkAndSetReplay };
-
+export { checkAndSetReplay };
+export default { checkAndSetReplay };

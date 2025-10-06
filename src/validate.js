@@ -1,4 +1,4 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
 function validate({ body, query, params }) {
   return (req, res, next) => {
@@ -62,6 +62,7 @@ const schemas = {
     email: z.string().email().max(128).optional(),
     phone: z.string().max(32).optional(),
     status: z.string().max(32).optional(),
+    score: z.coerce.number().int().optional(),
   }),
   leadUpdateBody: z
     .object({
@@ -69,6 +70,7 @@ const schemas = {
       email: z.string().email().max(128).optional(),
       phone: z.string().max(32).optional(),
       status: z.string().max(32).optional(),
+      score: z.coerce.number().int().optional(),
     })
     .refine((v) => Object.keys(v).length > 0, {
       message: 'At least one field required',
@@ -79,6 +81,47 @@ const schemas = {
     isAdmin: z.boolean().optional(),
     agencyId: z.coerce.number().int().positive().optional(),
   }),
+  // New: lead intake schemas
+  leadManualBody: z.object({
+    campaign_id: z.coerce.number().int(),
+    name: z.string().max(128).optional(),
+    email: z.string().email().max(128).optional(),
+    phone: z.string().max(32).optional(),
+    status: z.string().max(32).optional(),
+    score: z.coerce.number().int().optional(),
+    triggerDrip: z.boolean().optional(),
+  }),
+  leadFormBody: z.object({
+    campaign_id: z.coerce.number().int(),
+    name: z.string().max(128).optional(),
+    email: z.string().email().max(128).optional(),
+    phone: z.string().max(32).optional(),
+    status: z.string().max(32).optional(),
+    // Optional hints; verification handled separately via HMAC
+    source: z.literal('form').optional(),
+  }),
+  leadImportItem: z.object({
+    campaign_id: z.coerce.number().int(),
+    name: z.string().max(128).optional(),
+    email: z.string().email().max(128).optional(),
+    phone: z.string().max(32).optional(),
+    status: z.string().max(32).optional(),
+    score: z.coerce.number().int().optional(),
+  }),
+  leadImportBody: z.object({
+    items: z.array(
+      z.object({
+        campaign_id: z.coerce.number().int(),
+        name: z.string().max(128).optional(),
+        email: z.string().email().max(128).optional(),
+        phone: z.string().max(32).optional(),
+        status: z.string().max(32).optional(),
+        score: z.coerce.number().int().optional(),
+      })
+    ).min(1),
+    triggerDrip: z.boolean().optional(),
+  }),
 };
 
-module.exports = { validate, schemas };
+export { validate, schemas };
+export default { validate, schemas };
