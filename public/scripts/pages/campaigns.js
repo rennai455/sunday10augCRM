@@ -14,7 +14,7 @@ async function loadCampaigns() {
   const tbody = document.getElementById("campaignsTableBody");
   const errorEl = document.getElementById("campaignsError");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="5"><div class="loading-spinner" role="status" aria-label="Loading campaigns"></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="loading-spinner" role="status" aria-label="Loading campaigns"></div></td></tr>`;
   }
   hideError(errorEl);
 
@@ -42,22 +42,68 @@ function renderCampaigns(campaigns) {
   if (!tbody) return;
 
   if (!campaigns.length) {
-    tbody.innerHTML = `<tr><td colspan="5">No campaigns available yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6">No campaigns available yet.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = "";
   campaigns.forEach((campaign) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${safeGet(campaign, ["name"], "—")}</td>
-      <td>${safeGet(campaign, ["audience"], "—")}</td>
-      <td>${renderStatus(safeGet(campaign, ["status"], "Unknown"))}</td>
-      <td>${formatNumber(safeGet(campaign, ["sent"], "—"))}</td>
-      <td>${formatPercentage(safeGet(campaign, ["openRate"], safeGet(campaign, ["open_rate"], "—")))}</td>
-    `;
-    tbody.appendChild(row);
+    tbody.appendChild(renderCampaignRow(campaign));
   });
+}
+
+function renderCampaignRow(campaign) {
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${safeGet(campaign, ["name"], "—")}</td>
+    <td>${safeGet(campaign, ["audience"], "—")}</td>
+    <td>${renderStatus(safeGet(campaign, ["status"], "Unknown"))}</td>
+    <td>${formatNumber(safeGet(campaign, ["sent"], "—"))}</td>
+    <td>${formatPercentage(safeGet(campaign, ["openRate"], safeGet(campaign, ["open_rate"], "—")))}</td>
+    <td><button class="btn-clone" data-id="${campaign.id}">Clone</button></td>
+  `;
+  const btn = row.querySelector('.btn-clone');
+  btn.addEventListener('click', async () => {
+    const defaultName = `${safeGet(campaign, ["name"], "Campaign")} (Clone)`;
+    const newName = prompt('Enter name for cloned campaign', defaultName);
+    if (!newName) return;
+    const cloneLeads = confirm('Also copy leads?');
+    await cloneCampaign(campaign.id, newName, cloneLeads);
+  });
+  return row;
+}
+
+async function cloneCampaign(campaignId, name, cloneLeads) {
+  try {
+    const token = await fetchCsrfToken();
+    const res = await fetch(`/api/campaigns/${campaignId}/clone`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrf-token': token || ''
+      },
+      credentials: 'include',
+      body: JSON.stringify({ name, cloneLeads })
+    });
+    const result = await res.json().catch(() => ({}));
+    if (res.ok) {
+      showToast('Campaign cloned');
+      await loadCampaigns();
+    } else {
+      showToast(result?.error || 'Clone failed', true);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('Clone error', true);
+  }
+}
+
+async function fetchCsrfToken() {
+  try {
+    const res = await fetch('/api/csrf-token', { credentials: 'include' });
+    const data = await res.json();
+    return data?.csrfToken || '';
+  } catch { return ''; }
 }
 
 function renderStatus(status) {

@@ -324,6 +324,46 @@ body.dark canvas {
   border: 1px solid rgba(229, 231, 235, 0.08);
 }
 
+.coach-box {
+  margin-top: 20px;
+  background: #f9fafb;
+  padding: 12px 16px;
+  border-left: 4px solid #2563eb;
+  border-radius: 4px;
+}
+body.dark .coach-box {
+  background: #1e293b;
+  border-left-color: #60a5fa;
+}
+.suggestion-text {
+  margin: 8px 0;
+}
+.small-button {
+  font-size: 0.75em;
+  margin-left: 0.5em;
+  padding: 2px 6px;
+  background: var(--accent, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.small-button:disabled { opacity: 0.6; cursor: default; }
+
+.coach-suggestion {
+  font-style: italic;
+  color: var(--color-accent, #2563eb);
+  opacity: 0.85;
+}
+
+.status-event {
+  color: #3b82f6;
+  font-weight: 700;
+}
+body.dark .status-event {
+  color: #60a5fa;
+}
+
 .badge-sm {
   display: inline-block;
   background: var(--badge-bg, #e5e7eb);

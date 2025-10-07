@@ -1,10 +1,13 @@
 import { initCommon, checkAuth, showToast, safeGet } from "./common.js";
 
+let allLeads = [];
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     await checkAuth();
     initCommon();
     await setupImportUI();
+    setupLeadFiltersUI();
     await loadLeads();
   } catch (error) {
     // checkAuth handles redirect
@@ -15,7 +18,7 @@ async function loadLeads() {
   const tbody = document.getElementById("leadsTableBody");
   const errorEl = document.getElementById("leadsError");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="4"><div class="loading-spinner" role="status" aria-label="Loading leads"></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="loading-spinner" role="status" aria-label="Loading leads"></div></td></tr>`;
   }
   hideError(errorEl);
 
@@ -30,11 +33,77 @@ async function loadLeads() {
       ? payload
       : [];
 
-    renderLeads(leads);
+    allLeads = leads;
+    applyFilters();
   } catch (error) {
+    allLeads = [];
     renderLeads([]);
     showError(errorEl, "Unable to load leads right now.");
     showToast("Unable to load leads", true);
+  }
+}
+
+function applyFilters() {
+  const searchEl = document.getElementById('searchInput');
+  const statusEl = document.getElementById('statusFilter');
+  const scoreEl = document.getElementById('scoreFilter');
+
+  const term = (searchEl?.value || '').trim().toLowerCase();
+  const status = (statusEl?.value || '').trim().toLowerCase();
+  const scoreSel = (scoreEl?.value || '').trim();
+
+  let threshold = null;
+  if (scoreSel === '>20') threshold = 20;
+  if (scoreSel === '>40') threshold = 40;
+
+  const filtered = (allLeads || []).filter((lead) => {
+    // Search by name/email/company (case-insensitive)
+    if (term) {
+      const name = String(lead.name || '').toLowerCase();
+      const email = String(lead.email || '').toLowerCase();
+      const company = String(lead.company || '').toLowerCase();
+      if (!(name.includes(term) || email.includes(term) || company.includes(term))) {
+        return false;
+      }
+    }
+    // Status filter
+    if (status) {
+      const st = String(lead.status || '').toLowerCase();
+      // Special mapping for Client badge: consider isClient too
+      if (status === 'client') {
+        const isClient = Boolean(lead.isClient || lead.is_client);
+        if (!isClient && st !== 'client') return false;
+      } else if (st !== status) {
+        return false;
+      }
+    }
+    // Score threshold
+    if (threshold != null) {
+      const sc = Number(lead.score);
+      if (!Number.isFinite(sc) || sc <= threshold) return false;
+    }
+    return true;
+  });
+
+  renderLeads(filtered);
+}
+
+function setupLeadFiltersUI() {
+  const searchEl = document.getElementById('searchInput');
+  const statusEl = document.getElementById('statusFilter');
+  const scoreEl = document.getElementById('scoreFilter');
+  const resetBtn = document.getElementById('resetFilters');
+
+  if (searchEl) searchEl.addEventListener('input', applyFilters);
+  if (statusEl) statusEl.addEventListener('change', applyFilters);
+  if (scoreEl) scoreEl.addEventListener('change', applyFilters);
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (searchEl) searchEl.value = '';
+      if (statusEl) statusEl.value = '';
+      if (scoreEl) scoreEl.value = '';
+      applyFilters();
+    });
   }
 }
 
@@ -43,7 +112,7 @@ function renderLeads(leads) {
   if (!tbody) return;
 
   if (!leads.length) {
-    tbody.innerHTML = `<tr><td colspan="7">No leads available yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">No leads available yet.</td></tr>`;
     return;
   }
 
@@ -61,9 +130,63 @@ function renderLeads(leads) {
       <td>${escapeHtml(String(lead.website || ''))}</td>
       <td>${renderKeywords(lead.keywords)}</td>
     `;
+    // Next step suggestion cell with async fetch
+    const suggestionCell = document.createElement('td');
+    suggestionCell.textContent = '…';
+    row.appendChild(suggestionCell);
     tbody.appendChild(row);
     attachClientToggle(row);
+
+    // Fetch suggestion asynchronously and update the cell with Apply button
+    fetchSuggestion(lead.id)
+      .then((obj) => {
+        const suggestion = obj?.suggestion;
+        if (!suggestion) {
+          suggestionCell.textContent = '—';
+          return;
+        }
+        suggestionCell.innerHTML = `
+          <span class="coach-suggestion">${escapeHtml(String(suggestion))}
+            <button class="apply-suggestion small-button" data-lead-id="${lead.id}" data-message="${escapeHtml(String(suggestion))}">Apply</button>
+          </span>`;
+        const btn = suggestionCell.querySelector('.apply-suggestion');
+        btn?.addEventListener('click', async (e) => {
+          const b = e.currentTarget;
+          const leadId = b.getAttribute('data-lead-id');
+          const message = b.getAttribute('data-message');
+          b.disabled = true;
+          try {
+            const csrf = await fetchCsrfToken();
+            const res = await fetch(`/api/leads/${leadId}/events`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-csrf-token': csrf || ''
+              },
+              credentials: 'include',
+              body: JSON.stringify({ type: 'followup', message })
+            });
+            if (!res.ok) throw new Error('Failed to apply suggestion');
+            showToast('Suggestion logged');
+            b.textContent = 'Done';
+          } catch (err) {
+            showToast('Error applying suggestion', true);
+            b.disabled = false;
+          }
+        });
+      })
+      .catch(() => { suggestionCell.textContent = '—'; });
   });
+}
+
+async function fetchSuggestion(leadId) {
+  try {
+    const res = await fetch(`/api/leads/${leadId}/suggestion`, { credentials: 'include' });
+    if (!res.ok) return null;
+    return await res.json(); // { suggestion, reason }
+  } catch {
+    return null;
+  }
 }
 
 function renderStatus(status) {

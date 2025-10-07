@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { pool, withTransaction } from '../src/db/pool.js';
-import { recordAudit } from '../src/audit.js';
+import { addLeadEvent } from '../src/utils/leadEvents.js';
+import { enrichLead as enrichLeadOSS } from '../src/utils/enrichment.js';
 import { scoreLead } from '../src/utils/leadScoring.js';
 
 const PATTERNS = ['agency', 'studio', 'marketing', 'consult', 'growth'];
@@ -153,25 +154,10 @@ async function processLead(row) {
   let websiteFound = false;
   let keywords = new Set(extractKeywordsFromDomain(domain));
   let html = null;
-  try {
-    const probe = await probeWebsite(domain);
-    websiteFound = probe.found;
-    html = probe.html;
-    if (html) {
-      for (const k of extractKeywordsFromHtml(html)) keywords.add(k);
-    }
-  } catch (err) {
-    // ignore network errors; proceed to update enriched_at
-  }
-
-  // If we found the site but no keywords, optionally ask GPT for 3 keywords
-  if (websiteFound && keywords.size === 0 && html && process.env.OPENAI_API_KEY) {
-    const metaText = extractMetaForPrompt(html);
-    const ai = await gptSuggestKeywordsFromMeta(metaText);
-    ai.forEach((k) => keywords.add(k));
-  }
-
-  const keywordArr = Array.from(keywords);
+  // Use OSS enrichment (free APIs + heuristics)
+  const oss = await enrichLeadOSS({ email, company: null });
+  websiteFound = Boolean(oss?.website);
+  const keywordArr = Array.isArray(oss?.keywords) ? oss.keywords : [];
   // Optionally recompute score using enrichment signals
   let newScore = null;
   try {
@@ -186,26 +172,20 @@ async function processLead(row) {
   await withTransaction(async (client) => {
     const res = await client.query(
       `UPDATE leads
-         SET website_found = $1,
-             keywords = $2,
+         SET website = $1,
+             website_found = $2,
+             keywords = $3,
              enriched_at = NOW(),
-             score = COALESCE($3, score)
-       WHERE id = $4
+             score = COALESCE($4, score)
+       WHERE id = $5
        RETURNING id`,
-      [websiteFound, keywordArr, scoreToSet, id]
+      [oss?.website || null, websiteFound, keywordArr, scoreToSet, id]
     );
     updatedRowCount = res.rowCount || 0;
   });
 
   console.log(`[enrich] lead ${id}: domain=${domain} found=${websiteFound} keywords=${keywordArr.join(', ')}${scoreToSet != null ? ` newScore=${scoreToSet}` : ''} updated=${updatedRowCount > 0}`);
-  try {
-    await recordAudit({ id: 'system' }, 'lead.enriched', {
-      id,
-      website: websiteFound ? domain : null,
-      keywords: keywordArr,
-      newScore: scoreToSet,
-    });
-  } catch {}
+  try { await addLeadEvent(id, 'enriched', 'Lead enriched via open web', { website: oss?.website || null, keywords: keywordArr }); } catch {}
 }
 
 async function main() {

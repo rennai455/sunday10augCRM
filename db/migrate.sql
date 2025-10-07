@@ -97,6 +97,15 @@ CREATE INDEX IF NOT EXISTS idx_lead_timeline_lead_created
 -- Lead enrichment columns
 ALTER TABLE leads
   ADD COLUMN IF NOT EXISTS website TEXT;
+-- Attribution fields
+ALTER TABLE leads
+  ADD COLUMN IF NOT EXISTS source TEXT,
+  ADD COLUMN IF NOT EXISTS utm_medium TEXT,
+  ADD COLUMN IF NOT EXISTS utm_source TEXT,
+  ADD COLUMN IF NOT EXISTS utm_campaign TEXT,
+  ADD COLUMN IF NOT EXISTS utm_term TEXT,
+  ADD COLUMN IF NOT EXISTS utm_content TEXT,
+  ADD COLUMN IF NOT EXISTS converted_at TIMESTAMPTZ;
 
 -- lead_events: flexible event stream per lead
 CREATE TABLE IF NOT EXISTS lead_events (

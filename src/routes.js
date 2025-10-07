@@ -14,9 +14,12 @@ import { recordAudit } from './audit.js';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
 import { validate, schemas } from './validate.js';
 import { scoreLead } from './utils/leadScoring.js';
-import { enrichLead } from './utils/leadEnrichment.js';
+import { enrichLead } from './utils/enrichment.js';
 import { recordTimelineEvent } from './utils/leadTimeline.js';
 import { addLeadEvent, getLeadTimeline as getLeadEvents } from './utils/leadEvents.js';
+import { detectSourceFromReferer } from './utils/sourceDetection.js';
+import { cloneCampaign as cloneCampaignUtil } from './utils/campaignCloner.js';
+import { suggestNextStep } from './utils/dealCoach.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,9 +117,23 @@ function registerWebhook(app) {
       // No id/timestamp: legacy signing over raw body only
       try {
         const payload = JSON.parse(req.body.toString('utf8'));
+        const sourceInput = payload.source || detectSourceFromReferer(req);
+        const utm = {
+          utm_medium: payload.utm_medium || null,
+          utm_source: payload.utm_source || null,
+          utm_campaign: payload.utm_campaign || null,
+          utm_term: payload.utm_term || null,
+          utm_content: payload.utm_content || null,
+        };
         req.log?.info({ id, ts, payload }, 'Webhook received');
         metrics.webhookEventsTotal?.inc({ outcome: 'accepted' });
         recordAudit(req, 'webhook:received', { id, ts });
+        // Optionally store attribution event (no DB insert here since webhook handler isn't creating a lead directly)
+        try {
+          if (payload.lead_id && (sourceInput || Object.values(utm).some(Boolean))) {
+            addLeadEvent(Number(payload.lead_id), 'source', `Lead captured from source: ${sourceInput || 'unknown'}`, { source: sourceInput, utm });
+          }
+        } catch {}
         return res.json({ received: true });
       } catch {
         metrics.webhookEventsTotal?.inc({ outcome: 'invalid_json' });
@@ -247,6 +264,39 @@ function registerRoutes(app) {
         res
           .status(500)
           .json({ success: false, message: 'Internal server error' });
+      }
+    }
+  );
+
+  // Lead coaching suggestion
+  app.get(
+    '/api/leads/:id/suggestion',
+    auth,
+    validate({ params: schemas.idParam }),
+    async (req, res) => {
+      const { id } = req.params;
+      try {
+        // Verify lead belongs to agency and fetch summary fields
+        const leadRes = await withAgencyContext(req.agencyId, (client) =>
+          client.query(
+            `SELECT l.id, l.status, l.score, l.is_client, l.keywords, l.created_at
+               FROM leads l
+               JOIN campaigns c ON l.campaign_id = c.id
+              WHERE l.id = $1 AND c.agency_id = $2
+              LIMIT 1`,
+            [id, req.agencyId]
+          )
+        );
+        if (leadRes.rowCount === 0) return res.status(404).json({ error: 'Lead not found' });
+        const lead = leadRes.rows[0];
+
+        // Use event stream for recent activity
+        const timeline = await getLeadEvents(Number(id));
+        const { suggestion, reason } = suggestNextStep(lead, timeline || []);
+        return res.json({ suggestion, reason });
+      } catch (err) {
+        console.error('Lead suggestion error:', err);
+        return res.status(500).json({ error: 'Failed to compute suggestion' });
       }
     }
   );
@@ -529,6 +579,14 @@ function registerRoutes(app) {
     validate({ body: schemas.leadCreateBody }),
     async (req, res) => {
       const { campaign_id, name, email, phone, status } = req.body;
+      const sourceInput = req.body.source || detectSourceFromReferer(req);
+      const utm = {
+        utm_medium: req.body.utm_medium || req.body.utmMedium || null,
+        utm_source: req.body.utm_source || req.body.utmSource || null,
+        utm_campaign: req.body.utm_campaign || req.body.utmCampaign || null,
+        utm_term: req.body.utm_term || req.body.utmTerm || null,
+        utm_content: req.body.utm_content || req.body.utmContent || null,
+      };
       // Enrich + compute score based on provided payload
       const enrichment = await enrichLead({ email });
       const { score: computedScore, reasons: scoreReasons } = scoreLead({
@@ -555,8 +613,9 @@ function registerRoutes(app) {
             `INSERT INTO leads (
                campaign_id, name, email, phone, status,
                score, is_client, status_history,
-               website, keywords, enriched_at, website_found
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+               website, keywords, enriched_at, website_found,
+               source, utm_medium, utm_source, utm_campaign, utm_term, utm_content, converted_at
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
              RETURNING *`,
             [
               campaign_id,
@@ -571,6 +630,13 @@ function registerRoutes(app) {
               (enrichment?.keywords && enrichment.keywords.length) ? enrichment.keywords : null,
               new Date(),
               Boolean(enrichment?.websiteFound),
+              sourceInput || null,
+              utm.utm_medium,
+              utm.utm_source,
+              utm.utm_campaign,
+              utm.utm_term,
+              utm.utm_content,
+              null,
             ]
           );
 
@@ -582,7 +648,12 @@ function registerRoutes(app) {
             score: computedScore ?? null,
           });
           await recordAudit(req, 'lead.created', { lead: createdLead, enrichment });
-          try { await addLeadEvent(createdLead.id, 'created', 'Lead created from form or manual entry'); } catch {}
+          try {
+            await addLeadEvent(createdLead.id, 'created', 'Lead created from form or manual entry');
+            if (sourceInput || Object.values(utm).some(Boolean)) {
+              await addLeadEvent(createdLead.id, 'source', `Lead captured from source: ${sourceInput || 'unknown'}`, { source: sourceInput, utm });
+            }
+          } catch {}
           if (enrichment?.websiteFound || (enrichment?.keywords?.length || 0) > 0) {
             try { await addLeadEvent(createdLead.id, 'enriched', 'Lead enriched via external domain', { website: enrichment?.websiteFound ? enrichment.enrichedDomain : null, keywords: enrichment?.keywords || [] }); } catch {}
           }
@@ -631,6 +702,19 @@ function registerRoutes(app) {
       const fields = ['name', 'email', 'phone', 'status', 'score'];
       const set = [];
       const values = [];
+      // Capture previous status for better status-change messages
+      let prevStatus = null;
+      try {
+        const prev = await withAgencyContext(
+          req.agencyId,
+          (client) =>
+            client.query(
+              `SELECT l.status FROM leads l JOIN campaigns c ON l.campaign_id = c.id WHERE l.id = $1 AND c.agency_id = $2 LIMIT 1`,
+              [id, req.agencyId]
+            )
+        );
+        if (prev.rowCount > 0) prevStatus = prev.rows[0]?.status || null;
+      } catch {}
       fields.forEach((f) => {
         if (Object.prototype.hasOwnProperty.call(req.body, f)) {
           set.push(`${f} = $${set.length + 1}`);
@@ -680,7 +764,7 @@ function registerRoutes(app) {
         await recordTimelineEvent(pool, id, 'manual_update', { fields: Object.keys(req.body) });
         // Timeline: status change
         if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
-          await recordTimelineEvent(pool, id, 'status_change', { to: req.body.status });
+          await recordTimelineEvent(pool, id, 'status_change', { from: prevStatus || null, to: req.body.status });
         }
         // Timeline: score update
         if (Object.prototype.hasOwnProperty.call(req.body, 'score')) {
@@ -692,6 +776,20 @@ function registerRoutes(app) {
           if (Boolean(req.body.isClient) === true) {
             await recordTimelineEvent(pool, id, 'conversion', { isClient: true });
           }
+        }
+        // Event entries for status/score (more human-readable)
+        if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+          try {
+            const newStatus = String(req.body.status || '');
+            if (newStatus && newStatus !== (prevStatus || '')) {
+              await addLeadEvent(Number(id), 'status', `Status changed from ${prevStatus || 'unknown'} to ${newStatus}`);
+            } else if (newStatus) {
+              await addLeadEvent(Number(id), 'status', `Status changed to ${newStatus}`);
+            }
+          } catch {}
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, 'score')) {
+          try { await addLeadEvent(Number(id), 'score', `Score updated to ${req.body.score}`); } catch {}
         }
         res.json(updated);
       } catch (error) {
@@ -735,6 +833,14 @@ function registerRoutes(app) {
     validate({ body: schemas.leadManualBody }),
     async (req, res) => {
       const { campaign_id, name, email, phone, status, triggerDrip } = req.body;
+      const sourceInput2 = req.body.source || detectSourceFromReferer(req);
+      const utm2 = {
+        utm_medium: req.body.utm_medium || req.body.utmMedium || null,
+        utm_source: req.body.utm_source || req.body.utmSource || null,
+        utm_campaign: req.body.utm_campaign || req.body.utmCampaign || null,
+        utm_term: req.body.utm_term || req.body.utmTerm || null,
+        utm_content: req.body.utm_content || req.body.utmContent || null,
+      };
       try {
         const created = await withAgencyContext(req.agencyId, async (client) => {
           const campaign = await client.query(
@@ -752,8 +858,9 @@ function registerRoutes(app) {
             `INSERT INTO leads (
                campaign_id, name, email, phone, status,
                score, is_client, status_history,
-               website, keywords, enriched_at, website_found
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+               website, keywords, enriched_at, website_found,
+               source, utm_medium, utm_source, utm_campaign, utm_term, utm_content, converted_at
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
              RETURNING *`,
             [
               campaign_id,
@@ -768,6 +875,13 @@ function registerRoutes(app) {
               (enrichment?.keywords && enrichment.keywords.length) ? enrichment.keywords : null,
               new Date(),
               Boolean(enrichment?.websiteFound),
+              sourceInput2 || null,
+              utm2.utm_medium,
+              utm2.utm_source,
+              utm2.utm_campaign,
+              utm2.utm_term,
+              utm2.utm_content,
+              null,
             ]
           );
           return insert.rows[0];
@@ -777,6 +891,11 @@ function registerRoutes(app) {
         }
 
         recordAudit(req, 'lead:intake:manual', { id: created.id, campaign_id });
+        try {
+          if (sourceInput2 || Object.values(utm2).some(Boolean)) {
+            await addLeadEvent(created.id, 'source', `Lead captured from source: ${sourceInput2 || 'unknown'}`, { source: sourceInput2, utm: utm2 });
+          }
+        } catch {}
         // Timeline + events: manual creation
         await recordTimelineEvent(pool, created.id, 'creation', { source: 'manual' });
         try { await addLeadEvent(created.id, 'created', 'Lead created from form or manual entry'); } catch {}
@@ -1054,7 +1173,7 @@ function registerRoutes(app) {
     }
   );
 
-  // Lead timeline: structured events for a given lead (scoped by agency)
+  // Lead timeline (events): unified structured events for a given lead (scoped by agency)
   app.get(
     '/api/leads/:id/timeline',
     auth,
@@ -1073,25 +1192,40 @@ function registerRoutes(app) {
             [id, req.agencyId]
           )
         );
-        if (exists.rowCount === 0) {
-          return res.status(404).json({ error: 'Lead not found' });
-        }
+        if (exists.rowCount === 0) return res.status(404).json({ error: 'Lead not found' });
 
-        const data = await withAgencyContext(req.agencyId, (client) =>
-          client.query(
-            `SELECT t.id, t.type, t.context, t.created_at
-               FROM lead_timeline t
-               JOIN leads l ON t.lead_id = l.id
-               JOIN campaigns c ON l.campaign_id = c.id
-              WHERE t.lead_id = $1 AND c.agency_id = $2
-              ORDER BY t.created_at DESC`,
-            [id, req.agencyId]
-          )
-        );
-        return res.json({ events: data.rows });
+        const events = await getLeadEvents(Number(id));
+        return res.json({ events });
       } catch (error) {
         console.error('Lead timeline fetch error:', error);
         return res.status(500).json({ error: 'Failed to fetch lead timeline' });
+      }
+    }
+  );
+
+  // Lead events: append a new event (follow-up, note, etc.)
+  app.post(
+    '/api/leads/:id/events',
+    auth,
+    validate({ params: schemas.idParam }),
+    async (req, res) => {
+      const { id } = req.params;
+      const { type, message, metadata } = req.body || {};
+      if (!type || !message) return res.status(400).json({ error: 'type and message are required' });
+      try {
+        // Verify lead in agency
+        const exists = await withAgencyContext(req.agencyId, (client) =>
+          client.query(
+            `SELECT 1 FROM leads l JOIN campaigns c ON l.campaign_id = c.id WHERE l.id = $1 AND c.agency_id = $2 LIMIT 1`,
+            [id, req.agencyId]
+          )
+        );
+        if (exists.rowCount === 0) return res.status(404).json({ error: 'Lead not found' });
+        await addLeadEvent(Number(id), String(type), String(message), (metadata && typeof metadata === 'object') ? metadata : {});
+        return res.status(201).json({ ok: true });
+      } catch (err) {
+        console.error('Add lead event error:', err);
+        return res.status(500).json({ error: 'Failed to add event' });
       }
     }
   );
@@ -1190,6 +1324,29 @@ function registerRoutes(app) {
     } catch (error) {
       console.error('Dashboard metrics error:', error);
       res.status(500).json({ error: 'Failed to load dashboard data' });
+    }
+  });
+
+  // Clone campaign API
+  app.post('/api/campaigns/:id/clone', auth, async (req, res) => {
+    const sourceId = req.params.id;
+    const { name, cloneLeads } = req.body || {};
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name is required' });
+    }
+    try {
+      const result = await withAgencyContext(req.agencyId, async (client) => {
+        return await cloneCampaignUtil(client, req.agencyId, sourceId, { name: name.trim(), cloneLeads: Boolean(cloneLeads) });
+      });
+      // Audit + high-level events (no per-lead events here, handled in utility via SQL)
+      recordAudit(req, 'campaign.clone', { from: Number(sourceId), to: result.newCampaignId, leadsCopied: result.leadsCopied });
+      return res.status(201).json(result);
+    } catch (err) {
+      if ((err?.message || '').includes('not found')) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+      console.error('Clone campaign error:', err);
+      return res.status(500).json({ error: 'Failed to clone campaign' });
     }
   });
 

@@ -6,6 +6,35 @@
     <title>RENN.AI – Lead Generation</title>
     <link rel="stylesheet" href="/css/dashboard.css" />
     <script type="module" src="/scripts/pages/leads.js" defer></script>
+    <style>
+      /* Lightweight responsive layout for lead filters */
+      #leadFilters {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0.5rem 0 0.75rem;
+      }
+      #leadFilters input,
+      #leadFilters select {
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(17, 24, 39, 0.15);
+        background: #ffffff;
+      }
+      #leadFilters button {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(17, 24, 39, 0.15);
+        background: #f3f4f6;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      @media (max-width: 768px) {
+        #leadFilters { flex-direction: column; align-items: stretch; }
+        #leadFilters > * { width: 100%; }
+      }
+    </style>
   </head>
   <body>
     <aside id="sidebar" class="sidebar" aria-label="Primary">
@@ -40,6 +69,21 @@
 
       <section class="page-content" aria-labelledby="leadsHeading" aria-live="polite">
         <h3 id="leadsHeading">Lead Pipeline</h3>
+        <div id="leadFilters" aria-label="Lead filters">
+          <input id="searchInput" type="search" placeholder="Search by name, email, or company" aria-label="Search leads" />
+          <select id="statusFilter" aria-label="Filter by status">
+            <option value="">All</option>
+            <option value="new">New</option>
+            <option value="qualified">Qualified</option>
+            <option value="client">Client</option>
+          </select>
+          <select id="scoreFilter" aria-label="Filter by score">
+            <option value="">All</option>
+            <option value=">20">&gt;20</option>
+            <option value=">40">&gt;40</option>
+          </select>
+          <button id="resetFilters" type="button">Reset</button>
+        </div>
         <div class="toolbar" style="display:flex;gap:.75rem;align-items:center;margin: .5rem 0 1rem;flex-wrap:wrap">
           <label for="importCampaignSelect" style="font-weight:600">Campaign:</label>
           <select id="importCampaignSelect" aria-label="Target campaign for import"></select>
@@ -59,11 +103,12 @@
                 <th scope="col">Client</th>
                 <th scope="col">Website</th>
                 <th scope="col">Keywords</th>
+                <th scope="col">Next Step</th>
               </tr>
             </thead>
             <tbody id="leadsTableBody">
               <tr class="loading-row">
-                <td colspan="7">Loading leads…</td>
+                <td colspan="8">Loading leads…</td>
               </tr>
             </tbody>
           </table>

@@ -17,7 +17,8 @@ export async function addLeadEvent(leadId, type, message, metadata = {}) {
 
 export async function getLeadTimeline(leadId) {
   const res = await pool.query(
-    `SELECT * FROM lead_events
+    `SELECT type, message, metadata, created_at
+       FROM lead_events
       WHERE lead_id = $1
       ORDER BY created_at DESC`,
     [leadId]
@@ -26,4 +27,3 @@ export async function getLeadTimeline(leadId) {
 }
 
 export default { addLeadEvent, getLeadTimeline };
-
