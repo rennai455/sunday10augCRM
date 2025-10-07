@@ -8,9 +8,9 @@
     <script type="module" src="/scripts/pages/leads.js" defer></script>
   </head>
   <body>
-    <aside class="sidebar">
+    <aside id="sidebar" class="sidebar" aria-label="Primary">
       <h1 class="logo">RENN.AI</h1>
-      <nav>
+      <nav aria-label="Main navigation">
         <ul class="nav-links">
           <li><a href="/dashboard.html" data-path="/dashboard.html">Overview</a></li>
           <li><a href="/leads.html" data-path="/leads.html">Lead Generation</a></li>
@@ -31,6 +31,7 @@
     </aside>
     <main class="dashboard">
       <header class="dashboard-header">
+        <button id="mobileNavToggle" class="hamburger" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">☰</button>
         <div class="header-text">
           <p id="welcomeMessage" class="subtitle">Welcome</p>
           <h2 id="sectionTitle">Lead Generation</h2>
@@ -39,6 +40,13 @@
 
       <section class="page-content" aria-labelledby="leadsHeading" aria-live="polite">
         <h3 id="leadsHeading">Lead Pipeline</h3>
+        <div class="toolbar" style="display:flex;gap:.75rem;align-items:center;margin: .5rem 0 1rem;flex-wrap:wrap">
+          <label for="importCampaignSelect" style="font-weight:600">Campaign:</label>
+          <select id="importCampaignSelect" aria-label="Target campaign for import"></select>
+          <button id="importCsvBtn" type="button" class="btn" style="padding:.5rem .75rem;border-radius:.375rem;background:#2563eb;color:#fff;border:none;cursor:pointer">Import CSV</button>
+          <input id="importCsvInput" type="file" accept=".csv,text/csv" style="display:none" />
+          <span id="importHelp" class="hint" style="color:#6b7280">CSV headers: name,email,score(optional)</span>
+        </div>
         <div class="table-wrapper">
           <table>
             <caption>Active lead pipeline</caption>
@@ -48,15 +56,19 @@
                 <th scope="col">Company</th>
                 <th scope="col">Status</th>
                 <th scope="col">Score</th>
+                <th scope="col">Client</th>
+                <th scope="col">Website</th>
+                <th scope="col">Keywords</th>
               </tr>
             </thead>
             <tbody id="leadsTableBody">
               <tr class="loading-row">
-                <td colspan="4">Loading leads…</td>
+                <td colspan="7">Loading leads…</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <div id="importErrors" class="error-list" aria-live="polite" style="margin-top: .75rem;"></div>
         <p id="leadsError" class="error hidden" role="alert">Unable to load leads right now.</p>
       </section>
     </main>
@@ -64,5 +76,6 @@
       <h3>Business Stats</h3>
       <p>Future insights and advanced analytics coming here.</p>
     </aside>
+    <div id="sidebarOverlay" class="overlay" hidden aria-hidden="true"></div>
   </body>
 </html>

@@ -43,10 +43,22 @@ function applyMetrics(data = {}) {
   setMetric("totalCampaigns", safeGet(data, ["totals", "campaigns"], "—"));
   setMetric("averageScore", safeGet(data, ["totals", "averageScore"], "—"));
   setMetric("activeClients", safeGet(data, ["totals", "activeClients"], "—"));
+  const clients = safeGet(data, ["totals", "convertedLeadCount"], "—");
+  setMetric("clientsWon", clients);
+  // Optional: set conversion rate tooltip
+  try {
+    const leads = Number(safeGet(data, ["totals", "leads"], 0));
+    const won = Number(clients);
+    const el = document.getElementById('clientsWon');
+    if (el && Number.isFinite(leads) && leads > 0 && Number.isFinite(won)) {
+      const pct = Math.round((won / leads) * 100);
+      el.title = `Conversion rate: ${pct}%`;
+    }
+  } catch {}
 }
 
 function resetMetrics() {
-  ["totalLeads", "totalCampaigns", "averageScore", "activeClients"].forEach((id) => {
+  ["totalLeads", "totalCampaigns", "averageScore", "activeClients", "clientsWon"].forEach((id) => {
     setMetric(id, "—");
   });
 }

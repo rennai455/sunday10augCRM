@@ -1,5 +1,6 @@
 const DEFAULT_DASHBOARD_PATH = "/dashboard.html";
 const THEME_STORAGE_KEY = 'darkMode';
+const SIDEBAR_STATE_KEY = 'sidebarOpen';
 
 export async function checkAuth() {
   const path = window.location.pathname.toLowerCase();
@@ -23,6 +24,7 @@ export function initCommon() {
   hydrateUserPlaceholders();
   setupNavHighlight();
   wireCommonActions();
+  setupMobileNav();
 }
 
 export function showToast(message, isError = false) {
@@ -100,6 +102,56 @@ function wireCommonActions() {
       }
     });
   }
+}
+
+function setupMobileNav() {
+  const sidebar = document.getElementById('sidebar');
+  const toggle = document.getElementById('mobileNavToggle');
+  if (!sidebar || !toggle) return;
+
+  let overlay = document.getElementById('sidebarOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'sidebarOverlay';
+    overlay.className = 'overlay';
+    overlay.hidden = true;
+    document.body.appendChild(overlay);
+  }
+
+  function setOpen(open) {
+    document.body.classList.toggle('sidebar-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    overlay.hidden = !open;
+    try { localStorage.setItem(SIDEBAR_STATE_KEY, String(open)); } catch {}
+  }
+
+  function initialState() {
+    const w = window.innerWidth || document.documentElement.clientWidth;
+    if (w >= 768) {
+      setOpen(true);
+    } else {
+      let saved = null;
+      try { saved = localStorage.getItem(SIDEBAR_STATE_KEY); } catch {}
+      setOpen(saved === 'true');
+    }
+  }
+
+  toggle.addEventListener('click', () => {
+    const open = document.body.classList.contains('sidebar-open');
+    setOpen(!open);
+  });
+  overlay.addEventListener('click', () => setOpen(false));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setOpen(false);
+  });
+
+  let resizeTimer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(initialState, 150);
+  });
+
+  initialState();
 }
 
 function applySavedTheme() {

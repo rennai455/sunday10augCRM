@@ -25,6 +25,11 @@ export interface Lead {
   status_history?: Array<Record<string, unknown>> | null;
   created_at: string; // ISO datetime
   score?: number | null;
+  isClient?: boolean;
+  website?: string | null;
+  websiteFound?: boolean;
+  keywords?: string[];
+  enrichedAt?: string; // ISO datetime
 }
 
 export interface DashboardTotals {
@@ -67,6 +72,11 @@ export interface LeadUpdateBody {
   phone?: string;
   status?: string;
   score?: number;
+  isClient?: boolean;
+  website?: string;
+  websiteFound?: boolean;
+  keywords?: string[];
+  enrichedAt?: string; // ISO datetime
 }
 
 export interface ListParams {

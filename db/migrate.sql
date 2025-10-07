@@ -82,5 +82,32 @@ BEGIN
   END IF;
 END$$;
 
+-- lead_timeline: structured per-lead activity log
+CREATE TABLE IF NOT EXISTS lead_timeline (
+  id SERIAL PRIMARY KEY,
+  lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  context JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_lead_timeline_lead_created
+  ON lead_timeline (lead_id, created_at DESC);
+
+-- Lead enrichment columns
+ALTER TABLE leads
+  ADD COLUMN IF NOT EXISTS website TEXT;
+
+-- lead_events: flexible event stream per lead
+CREATE TABLE IF NOT EXISTS lead_events (
+  id SERIAL PRIMARY KEY,
+  lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  message TEXT,
+  metadata JSONB DEFAULT '{}'::JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_lead_events_lead_created ON lead_events (lead_id, created_at DESC);
+
 -- Add score column for existing databases (idempotent)
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS score INTEGER;

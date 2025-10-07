@@ -58,12 +58,24 @@ function scoreLead(lead = {}) {
     reasons.push(`Pain point mentions: ${matched.join(', ')}`);
   }
 
-  // Cap at 60
-  if (score > 60) score = 60;
+  // Keyword-based signals from enrichment
+  const kws = Array.isArray(lead.keywords) ? lead.keywords.map((k) => String(k).toLowerCase()) : [];
+  if (kws.length) {
+    if (kws.some((k) => ['growth', 'marketing', 'ads'].includes(k))) {
+      score += 10;
+      reasons.push('Marketing keywords');
+    }
+    if (kws.some((k) => ['seo', 'crm', 'funnels'].includes(k))) {
+      score += 5;
+      reasons.push('Tech-savvy keywords');
+    }
+  }
+
+  // Cap at 100
+  if (score > 100) score = 100;
 
   return { score, reasons };
 }
 
 export { scoreLead };
 export default { scoreLead };
-

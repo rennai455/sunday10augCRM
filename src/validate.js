@@ -71,6 +71,11 @@ const schemas = {
       phone: z.string().max(32).optional(),
       status: z.string().max(32).optional(),
       score: z.coerce.number().int().optional(),
+      isClient: z.boolean().optional(),
+      website: z.string().max(256).optional(),
+      websiteFound: z.boolean().optional(),
+      keywords: z.array(z.string()).optional(),
+      enrichedAt: z.string().datetime().optional(),
     })
     .refine((v) => Object.keys(v).length > 0, {
       message: 'At least one field required',
@@ -90,6 +95,7 @@ const schemas = {
     status: z.string().max(32).optional(),
     score: z.coerce.number().int().optional(),
     triggerDrip: z.boolean().optional(),
+    isClient: z.boolean().optional(),
   }),
   leadFormBody: z.object({
     campaign_id: z.coerce.number().int(),

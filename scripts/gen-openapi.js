@@ -79,6 +79,11 @@ openapi.components.schemas.LeadUpdateBody = {
     phone: { type: 'string', maxLength: 32 },
     status: { type: 'string', maxLength: 32 },
     score: { type: 'integer' },
+    isClient: { type: 'boolean' },
+    websiteFound: { type: 'boolean' },
+    website: { type: 'string' },
+    keywords: { type: 'array', items: { type: 'string' } },
+    enrichedAt: { type: 'string', format: 'date-time' },
   },
 };
 openapi.components.schemas.UserCreateBody = {
@@ -128,6 +133,11 @@ openapi.components.schemas.Lead = {
     status_history: { type: 'array', items: { type: 'object' }, nullable: true },
     created_at: { type: 'string', format: 'date-time' },
     score: { type: 'integer', nullable: true },
+    isClient: { type: 'boolean' },
+    website: { type: 'string', nullable: true },
+    websiteFound: { type: 'boolean' },
+    keywords: { type: 'array', items: { type: 'string' } },
+    enrichedAt: { type: 'string', format: 'date-time' },
   },
 };
 openapi.components.schemas.DashboardTotals = {

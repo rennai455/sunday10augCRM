@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lead Capture • RENN.AI</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <style>
+      .container { max-width: 680px; margin: 5vh auto; padding: 24px; }
+      .card {
+        background: #fff; border-radius: 14px; padding: 24px;
+        box-shadow: 0 10px 30px -20px rgba(0,0,0,.25);
+      }
+      body.dark .card { background: #0b1220; }
+      .field { display: grid; gap: 6px; margin-bottom: 14px; }
+      label { font-weight: 600; }
+      input, textarea {
+        padding: 12px 14px; border-radius: 10px; border: 1px solid #e5e7eb; font: inherit; background: #fff;
+      }
+      body.dark input, body.dark textarea { background: #0f172a; color: #e5e7eb; border-color: #334155; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .actions { display: flex; gap: 12px; align-items: center; }
+      .btn-primary { composes: primary-button; }
+      .btn-primary { border: none; border-radius: 12px; padding: 12px 18px; font-weight: 600; cursor: pointer; background: #2563eb; color: #fff; }
+      .btn-primary[disabled] { opacity: .7; cursor: wait; }
+      .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .note { color: #6b7280; font-size: .9rem; }
+      .msg { margin-top: 12px; font-weight: 600; }
+      .msg.ok { color: #16a34a; }
+      .msg.err { color: #dc2626; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h2 style="margin-top:0">Lead Capture</h2>
+        <p class="note">Fill this to simulate a public lead form. It POSTs JSON to <code>/webhook/new-lead</code>.</p>
+
+        <form id="leadForm" novalidate>
+          <div class="row">
+            <div class="field">
+              <label for="name">Name</label>
+              <input id="name" name="name" type="text" placeholder="Jane Doe" required />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="jane@company.com" required />
+            </div>
+          </div>
+          <div class="field">
+            <label for="company">Company</label>
+            <input id="company" name="company" type="text" placeholder="Acme Inc." />
+          </div>
+          <div class="field">
+            <label for="painPoint">Pain point <span class="note">(optional)</span></label>
+            <textarea id="painPoint" name="painPoint" rows="4" placeholder="Tell us briefly about your growth or lead-gen needs..."></textarea>
+          </div>
+          <div class="actions">
+            <button id="submitBtn" type="submit" class="btn-primary">
+              <span class="btn-label">Send</span>
+              <span class="btn-spinner" style="display:none; margin-left:8px"><span class="spinner" aria-hidden="true"></span></span>
+            </button>
+            <span class="note">We’ll simulate the n8n webhook endpoint.</span>
+          </div>
+          <div id="resultMsg" class="msg" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('leadForm');
+      const btn = document.getElementById('submitBtn');
+      const label = btn.querySelector('.btn-label');
+      const spinWrap = btn.querySelector('.btn-spinner');
+      const msg = document.getElementById('resultMsg');
+
+      function setBusy(b) {
+        if (b) {
+          btn.setAttribute('disabled', 'true');
+          spinWrap.style.display = 'inline-block';
+        } else {
+          btn.removeAttribute('disabled');
+          spinWrap.style.display = 'none';
+        }
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        msg.textContent = '';
+        msg.className = 'msg';
+
+        const data = {
+          name: document.getElementById('name').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          company: document.getElementById('company').value.trim() || null,
+          painPoint: document.getElementById('painPoint').value.trim() || null,
+        };
+        if (!data.name || !data.email) {
+          msg.textContent = 'Please provide name and email.';
+          msg.classList.add('err');
+          return;
+        }
+        setBusy(true);
+        try {
+          const res = await fetch('/webhook/new-lead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          const bodyText = await res.text();
+          try { console.log('Webhook response JSON:', JSON.parse(bodyText)); } catch { console.log('Webhook response text:', bodyText); }
+          if (!res.ok) throw new Error('Request failed');
+          msg.textContent = 'Thanks! Your lead was submitted successfully.';
+          msg.classList.add('ok');
+          form.reset();
+        } catch (err) {
+          console.error('Submit error', err);
+          msg.textContent = 'Sorry, there was a problem submitting. Please try again later.';
+          msg.classList.add('err');
+        } finally {
+          setBusy(false);
+        }
+      });
+    </script>
+  </body>
+  </html>
+

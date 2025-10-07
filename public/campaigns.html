@@ -8,9 +8,9 @@
     <script type="module" src="/scripts/pages/campaigns.js" defer></script>
   </head>
   <body>
-    <aside class="sidebar">
+    <aside id="sidebar" class="sidebar" aria-label="Primary">
       <h1 class="logo">RENN.AI</h1>
-      <nav>
+      <nav aria-label="Main navigation">
         <ul class="nav-links">
           <li><a href="/dashboard.html" data-path="/dashboard.html">Overview</a></li>
           <li><a href="/leads.html" data-path="/leads.html">Lead Generation</a></li>
@@ -31,6 +31,7 @@
     </aside>
     <main class="dashboard">
       <header class="dashboard-header">
+        <button id="mobileNavToggle" class="hamburger" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">☰</button>
         <div class="header-text">
           <p id="welcomeMessage" class="subtitle">Welcome</p>
           <h2 id="sectionTitle">Drip Campaigns</h2>
@@ -65,5 +66,6 @@
       <h3>Business Stats</h3>
       <p>Future insights and advanced analytics coming here.</p>
     </aside>
+    <div id="sidebarOverlay" class="overlay" hidden aria-hidden="true"></div>
   </body>
 </html>
