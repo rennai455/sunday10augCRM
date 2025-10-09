@@ -20,8 +20,8 @@ const { getRedisClient } = redis;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Use dynamic port from env (e.g., Railway/Heroku) and fall back to 3002 locally
-const PORT = Number(process.env.PORT) || 3002;
+// Use dynamic port from env with 3000 fallback
+const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || (config?.NODE_ENV ?? undefined);
 
 initOtel?.();
@@ -44,10 +44,7 @@ let server;
 const isPrimaryModule = process.argv[1] === __filename;
 
 if (isPrimaryModule) {
-  server = app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
-    if (NODE_ENV) console.log(`📍 Environment: ${NODE_ENV}`);
-  });
+  server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
   const shutdown = async (signal, err) => {
     console.log(`🛑 ${signal} received, shutting down gracefully`);
