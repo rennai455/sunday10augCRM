@@ -9,14 +9,16 @@
     "dev": "nodemon server.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "build": "echo 'no build step required'"
   },
   "author": "rennai455",
   "license": "MIT",
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "eslint": "^9.37.0",
