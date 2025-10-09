@@ -20,7 +20,9 @@ const { getRedisClient } = redis;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const { PORT = 3005, NODE_ENV } = config ?? {};
+// Use dynamic port from env (e.g., Railway/Heroku) and fall back to 3002 locally
+const PORT = Number(process.env.PORT) || 3002;
+const NODE_ENV = process.env.NODE_ENV || (config?.NODE_ENV ?? undefined);
 
 initOtel?.();
 initSentry?.();
