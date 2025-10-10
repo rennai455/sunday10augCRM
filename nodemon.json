@@ -1,0 +1,7 @@
+{
+  "watch": ["server.js", "src", "config"],
+  "ext": "js,json",
+  "ignore": ["node_modules", "public/dist"],
+  "exec": "node server.js"
+}
+
