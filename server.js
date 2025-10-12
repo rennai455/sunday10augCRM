@@ -44,7 +44,8 @@ let server;
 const isPrimaryModule = process.argv[1] === __filename;
 
 if (isPrimaryModule) {
-  server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  // Bind explicitly to 0.0.0.0 to ensure PaaS environments (e.g., Railway) accept connections
+  server = app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 
   const shutdown = async (signal, err) => {
     console.log(`🛑 ${signal} received, shutting down gracefully`);
