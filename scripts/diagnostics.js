@@ -1,6 +1,5 @@
-'use strict';
-const config = require('../config');
-const { Pool } = require('pg');
+import config from '../config/index.js';
+import { Pool } from 'pg';
 
 /**
  * RENN.AI Diagnostics
@@ -118,15 +117,10 @@ async function checkAPI(skip) {
   // Try to import Express app (should export `app`)
   let app = null;
   try {
-    app = require('../server');
+    const mod = await import('../server.js');
+    app = mod.app || mod.default || null;
   } catch (error) {
-    // Ignore import errors
     void error;
-    try {
-      app = require('../server.js');
-    } catch (innerError) {
-      void innerError;
-    }
   }
 
   if (!app || !app.handle) {
@@ -138,7 +132,8 @@ async function checkAPI(skip) {
 
   let request;
   try {
-    request = require('supertest');
+    const mod = await import('supertest');
+    request = mod.default || mod;
   } catch (e) {
     fail(
       'supertest not installed; run "npm install --dev" or pass --skip-api to bypass API probes.'
