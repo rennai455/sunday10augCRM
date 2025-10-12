@@ -1,8 +1,13 @@
-// metrics.js: Prometheus metrics configuration
-const { register, Counter, Histogram } = require('prom-client');
+// metrics.js: Prometheus metrics configuration (ESM)
+import {
+  register,
+  Counter,
+  Histogram,
+  collectDefaultMetrics,
+} from 'prom-client';
 
 // Default metrics collection
-require('prom-client').collectDefaultMetrics({ register });
+collectDefaultMetrics({ register });
 
 // Custom metrics
 const httpRequestsTotal = new Counter({
@@ -20,20 +25,32 @@ const httpRequestDuration = new Histogram({
   registers: [register],
 });
 
-module.exports = {
+const rateLimitBlockedTotal = new Counter({
+  name: 'rate_limit_blocked_total',
+  help: 'Total number of requests blocked by rate limiting',
+  labelNames: ['route', 'type'],
+  registers: [register],
+});
+
+const webhookEventsTotal = new Counter({
+  name: 'webhook_events_total',
+  help: 'Count of webhook events by outcome',
+  labelNames: ['outcome'],
+  registers: [register],
+});
+
+export {
   register,
   httpRequestsTotal,
   httpRequestDuration,
-  rateLimitBlockedTotal: new Counter({
-    name: 'rate_limit_blocked_total',
-    help: 'Total number of requests blocked by rate limiting',
-    labelNames: ['route', 'type'],
-    registers: [register],
-  }),
-  webhookEventsTotal: new Counter({
-    name: 'webhook_events_total',
-    help: 'Count of webhook events by outcome',
-    labelNames: ['outcome'],
-    registers: [register],
-  }),
+  rateLimitBlockedTotal,
+  webhookEventsTotal,
+};
+
+export default {
+  register,
+  httpRequestsTotal,
+  httpRequestDuration,
+  rateLimitBlockedTotal,
+  webhookEventsTotal,
 };
