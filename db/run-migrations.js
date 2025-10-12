@@ -1,15 +1,21 @@
-// db/run-migrations.js: runs migrate.sql
-const fs = require('fs');
-const path = require('path');
-const db = require('../src/db/pool');
+// db/run-migrations.js (ESM): runs migrate.sql
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { query } from '../src/db/pool.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function runMigrations() {
-  const sql = fs.readFileSync(path.join(__dirname, 'migrate.sql'), 'utf8');
-  await db.query(sql);
+  const sqlPath = path.join(__dirname, 'migrate.sql');
+  const sql = await fs.readFile(sqlPath, 'utf8');
+  await query(sql);
   console.log('Migrations applied.');
 }
 
-if (require.main === module) {
+const isPrimaryModule = process.argv[1] === __filename;
+if (isPrimaryModule) {
   runMigrations().catch((err) => {
     console.error('Migration error:', err);
     process.exit(1);
