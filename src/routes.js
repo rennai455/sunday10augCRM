@@ -24,7 +24,15 @@ import { suggestNextStep } from './utils/dealCoach.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET, METRICS_TOKEN, METRICS_INTERNAL_ONLY, METRICS_ALLOWED_HOST_SUFFIX, ADMIN_API_TOKEN } = config;
+const {
+  JWT_SECRET,
+  NODE_ENV,
+  WEBHOOK_SECRET,
+  METRICS_TOKEN,
+  METRICS_INTERNAL_ONLY,
+  METRICS_ALLOWED_HOST_SUFFIX,
+  ADMIN_API_TOKEN,
+} = config;
 
 // Replay TTL window
 const REPLAY_TTL_MS = 5 * 60 * 1000;
@@ -38,6 +46,28 @@ function timingSafeEqHexHex(aHex, bHex) {
   } catch {
     return false;
   }
+}
+
+function timingSafeEqualString(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  try {
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
+
+function getForwardedHost(req) {
+  const raw =
+    req.headers['x-forwarded-host'] ||
+    req.hostname ||
+    req.headers.host ||
+    '';
+  const value = Array.isArray(raw) ? raw[0] : String(raw);
+  return value.split(',')[0].trim().toLowerCase();
 }
 
 function registerWebhook(app) {
@@ -183,22 +213,52 @@ function registerRoutes(app) {
   // Protect metrics: internal-only (optional) and token or admin
   app.get('/metrics', async (req, res) => {
     if (METRICS_INTERNAL_ONLY) {
-      const host = String(
-        req.headers['x-forwarded-host'] || req.hostname || req.headers.host || ''
+      const host = getForwardedHost(req);
+      const suffix = String(
+        METRICS_ALLOWED_HOST_SUFFIX || 'railway.internal'
       ).toLowerCase();
-      const suffix = String(METRICS_ALLOWED_HOST_SUFFIX || 'railway.internal').toLowerCase();
-      if (!host.endsWith(suffix)) return res.status(404).end();
+      if (!host || !host.endsWith(suffix)) {
+        return res.status(404).end();
+      }
     }
-    if (METRICS_TOKEN) {
-      const provided = req.headers['x-metrics-token'] || req.query.token;
-      if (provided !== METRICS_TOKEN) return res.status(401).send('Unauthorized');
+
+    const sendMetrics = async () => {
+      const payload = await metrics.register.metrics();
       res.set('Content-Type', metrics.register.contentType);
-      return res.end(await metrics.register.metrics());
+      res.set('Cache-Control', 'no-store, max-age=0');
+      res.set('Pragma', 'no-cache');
+      res.send(payload);
+    };
+
+    const safeSend = async () => {
+      try {
+        await sendMetrics();
+      } catch (err) {
+        req.log?.error?.({ err }, 'Failed to render metrics');
+        if (!res.headersSent) {
+          res.status(503).send('Metrics unavailable');
+        }
+      }
+    };
+
+    if (METRICS_TOKEN) {
+      const headerValue = req.headers['x-metrics-token'];
+      const provided = Array.isArray(headerValue)
+        ? headerValue[0]
+        : typeof headerValue === 'string'
+        ? headerValue.trim()
+        : '';
+      if (!timingSafeEqualString(provided, METRICS_TOKEN)) {
+        req.log?.warn?.('Invalid metrics token presented');
+        return res.status(401).send('Unauthorized');
+      }
+      await safeSend();
+      return;
     }
+
     return authenticateWeb(req, res, async () => {
       if (!req.isAdmin) return res.status(403).send('Forbidden');
-      res.set('Content-Type', metrics.register.contentType);
-      res.end(await metrics.register.metrics());
+      await safeSend();
     });
   });
 
@@ -211,8 +271,15 @@ function registerRoutes(app) {
   const adminApiGuard = (req, res, next) => {
     const expected = ADMIN_API_TOKEN;
     if (expected) {
-      const provided = req.headers['x-admin-token'] || req.query.admin_token;
-      if (provided === expected) return next();
+      const headerValue = req.headers['x-admin-token'];
+      const provided = Array.isArray(headerValue)
+        ? headerValue[0]
+        : typeof headerValue === 'string'
+        ? headerValue.trim()
+        : '';
+      if (timingSafeEqualString(provided, expected)) {
+        return next();
+      }
     }
     if (req.isAdmin) return next();
     return res.status(403).json({ error: 'Forbidden' });
