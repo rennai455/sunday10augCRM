@@ -16,3 +16,7 @@ process.env.SEED_ADMIN_PASSWORD =
 process.env.ALLOWED_ORIGINS =
   process.env.ALLOWED_ORIGINS || 'http://localhost:3000';
 process.env.PG_SSL = process.env.PG_SSL || 'false';
+process.env.TOTP_ENCRYPTION_KEY =
+  process.env.TOTP_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES =
+  process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES || '30';

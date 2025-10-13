@@ -22,6 +22,26 @@ const schemas = {
     email: z.string().email().max(256),
     password: z.string().min(6).max(256),
   }),
+  totpVerifyBody: z
+    .object({
+      challengeToken: z.string().min(10).max(512),
+      code: z.string().trim().regex(/^\d{6}$/u).optional(),
+      recoveryCode: z
+        .string()
+        .trim()
+        .regex(/^[A-F0-9]{5}-[A-F0-9]{5}$/iu)
+        .optional(),
+    })
+    .refine((value) => Boolean(value.code || value.recoveryCode), {
+      message: 'code or recoveryCode required',
+    }),
+  passwordResetRequest: z.object({
+    email: z.string().email().max(256),
+  }),
+  passwordResetConfirm: z.object({
+    token: z.string().min(32).max(256),
+    password: z.string().min(8).max(256),
+  }),
   idParam: z.object({ id: z.string().regex(/^\d+$/) }),
   paginationQuery: z.object({
     page: z.coerce.number().int().min(1).optional(),

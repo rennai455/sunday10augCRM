@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
-const { JWT_SECRET, NODE_ENV } = config;
+const { JWT_SECRET } = config;
 
 const auth = async (req, res, next) => {
   

@@ -15,13 +15,16 @@ const baseEnv = cleanEnv(process.env, {
   WEBHOOK_SECRETS: str({ default: '' }),
   WEBHOOK_SECRET: str(),
   ADMIN_API_TOKEN: str({ default: '' }),
-  METRICS_TOKEN: str({ default: '' }),
-  METRICS_INTERNAL_ONLY: bool({ default: false }),
+  METRICS_INTERNAL_ONLY: bool({
+    default: process.env.NODE_ENV === 'production',
+  }),
   METRICS_ALLOWED_HOST_SUFFIX: str({ default: 'railway.internal' }),
   METRICS_TOKEN: str({ default: '' }),
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
   REDIS_URL: str({ default: '' }),
+  TOTP_ENCRYPTION_KEY: str(),
+  PASSWORD_RESET_TOKEN_TTL_MINUTES: num({ default: 30 }),
   // Observability
   SENTRY_DSN: str({ default: '' }),
   OTEL_EXPORTER_OTLP_ENDPOINT: str({ default: '' }),

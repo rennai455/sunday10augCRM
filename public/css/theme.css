@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
 :root {
   --bg: #f4f4f5;
   --panel: #1f2937;
@@ -25,7 +23,7 @@ html, body {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
 }
 

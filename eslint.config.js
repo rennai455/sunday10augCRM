@@ -1,13 +1,13 @@
 import js from '@eslint/js';
 
 export default [
-  // Ignore built assets entirely
-  { ignores: ['public/dist/**/*'] },
+  // Ignore built assets and legacy scripts entirely
+  { ignores: ['public/dist/**/*', 'scripts/**/*'] },
   js.configs.recommended,
   {
-    ignores: ['**/dist/**', '**/public/dist/**', 'node_modules/', '*.min.js'],
+    ignores: ['**/dist/**', '**/public/dist/**', 'node_modules/', '*.min.js', 'scripts/**/*'],
     languageOptions: {
-      sourceType: 'commonjs',
+      sourceType: 'module',
       ecmaVersion: 2022,
       globals: {
         // Node.js globals
@@ -24,18 +24,24 @@ export default [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        fetch: 'readonly',
+        Headers: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        AbortController: 'readonly',
       },
     },
     rules: {
       'no-console': 'off',
-      'no-unused-vars': 'error',
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }],
       'prefer-const': 'error',
       'no-var': 'error',
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
   // Browser environment for client-side scripts
   {
-    files: ['public/scripts/**/*.js'],
+    files: ['public/scripts/**/*.js', 'public/vendor/**/*.js'],
     languageOptions: {
       // Client-side modules use ES module syntax
       sourceType: 'module',
@@ -59,6 +65,8 @@ export default [
         Blob: 'readonly',
         URL: 'readonly',
         FormData: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
         // Custom globals for the app
         setUserRole: 'writable',
         hideAddClientModal: 'readonly',
@@ -87,9 +95,9 @@ export default [
   },
   // Test files
   {
-    files: ['tests/**/*.js', '**/*.test.js'],
+    files: ['tests/**/*.{js,mjs}', '**/*.test.{js,mjs}'],
     languageOptions: {
-      sourceType: 'commonjs',
+      sourceType: 'module',
       ecmaVersion: 2022,
       globals: {
         // Node.js globals
@@ -110,8 +118,8 @@ export default [
         afterAll: 'readonly',
         beforeEach: 'readonly',
         afterEach: 'readonly',
-        jest: 'readonly',
         test: 'readonly',
+        jest: 'readonly',
       },
     },
   },

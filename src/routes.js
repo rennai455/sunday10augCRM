@@ -4,9 +4,10 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'node:crypto';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import metrics from '../metrics.js';
 import { checkAndSetReplay } from './replayStore.js';
-import { pool, withAgencyContext } from './db/pool.js';
+import { pool, withAgencyContext, withTransaction } from './db/pool.js';
 import config from '../config/index.js';
 import { getRedisClient } from './redis.js';
 import { auth, authenticateWeb } from './auth.js';
@@ -20,14 +21,48 @@ import { addLeadEvent, getLeadTimeline as getLeadEvents } from './utils/leadEven
 import { detectSourceFromReferer } from './utils/sourceDetection.js';
 import { cloneCampaign as cloneCampaignUtil } from './utils/campaignCloner.js';
 import { suggestNextStep } from './utils/dealCoach.js';
+import { encryptSecret, decryptSecret } from './security/encryption.js';
+import { createTotpSecret, generateRecoveryCodes, verifyTotp } from './security/totp.js';
+import { captureSecurityEvent } from './utils/alerting.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET, METRICS_TOKEN, METRICS_INTERNAL_ONLY, METRICS_ALLOWED_HOST_SUFFIX, ADMIN_API_TOKEN } = config;
+const {
+  JWT_SECRET,
+  NODE_ENV,
+  WEBHOOK_SECRET,
+  METRICS_TOKEN,
+  METRICS_INTERNAL_ONLY,
+  METRICS_ALLOWED_HOST_SUFFIX,
+  ADMIN_API_TOKEN,
+  PASSWORD_RESET_TOKEN_TTL_MINUTES,
+} = config;
 
 // Replay TTL window
 const REPLAY_TTL_MS = 5 * 60 * 1000;
+const LOGIN_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+const TOTP_CHALLENGE_TTL_SECONDS = 5 * 60;
+const TOTP_RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
+const PASSWORD_RESET_REQUEST_WINDOW_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_REQUEST_MAX = 3;
+
+const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+
+async function hashRecoveryCodes(codes) {
+  return Promise.all(codes.map((code) => bcrypt.hash(code, 12)));
+}
+
+function coerceRecoveryCodes(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 function timingSafeEqHexHex(aHex, bHex) {
   const a = Buffer.from(aHex, 'hex');
@@ -38,6 +73,41 @@ function timingSafeEqHexHex(aHex, bHex) {
   } catch {
     return false;
   }
+}
+
+function signAuthToken(user) {
+  return jwt.sign(
+    { userId: user.id, agencyId: user.agency_id, isAdmin: user.is_admin },
+    JWT_SECRET,
+    { expiresIn: LOGIN_TOKEN_TTL_SECONDS }
+  );
+}
+
+function setAuthCookies(res, token) {
+  res.clearCookie('auth', {
+    sameSite: 'lax',
+    httpOnly: true,
+    secure: NODE_ENV === 'production',
+  });
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: LOGIN_TOKEN_TTL_SECONDS * 1000,
+  });
+}
+
+function createTotpChallengeToken(user) {
+  return jwt.sign(
+    {
+      userId: user.id,
+      agencyId: user.agency_id,
+      isAdmin: user.is_admin,
+      type: 'totp_challenge',
+    },
+    JWT_SECRET,
+    { expiresIn: TOTP_CHALLENGE_TTL_SECONDS }
+  );
 }
 
 function registerWebhook(app) {
@@ -180,16 +250,46 @@ function registerRoutes(app) {
   app.get('/readyz', readinessHandler);
   app.get('/readiness', readinessHandler);
 
+  const totpAttemptLimiter = rateLimit({
+    windowMs: TOTP_RATE_LIMIT_WINDOW_MS,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const base = ipKeyGenerator(req.ip);
+      const bodyToken = req.body?.challengeToken || '';
+      return bodyToken ? `${base}:${bodyToken}` : base;
+    },
+    handler: (_req, res) =>
+      res.status(429).json({ error: 'Too many verification attempts' }),
+  });
+
+  const passwordResetLimiter = rateLimit({
+    windowMs: PASSWORD_RESET_REQUEST_WINDOW_MS,
+    max: PASSWORD_RESET_REQUEST_MAX,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const base = ipKeyGenerator(req.ip);
+      const email = normalizeEmail(req.body?.email);
+      return email ? `${base}:${email}` : base;
+    },
+    handler: (_req, res) =>
+      res.status(429).json({ error: 'Too many password reset requests' }),
+  });
+
   // Protect metrics: internal-only (optional) and token or admin
   app.get('/metrics', async (req, res) => {
-    if (METRICS_INTERNAL_ONLY) {
+    const internalOnly = NODE_ENV === 'production' ? true : METRICS_INTERNAL_ONLY;
+    if (internalOnly) {
       const host = String(
         req.headers['x-forwarded-host'] || req.hostname || req.headers.host || ''
       ).toLowerCase();
       const suffix = String(METRICS_ALLOWED_HOST_SUFFIX || 'railway.internal').toLowerCase();
       if (!host.endsWith(suffix)) return res.status(404).end();
     }
-    if (METRICS_TOKEN) {
+    const allowToken = NODE_ENV !== 'production' && METRICS_TOKEN;
+    if (allowToken) {
       const provided = req.headers['x-metrics-token'] || req.query.token;
       if (provided !== METRICS_TOKEN) return res.status(401).send('Unauthorized');
       res.set('Content-Type', metrics.register.contentType);
@@ -212,7 +312,10 @@ function registerRoutes(app) {
     const expected = ADMIN_API_TOKEN;
     if (expected) {
       const provided = req.headers['x-admin-token'] || req.query.admin_token;
-      if (provided === expected) return next();
+      if (provided === expected) {
+        req.adminTokenBypass = true;
+        return next();
+      }
     }
     if (req.isAdmin) return next();
     return res.status(403).json({ error: 'Forbidden' });
@@ -243,41 +346,279 @@ function registerRoutes(app) {
       // Demo login path removed in production build
 
       try {
+        const normalizedEmail = normalizeEmail(email);
         const result = await pool.query(
-          'SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1',
-          [email]
+          `SELECT id, password_hash, agency_id, is_admin, totp_enabled
+             FROM users WHERE email = $1`,
+          [normalizedEmail]
         );
         const user = result.rows[0];
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+          captureSecurityEvent('auth:invalid_credentials', {
+            email: normalizedEmail,
+            ip: req.ip || null,
+          });
           return res
             .status(401)
             .json({ success: false, message: 'Invalid credentials' });
         }
 
-        const token = jwt.sign(
-          { userId: user.id, agencyId: user.agency_id, isAdmin: user.is_admin },
-          JWT_SECRET,
-          { expiresIn: '24h' }
-        );
+        const totpRequired = Boolean(user.totp_enabled);
+        if (totpRequired) {
+          const challengeToken = createTotpChallengeToken(user);
+          await recordAudit(req, 'auth:login:totp_challenge', {
+            userId: user.id,
+            agencyId: user.agency_id,
+          });
+          return res.json({
+            success: true,
+            requiresTotp: true,
+            challengeToken,
+            expiresIn: TOTP_CHALLENGE_TTL_SECONDS,
+          });
+        }
 
-        res.clearCookie('auth', { sameSite: 'lax', httpOnly: true, secure: NODE_ENV === 'production' });
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 24 * 60 * 60 * 1000,
-        });
-        recordAudit(req, 'auth:login', {
+        const token = signAuthToken(user);
+        setAuthCookies(res, token);
+        await recordAudit(req, 'auth:login', {
           userId: user.id,
           agencyId: user.agency_id,
         });
-        res.json({ success: true, token, expiresIn: 24 * 60 * 60 });
+        res.json({ success: true, token, expiresIn: LOGIN_TOKEN_TTL_SECONDS });
       } catch (error) {
         console.error('Login error:', error);
         res
           .status(500)
           .json({ success: false, message: 'Internal server error' });
       }
+    }
+  );
+
+  app.post(
+    '/api/auth/totp/verify',
+    totpAttemptLimiter,
+    validate({ body: schemas.totpVerifyBody }),
+    async (req, res) => {
+      const { challengeToken, code, recoveryCode } = req.body;
+      let payload;
+      try {
+        payload = jwt.verify(challengeToken, JWT_SECRET);
+      } catch {
+        captureSecurityEvent('auth:totp_invalid_challenge', {
+          ip: req.ip || null,
+        });
+        return res
+          .status(401)
+          .json({ success: false, message: 'Invalid or expired challenge' });
+      }
+      if (payload.type !== 'totp_challenge') {
+        captureSecurityEvent('auth:totp_invalid_payload', {
+          ip: req.ip || null,
+        });
+        return res.status(400).json({ success: false, message: 'Invalid challenge' });
+      }
+
+      try {
+        const userRes = await pool.query(
+          `SELECT id, agency_id, is_admin, totp_secret_encrypted, totp_secret_iv, totp_enabled, totp_recovery_codes
+             FROM users WHERE id = $1`,
+          [payload.userId]
+        );
+        if (userRes.rowCount === 0) {
+          return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        const user = userRes.rows[0];
+        if (!user.totp_enabled) {
+          return res.status(400).json({ success: false, message: 'TOTP not enabled' });
+        }
+
+        const secret = decryptSecret(
+          user.totp_secret_encrypted,
+          user.totp_secret_iv
+        );
+        if (!secret) {
+          return res.status(500).json({ success: false, message: 'Secret unavailable' });
+        }
+
+        let verified = false;
+        let usedRecovery = false;
+        if (code && verifyTotp(secret, code)) {
+          verified = true;
+        }
+
+        let remaining = coerceRecoveryCodes(user.totp_recovery_codes);
+        if (!verified && recoveryCode) {
+          const normalized = recoveryCode.toUpperCase();
+          for (let i = 0; i < remaining.length; i += 1) {
+            const hashed = remaining[i];
+            // eslint-disable-next-line no-await-in-loop
+            const match = await bcrypt.compare(normalized, hashed);
+            if (match) {
+              verified = true;
+              usedRecovery = true;
+              remaining = remaining.filter((_, idx) => idx !== i);
+              break;
+            }
+          }
+          if (verified) {
+            await pool.query(
+              'UPDATE users SET totp_recovery_codes = $1 WHERE id = $2',
+              [JSON.stringify(remaining), user.id]
+            );
+          }
+        }
+
+        if (!verified) {
+          captureSecurityEvent('auth:totp_failure', {
+            userId: user.id,
+            ip: req.ip || null,
+            usedRecovery: Boolean(recoveryCode),
+          });
+          return res
+            .status(401)
+            .json({ success: false, message: 'Invalid verification code' });
+        }
+
+        const token = signAuthToken(user);
+        setAuthCookies(res, token);
+        req.userId = user.id;
+        req.agencyId = user.agency_id;
+        await recordAudit(req, 'auth:login:totp', {
+          userId: user.id,
+          agencyId: user.agency_id,
+          viaRecovery: usedRecovery,
+        });
+        return res.json({
+          success: true,
+          token,
+          expiresIn: LOGIN_TOKEN_TTL_SECONDS,
+          recoveryUsed: usedRecovery,
+        });
+      } catch (error) {
+        console.error('TOTP verify error:', error);
+        return res
+          .status(500)
+          .json({ success: false, message: 'Internal server error' });
+      }
+    }
+  );
+
+  app.post(
+    '/api/auth/password-reset/request',
+    passwordResetLimiter,
+    validate({ body: schemas.passwordResetRequest }),
+    async (req, res) => {
+      const email = normalizeEmail(req.body.email);
+      try {
+        const userRes = await pool.query(
+          'SELECT id, agency_id FROM users WHERE email = $1',
+          [email]
+        );
+        let tokenForResponse;
+        if (userRes.rowCount > 0) {
+          const user = userRes.rows[0];
+          const rawToken = crypto.randomBytes(32).toString('hex');
+          const tokenHash = crypto
+            .createHash('sha256')
+            .update(rawToken)
+            .digest('hex');
+          const expiresAt = new Date(
+            Date.now() + PASSWORD_RESET_TOKEN_TTL_MINUTES * 60 * 1000
+          );
+          await pool.query(
+            'UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+            [user.id]
+          );
+          await pool.query(
+            `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, request_ip, request_user_agent)
+               VALUES ($1, $2, $3, $4, $5)`,
+            [
+              user.id,
+              tokenHash,
+              expiresAt,
+              req.ip || null,
+              req.get('user-agent') || null,
+            ]
+          );
+          req.userId = user.id;
+          req.agencyId = user.agency_id;
+          await recordAudit(req, 'auth:password_reset:requested', {
+            userId: user.id,
+          });
+          if (NODE_ENV !== 'production') {
+            tokenForResponse = rawToken;
+          }
+        }
+
+        const body = { success: true, delivery: 'email' };
+        if (tokenForResponse) body.token = tokenForResponse;
+        return res.status(202).json(body);
+      } catch (error) {
+        console.error('Password reset request error:', error);
+        return res
+          .status(500)
+          .json({ success: false, message: 'Failed to queue reset' });
+      }
+    }
+  );
+
+  app.post(
+    '/api/auth/password-reset/confirm',
+    validate({ body: schemas.passwordResetConfirm }),
+    async (req, res) => {
+      const { token, password } = req.body;
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const now = new Date();
+      let resetRecord;
+      try {
+        await withTransaction(async (client) => {
+          const tokenRes = await client.query(
+            `SELECT prt.id, prt.user_id, prt.expires_at, prt.used_at, u.agency_id
+               FROM password_reset_tokens prt
+               JOIN users u ON prt.user_id = u.id
+              WHERE prt.token_hash = $1
+              FOR UPDATE`,
+            [tokenHash]
+          );
+          if (tokenRes.rowCount === 0) {
+            throw new Error('invalid');
+          }
+          const reset = tokenRes.rows[0];
+          if (reset.used_at || new Date(reset.expires_at) < now) {
+            throw new Error('expired');
+          }
+          const newHash = await bcrypt.hash(password, 12);
+          await client.query('UPDATE users SET password_hash = $1 WHERE id = $2', [
+            newHash,
+            reset.user_id,
+          ]);
+          await client.query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1', [
+            reset.id,
+          ]);
+          resetRecord = reset;
+        });
+      } catch (error) {
+        if (error.message === 'invalid' || error.message === 'expired') {
+          captureSecurityEvent('auth:password_reset_invalid', {
+            reason: error.message,
+            ip: req.ip || null,
+          });
+          return res
+            .status(400)
+            .json({ success: false, message: 'Invalid or expired token' });
+        }
+        console.error('Password reset confirm error:', error);
+        return res
+          .status(500)
+          .json({ success: false, message: 'Failed to reset password' });
+      }
+
+      req.userId = resetRecord.user_id;
+      req.agencyId = resetRecord.agency_id;
+      await recordAudit(req, 'auth:password_reset:completed', {
+        userId: resetRecord.user_id,
+      });
+      return res.json({ success: true });
     }
   );
 
@@ -389,6 +730,77 @@ function registerRoutes(app) {
         }
         req.log?.error({ err }, 'Failed to create user');
         return res.status(500).json({ error: 'Failed to create user' });
+      }
+    }
+  );
+
+  app.post(
+    '/api/admin/users/:id/totp/setup',
+    auth,
+    adminApiGuard,
+    validate({ params: schemas.idParam }),
+    async (req, res) => {
+      if (!req.isAdmin && !req.adminTokenBypass) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const targetId = Number(req.params.id);
+      if (!Number.isFinite(targetId)) {
+        return res.status(400).json({ error: 'Invalid user id' });
+      }
+
+      try {
+        const userRes = await pool.query(
+          'SELECT id, email, agency_id FROM users WHERE id = $1',
+          [targetId]
+        );
+        if (userRes.rowCount === 0) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        const targetUser = userRes.rows[0];
+        const sameAgency =
+          !req.agencyId || Number(req.agencyId) === Number(targetUser.agency_id);
+        if (!sameAgency && !req.adminTokenBypass) {
+          return res.status(403).json({ error: 'Cross-agency setup blocked' });
+        }
+
+        const { secret, otpauthUrl } = createTotpSecret(targetUser.email);
+        const encrypted = encryptSecret(secret);
+        const recoveryCodes = generateRecoveryCodes();
+        const hashedRecovery = await hashRecoveryCodes(recoveryCodes);
+        await pool.query(
+          `UPDATE users
+              SET totp_secret_encrypted = $1,
+                  totp_secret_iv = $2,
+                  totp_enabled = TRUE,
+                  totp_enrolled_at = NOW(),
+                  totp_recovery_codes = $3
+            WHERE id = $4`,
+          [
+            encrypted.ciphertext,
+            encrypted.iv,
+            JSON.stringify(hashedRecovery),
+            targetUser.id,
+          ]
+        );
+
+        await recordAudit(req, 'admin:totp:setup', {
+          targetUserId: targetUser.id,
+          agencyId: targetUser.agency_id,
+          viaAdminToken: Boolean(req.adminTokenBypass),
+        });
+
+        return res.json({
+          success: true,
+          secret: {
+            base32: secret,
+            otpauthUrl,
+          },
+          recoveryCodes,
+        });
+      } catch (error) {
+        console.error('TOTP setup error:', error);
+        return res.status(500).json({ error: 'Failed to configure TOTP' });
       }
     }
   );

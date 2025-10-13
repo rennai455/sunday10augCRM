@@ -1,4 +1,3 @@
-import { Chart } from 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.esm.js';
 import { initCommon, checkAuth, showToast, safeGet } from "./common.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -36,11 +35,16 @@ async function renderAnalytics() {
     const labels = safeGet(data, ['labels'], ['A', 'B', 'C']);
     const values = safeGet(data, ['values'], [5, 10, 3]);
 
-    if (chartInstance) {
+    if (chartInstance?.destroy) {
       chartInstance.destroy();
     }
 
-    chartInstance = new Chart(canvas.getContext('2d'), {
+    const ChartLib = window.Chart;
+    if (!ChartLib) {
+      throw new Error("Chart library unavailable");
+    }
+
+    chartInstance = new ChartLib(canvas, {
       type: 'bar',
       data: {
         labels,

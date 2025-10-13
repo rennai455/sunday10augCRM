@@ -1,4 +1,4 @@
-import { jest, describe, test, expect, afterAll } from '@jest/globals';
+import { jest, test, expect, afterAll } from '@jest/globals';
 import request from 'supertest';
 
 // Minimal no-op to satisfy middleware/hooks

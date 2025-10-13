@@ -23,7 +23,7 @@ export function extractDomain(email) {
   const at = raw.lastIndexOf('@');
   if (at === -1) return '';
   // best-effort strip angle brackets or trailing punctuation
-  let domain = raw.slice(at + 1).replace(/[>),;]+$/g, '').trim();
+  const domain = raw.slice(at + 1).replace(/[>),;]+$/g, '').trim();
   if (!domain.includes('.')) return '';
   return domain;
 }

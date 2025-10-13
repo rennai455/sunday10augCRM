@@ -14,6 +14,7 @@ import cookieParser from 'cookie-parser';
 import metrics from '../metrics.js';
 import config from '../config/index.js';
 import csurf from 'csurf';
+import { captureOperationalEvent } from './utils/alerting.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,6 +78,13 @@ function applyPreMiddleware(app) {
       const labels = { method: req.method, route, status_code: res.statusCode };
       metrics.httpRequestsTotal.inc(labels);
       end(labels);
+      if (res.statusCode >= 500) {
+        captureOperationalEvent('http_5xx', {
+          route,
+          method: req.method,
+          status: res.statusCode,
+        });
+      }
     });
     next();
   });
@@ -106,21 +114,9 @@ function applyPreMiddleware(app) {
     res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
     const directives = {
       'default-src': ["'self'"],
-      'script-src': [
-        "'self'",
-        'https://cdn.tailwindcss.com',
-        'https://cdn.jsdelivr.net',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net',
-        `'nonce-${res.locals.cspNonce}'`,
-      ],
-      'style-src': [
-        "'self'",
-        'https://cdn.tailwindcss.com',
-        'https://fonts.googleapis.com',
-        `'nonce-${res.locals.cspNonce}'`,
-      ],
-      'font-src': ["'self'", 'https://fonts.gstatic.com'],
+      'script-src': ["'self'", `'nonce-${res.locals.cspNonce}'`],
+      'style-src': ["'self'", `'nonce-${res.locals.cspNonce}'`],
+      'font-src': ["'self'"],
       'img-src': ["'self'", 'data:'],
       'connect-src': ["'self'"],
       'frame-ancestors': ["'none'"],

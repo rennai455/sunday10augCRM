@@ -395,10 +395,6 @@ function showCsvErrors(list) {
   el.innerHTML = `<ul class="error-items" style="color:#dc2626;margin:0;padding-left:1.25rem">${lines}</ul>`;
 }
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 function showError(errorEl, message) {
   if (!errorEl) return;
   errorEl.textContent = message;

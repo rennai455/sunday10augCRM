@@ -108,6 +108,12 @@ Full deployment instructions are in [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 Prometheus counter `rate_limit_blocked_total{route,type}` increments on 429 responses from the rate limiter (types: `api`, `auth`). Use this for alerting on abuse or misconfiguration.
 
+### MFA & account recovery
+
+- Admins provision TOTP for any user via `POST /api/admin/users/:id/totp/setup`. Secrets are encrypted at rest with `TOTP_ENCRYPTION_KEY` and recovery codes are hashed.
+- When a user with MFA enabled signs in, `/api/auth/login` returns `{ requiresTotp: true, challengeToken }`; the client must finish authentication with `/api/auth/totp/verify` (rate-limited to 5 attempts every 5 minutes).
+- Password resets use signed, single-use tokens: `POST /api/auth/password-reset/request` queues a token, and `POST /api/auth/password-reset/confirm` rotates the password. All actions are written to `audit_log`.
+
 ### Rate limiting configuration
 
 Tune rate limits via env vars (defaults in parentheses):

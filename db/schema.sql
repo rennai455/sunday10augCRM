@@ -12,7 +12,12 @@ CREATE TABLE users (
     password_hash VARCHAR(256) NOT NULL,
     agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE,
     is_admin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    totp_secret_encrypted TEXT,
+    totp_secret_iv TEXT,
+    totp_enabled BOOLEAN DEFAULT FALSE,
+    totp_enrolled_at TIMESTAMP,
+    totp_recovery_codes JSONB DEFAULT '[]'::jsonb
 );
 
 -- campaigns
@@ -136,6 +141,21 @@ CREATE TABLE audit_log (
   ip INET,
   user_agent TEXT
 );
+
+-- password_reset_tokens
+CREATE TABLE password_reset_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    request_ip INET,
+    request_user_agent TEXT
+);
+
+CREATE INDEX password_reset_tokens_user_idx ON password_reset_tokens(user_id);
+CREATE INDEX password_reset_tokens_active_idx ON password_reset_tokens(token_hash, expires_at) WHERE used_at IS NULL;
 CREATE INDEX idx_audit_agency_time ON audit_log(agency_id, occurred_at DESC);
 CREATE INDEX idx_audit_user_time ON audit_log(user_id, occurred_at DESC);
 CREATE INDEX idx_audit_action_time ON audit_log(action, occurred_at DESC);
