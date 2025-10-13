@@ -21,6 +21,9 @@ const baseEnv = cleanEnv(process.env, {
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
   REDIS_URL: str({ default: '' }),
+  // 2FA / reset (optional)
+  TOTP_ENCRYPTION_KEY: str({ default: '' }),
+  PASSWORD_RESET_TOKEN_TTL_MINUTES: num({ default: 30 }),
   // Observability
   SENTRY_DSN: str({ default: '' }),
   OTEL_EXPORTER_OTLP_ENDPOINT: str({ default: '' }),
