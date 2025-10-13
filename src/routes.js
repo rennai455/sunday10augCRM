@@ -12,6 +12,8 @@ import config from '../config/index.js';
 import { getRedisClient } from './redis.js';
 import { auth, authenticateWeb } from './auth.js';
 import { recordAudit } from './audit.js';
+import rateLimit from 'express-rate-limit';
+import { encryptAesGcm, decryptAesGcm, getKey } from './utils/crypto.js';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
 import { validate, schemas } from './validate.js';
 import { scoreLead } from './utils/leadScoring.js';
@@ -175,6 +177,24 @@ function registerWebhook(app) {
 }
 
 function registerRoutes(app) {
+  // Strict limiter for TOTP + reset flows
+  const totpLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many verification attempts' },
+    validate: { trustProxy: true },
+  });
+  const resetLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => `${req.ip}:${req.body?.email || ''}`,
+    message: { error: 'Too many reset requests' },
+    validate: { trustProxy: true },
+  });
   const healthHandler = async (_req, res) => {
     try {
       await pool.query('select 1');
@@ -242,7 +262,8 @@ function registerRoutes(app) {
       }
     };
 
-    if (METRICS_TOKEN) {
+    // In production, do not accept token; rely on internal-only + admin cookie
+    if (METRICS_TOKEN && NODE_ENV !== 'production') {
       const headerValue = req.headers['x-metrics-token'];
       const provided = Array.isArray(headerValue)
         ? headerValue[0]
@@ -292,6 +313,21 @@ function registerRoutes(app) {
     res.sendFile(path.join(__dirname, '..', 'docs', 'openapi.json'));
   });
 
+  // Admin-only Sentry debug endpoint (safe: only emits a test event when DSN is set)
+  app.get('/admin/debug-sentry', auth, adminApiGuard, async (req, res) => {
+    try {
+      if (config.SENTRY_DSN) {
+        const { createRequire } = await import('node:module');
+        const reqr = createRequire(import.meta.url);
+        const Sentry = reqr('@sentry/node');
+        Sentry.captureMessage('Manual debug-sentry ping', { level: 'info' });
+      }
+      res.json({ ok: true, sent: Boolean(config.SENTRY_DSN) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: 'Failed to send' });
+    }
+  });
+
   // Admin Audit page
   app.get('/Audit.html', authenticateWeb, requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'Audit.html'));
@@ -299,6 +335,7 @@ function registerRoutes(app) {
 
   app.post(
     '/api/auth/login',
+    totpLimiter,
     validate({ body: schemas.loginBody }),
     async (req, res) => {
       const { email, password, totp } = req.body;
@@ -312,11 +349,19 @@ function registerRoutes(app) {
 
       try {
         const result = await pool.query(
-          'SELECT id, password_hash, agency_id, is_admin, two_factor_enabled, totp_secret FROM users WHERE email = $1',
+          'SELECT id, password_hash, agency_id, is_admin, two_factor_enabled, totp_secret, totp_secret_encrypted, totp_secret_iv FROM users WHERE email = $1',
           [email]
         );
         const user = result.rows[0];
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+          try {
+            if (config.SENTRY_DSN) {
+              const { createRequire } = await import('node:module');
+              const reqr = createRequire(import.meta.url);
+              const Sentry = reqr('@sentry/node');
+              Sentry.captureMessage('Auth failure: invalid credentials', { level: 'warning' });
+            }
+          } catch {}
           return res
             .status(401)
             .json({ success: false, message: 'Invalid credentials' });
@@ -325,12 +370,61 @@ function registerRoutes(app) {
         // Enforce TOTP if required (admin policy or user enrollment)
         const requireTotp =
           (user.is_admin && config.TWO_FA_REQUIRED_FOR_ADMIN) ||
-          Boolean(user.two_factor_enabled && user.totp_secret);
+          Boolean(
+            user.two_factor_enabled && (user.totp_secret || user.totp_secret_encrypted)
+          );
         if (requireTotp) {
-          if (!totp || !authenticator.check(String(totp), String(user.totp_secret))) {
+          let ok = false;
+          let secretToUse = null;
+          if (user.totp_secret_encrypted && user.totp_secret_iv) {
+            secretToUse = decryptAesGcm(user.totp_secret_encrypted, user.totp_secret_iv);
+          }
+          if (!secretToUse && user.totp_secret) {
+            secretToUse = String(user.totp_secret);
+          }
+          // Accept 6-digit TOTP
+          if (secretToUse && totp && authenticator.check(String(totp), String(secretToUse))) {
+            ok = true;
+          }
+          // Accept recovery code if provided
+          if (!ok && req.body?.recoveryCode) {
+            const recRes = await pool.query('SELECT totp_recovery_codes FROM users WHERE id = $1', [user.id]);
+            const list = Array.isArray(recRes.rows[0]?.totp_recovery_codes) ? recRes.rows[0].totp_recovery_codes : [];
+            const provided = String(req.body.recoveryCode).trim();
+            const providedHash = crypto.createHash('sha256').update(provided).digest('hex');
+            const idx = list.findIndex((x) => x && x.hash === providedHash && !x.usedAt);
+            if (idx !== -1) {
+              ok = true;
+              // Mark as used
+              list[idx] = { ...list[idx], usedAt: new Date().toISOString() };
+              await pool.query('UPDATE users SET totp_recovery_codes = $1 WHERE id = $2', [JSON.stringify(list), user.id]);
+              await recordAudit(req, 'auth:recovery_code_used', { userId: user.id });
+            }
+          }
+          if (!ok) {
+            try {
+              if (config.SENTRY_DSN) {
+                const { createRequire } = await import('node:module');
+                const reqr = createRequire(import.meta.url);
+                const Sentry = reqr('@sentry/node');
+                Sentry.captureMessage('Auth failure: TOTP required or invalid', { level: 'warning' });
+              }
+            } catch {}
             return res
               .status(401)
               .json({ success: false, message: 'TOTP required or invalid', code: 'TOTP_REQUIRED' });
+          }
+          // Lazy backfill: if using plaintext secret and encryption key available, encrypt and clear plaintext
+          if (user.totp_secret && getKey()) {
+            try {
+              const enc = encryptAesGcm(user.totp_secret);
+              if (enc) {
+                await pool.query(
+                  'UPDATE users SET totp_secret_encrypted = $1, totp_secret_iv = $2, totp_secret = NULL WHERE id = $3',
+                  [enc.ciphertext, enc.ivHex, user.id]
+                );
+              }
+            } catch {}
           }
         }
 
@@ -361,15 +455,23 @@ function registerRoutes(app) {
     }
   );
 
-  // 2FA setup (opt-in). Requires authenticated user. Returns secret + otpauth URL for enrollment.
+  // 2FA setup (opt-in for users; admin may use admin endpoint below). Returns secret + otpauth URL for enrollment.
   app.post('/api/auth/2fa/setup', auth, async (req, res) => {
     try {
       const secret = authenticator.generateSecret();
       const emailRes = await pool.query('SELECT email FROM users WHERE id = $1', [req.userId]);
       const email = emailRes.rows[0]?.email || 'user@renn.ai';
-      const issuer = 'RENN.AI CRM';
+      const issuer = 'renn.ai';
       const otpauthUrl = authenticator.keyuri(email, issuer, secret);
-      await pool.query('UPDATE users SET totp_secret = $1, two_factor_enabled = FALSE WHERE id = $2', [secret, req.userId]);
+      const enc = encryptAesGcm(secret);
+      if (enc) {
+        await pool.query(
+          'UPDATE users SET totp_secret_encrypted = $1, totp_secret_iv = $2, totp_secret = NULL, two_factor_enabled = FALSE, totp_enabled = FALSE WHERE id = $3',
+          [enc.ciphertext, enc.ivHex, req.userId]
+        );
+      } else {
+        await pool.query('UPDATE users SET totp_secret = $1, two_factor_enabled = FALSE WHERE id = $2', [secret, req.userId]);
+      }
       res.json({ secretBase32: secret, otpauthUrl });
     } catch (e) {
       res.status(500).json({ error: 'Failed to initiate 2FA' });
@@ -377,18 +479,132 @@ function registerRoutes(app) {
   });
 
   // 2FA verify to enable
-  app.post('/api/auth/2fa/verify', auth, async (req, res) => {
+  app.post('/api/auth/2fa/verify', auth, totpLimiter, async (req, res) => {
     try {
       const { code } = req.body || {};
-      const r = await pool.query('SELECT totp_secret FROM users WHERE id = $1', [req.userId]);
-      const secret = r.rows[0]?.totp_secret;
+      const r = await pool.query('SELECT totp_secret, totp_secret_encrypted, totp_secret_iv FROM users WHERE id = $1', [req.userId]);
+      let secret = null;
+      if (r.rows[0]?.totp_secret_encrypted && r.rows[0]?.totp_secret_iv) {
+        secret = decryptAesGcm(r.rows[0].totp_secret_encrypted, r.rows[0].totp_secret_iv);
+      }
+      if (!secret && r.rows[0]?.totp_secret) {
+        secret = String(r.rows[0].totp_secret);
+      }
       if (!secret || !code || !authenticator.check(String(code), String(secret))) {
         return res.status(400).json({ error: 'Invalid code' });
       }
-      await pool.query('UPDATE users SET two_factor_enabled = TRUE WHERE id = $1', [req.userId]);
+      if (getKey() && r.rows[0]?.totp_secret) {
+        try {
+          const enc = encryptAesGcm(r.rows[0].totp_secret);
+          if (enc) {
+            await pool.query(
+              'UPDATE users SET totp_secret_encrypted = $1, totp_secret_iv = $2, totp_secret = NULL WHERE id = $3',
+              [enc.ciphertext, enc.ivHex, req.userId]
+            );
+          }
+        } catch {}
+      }
+      await pool.query('UPDATE users SET two_factor_enabled = TRUE, totp_enabled = TRUE WHERE id = $1', [req.userId]);
+      await recordAudit(req, 'auth:2fa_enabled', { userId: req.userId });
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: 'Failed to verify 2FA' });
+    }
+  });
+
+  // Admin-only 2FA setup for own account (scaffold)
+  app.post('/api/admin/2fa/setup', auth, adminApiGuard, async (req, res) => {
+    if (!req.isAdmin) return res.status(403).json({ error: 'Forbidden' });
+    try {
+      const secret = authenticator.generateSecret();
+      const emailRes = await pool.query('SELECT email FROM users WHERE id = $1', [req.userId]);
+      const email = emailRes.rows[0]?.email || 'admin@renn.ai';
+      const issuer = 'renn.ai';
+      const otpauthUrl = authenticator.keyuri(email, issuer, secret);
+      const enc = encryptAesGcm(secret);
+      if (enc) {
+        await pool.query(
+          'UPDATE users SET totp_secret_encrypted = $1, totp_secret_iv = $2, totp_secret = NULL, two_factor_enabled = FALSE, totp_enabled = FALSE WHERE id = $3',
+          [enc.ciphertext, enc.ivHex, req.userId]
+        );
+      } else {
+        await pool.query('UPDATE users SET totp_secret = $1, two_factor_enabled = FALSE WHERE id = $2', [secret, req.userId]);
+      }
+      await recordAudit(req, 'auth:2fa_admin_setup', { userId: req.userId });
+      res.json({ secretBase32: secret, otpauthUrl });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to initiate 2FA' });
+    }
+  });
+
+  // Generate recovery codes (hashed, shown once)
+  app.post('/api/auth/2fa/recovery-codes', auth, async (req, res) => {
+    try {
+      // Generate 10 one-time codes
+      const codes = Array.from({ length: 10 }, () => crypto.randomBytes(5).toString('hex'));
+      const hashed = codes.map((c) => ({ hash: crypto.createHash('sha256').update(c).digest('hex'), usedAt: null }));
+      await pool.query('UPDATE users SET totp_recovery_codes = $1 WHERE id = $2', [JSON.stringify(hashed), req.userId]);
+      await recordAudit(req, 'auth:recovery_codes_generated', { userId: req.userId, count: hashed.length });
+      res.json({ codes });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to generate recovery codes' });
+    }
+  });
+
+  // Password reset: request
+  app.post('/api/auth/password-reset/request', resetLimiter, async (req, res) => {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    try {
+      const u = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+      const userId = u.rows[0]?.id;
+      // Always respond 202 to avoid account enumeration
+      const respond = () => res.status(202).json({ success: true });
+      if (!userId) return respond();
+
+      const ttlMin = Number(config.PASSWORD_RESET_TOKEN_TTL_MINUTES || 30);
+      const exp = new Date(Date.now() + ttlMin * 60 * 1000);
+      const tokenRaw = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(tokenRaw).digest('hex');
+      await pool.query(
+        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, requested_ip)
+         VALUES ($1, $2, $3, $4)`,
+        [userId, tokenHash, exp.toISOString(), req.ip || null]
+      );
+      await recordAudit(req, 'auth:password_reset_requested', { userId });
+      if (NODE_ENV !== 'production') {
+        req.log?.info?.({ token: tokenRaw }, 'Password reset token (dev only)');
+        return res.status(200).json({ success: true, token: tokenRaw, expiresAt: exp.toISOString() });
+      }
+      return respond();
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to issue reset token' });
+    }
+  });
+
+  // Password reset: confirm
+  app.post('/api/auth/password-reset/confirm', totpLimiter, async (req, res) => {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ error: 'Token and new password required' });
+    try {
+      const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+      const r = await pool.query(
+        `SELECT id, user_id, used_at, expires_at FROM password_reset_tokens
+         WHERE token_hash = $1 LIMIT 1`,
+        [tokenHash]
+      );
+      const row = r.rows[0];
+      if (!row) return res.status(400).json({ error: 'Invalid token' });
+      if (row.used_at) return res.status(400).json({ error: 'Token already used' });
+      if (new Date(row.expires_at).getTime() < Date.now()) return res.status(400).json({ error: 'Token expired' });
+
+      const pwHash = await bcrypt.hash(String(password), 12);
+      await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [pwHash, row.user_id]);
+      await pool.query('UPDATE password_reset_tokens SET used_at = NOW(), used_ip = $2 WHERE id = $1', [row.id, req.ip || null]);
+      await recordAudit(req, 'auth:password_reset_completed', { userId: row.user_id });
+      return res.json({ success: true });
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to reset password' });
     }
   });
 

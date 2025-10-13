@@ -36,5 +36,6 @@
   - Rotate secrets quarterly; scope ALLOWED_ORIGINS tightly (closed by default if unset)
   - HSTS enabled by default in production
   - Webhooks use HMAC + optional replay via Redis
-  - Admins provision MFA via `/api/admin/users/:id/totp/setup`; `/metrics` is internal-only when `NODE_ENV=production`
+  - Admin MFA: `/api/admin/2fa/setup` (self-enrollment), verify via `/api/auth/2fa/verify`, and generate recovery codes at `/api/auth/2fa/recovery-codes`
+  - `/metrics` is internal-only when `NODE_ENV=production` (token header ignored)
   - Password reset tokens are single-use, time-bound, and audited

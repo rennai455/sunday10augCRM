@@ -1,5 +1,5 @@
 import express from 'express';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, URL } from 'node:url';
 import path from 'node:path';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,6 +14,8 @@ import cookieParser from 'cookie-parser';
 import metrics from '../metrics.js';
 import config from '../config/index.js';
 import csurf from 'csurf';
+import { createRequire } from 'node:module';
+const reqr = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -152,21 +154,9 @@ function applyPreMiddleware(app) {
     res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
     const directives = {
       'default-src': ["'self'"],
-      'script-src': [
-        "'self'",
-        'https://cdn.tailwindcss.com',
-        'https://cdn.jsdelivr.net',
-        'https://cdnjs.cloudflare.com',
-        'https://cdn.jsdelivr.net',
-        `'nonce-${res.locals.cspNonce}'`,
-      ],
-      'style-src': [
-        "'self'",
-        'https://cdn.tailwindcss.com',
-        'https://fonts.googleapis.com',
-        `'nonce-${res.locals.cspNonce}'`,
-      ],
-      'font-src': ["'self'", 'https://fonts.gstatic.com'],
+      'script-src': ["'self'", `'nonce-${res.locals.cspNonce}'`],
+      'style-src': ["'self'", `'nonce-${res.locals.cspNonce}'`],
+      'font-src': ["'self'"],
       'img-src': ["'self'", 'data:'],
       'connect-src': ["'self'"],
       'frame-ancestors': ["'none'"],
@@ -324,6 +314,27 @@ function applyPostMiddleware(app) {
       'auth'
     )
   );
+
+  // Central error handler to capture 5xx spikes and exceptions
+  // Sentry is initialized in observability if DSN present; require dynamically here
+  // to avoid importing in environments without DSN.
+  // Must be added before any final fallthrough handlers.
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, req, res, next) => {
+    try {
+      if (config.SENTRY_DSN) {
+        const Sentry = reqr('@sentry/node');
+        Sentry.captureException(err);
+      }
+    } catch {}
+    const status = err?.status || err?.statusCode || 500;
+    if (status >= 500) {
+      req.log?.error?.({ err }, 'Unhandled error');
+    }
+    if (!res.headersSent) {
+      res.status(status).json({ error: status >= 500 ? 'Internal Server Error' : err?.message || 'Error' });
+    }
+  });
 
   const slowDownConfig = {
     windowMs: 15 * 60 * 1000,

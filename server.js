@@ -8,6 +8,7 @@ import routes from './src/routes.js';
 import authModule from './src/auth.js';
 import db from './src/db/pool.js';
 import redis from './src/redis.js';
+import config from './config/index.js';
 
 const { initSentry, initOtel } = observability;
 const { applyPreMiddleware, applyPostMiddleware } = middleware;
@@ -15,7 +16,14 @@ const { registerWebhook, registerRoutes } = routes;
 const { auth } = authModule;
 const { pool } = db;
 const { getRedisClient } = redis;
-const { RATE_LIMIT_TRUST_PROXY } = config;
+// Be resilient if envs are mis-cased or an old build misses config: fall back to process.env
+const { RATE_LIMIT_TRUST_PROXY } = config || {};
+const TRUST_PROXY =
+  typeof RATE_LIMIT_TRUST_PROXY === 'boolean'
+    ? RATE_LIMIT_TRUST_PROXY
+    : String(process.env.RATE_LIMIT_TRUST_PROXY || '')
+        .trim()
+        .toLowerCase() === 'true';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +36,7 @@ initSentry?.();
 
 const app = express();
 app.disable('x-powered-by');
-if (RATE_LIMIT_TRUST_PROXY) {
+if (TRUST_PROXY) {
   app.set('trust proxy', 1);
 } else {
   app.disable('trust proxy');

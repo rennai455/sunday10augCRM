@@ -132,6 +132,20 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS totp_enrolled_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS totp_recovery_codes JSONB DEFAULT '[]'::jsonb;
 
+-- Password reset tokens (single-use)
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL,
+  requested_ip INET,
+  used_ip INET,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_prt_user_expires ON password_reset_tokens(user_id, expires_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_prt_token_hash ON password_reset_tokens(token_hash);
+
 -- Password reset tokens
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id SERIAL PRIMARY KEY,

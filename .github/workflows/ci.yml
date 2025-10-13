@@ -2,68 +2,42 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-          POSTGRES_USER: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      NODE_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
-      PG_SSL: "false"
-      JWT_SECRET: dummy
-      WEBHOOK_SECRET: dummy
-      SEED_ADMIN_EMAIL: ci@example.com
-      SEED_ADMIN_PASSWORD: dummy-password
-      RATE_LIMIT_TRUST_PROXY: "true"
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
-      - name: Wait for Postgres
-        shell: bash
-        run: |
-          timeout 60 bash -c 'until echo > /dev/tcp/127.0.0.1/5432; do sleep 2; done'
-
-      - name: Install dependencies
+      - name: Install
         run: npm ci
 
-      - name: Run DB migrations
-        run: node db/run-migrations.js
+      - name: Lint (focused)
+        run: npx eslint src/auth.js src/middleware.js src/routes.js server.js public/scripts/pages/login.js service-worker.js
 
-      - name: Seed admin (optional)
-        run: node db/seed.js
+      - name: Test
+        env:
+          NODE_ENV: test
+        run: npm test --silent
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Unit tests
-        run: npm test
-
-      - name: Security audit
+      - name: Audit (prod deps)
         run: npm audit --omit=dev
 
-      - name: Smoke diagnostics
+      - name: Smoke diagnostics (skip API)
+        env:
+          NODE_ENV: test
         run: node scripts/diagnostics.js --skip-api

@@ -16,12 +16,6 @@ const CACHE_CONFIG = {
     "/manifest.json"
   ],
   
-  // External resources with fallbacks
-  EXTERNAL_ASSETS: [
-    "https://cdn.tailwindcss.com/3.3.0",
-    "https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@400;500&display=swap"
-  ],
-  
   // API endpoints for offline functionality
   API_ROUTES: [
     "/api/campaigns",
@@ -62,17 +56,7 @@ self.addEventListener("install", event => {
         return cache.addAll(CACHE_CONFIG.STATIC_ASSETS);
       }),
       
-      // Cache external resources with error handling
-      caches.open(DYNAMIC_CACHE).then(cache => {
-        console.log("🌐 Caching external assets");
-        return Promise.allSettled(
-          CACHE_CONFIG.EXTERNAL_ASSETS.map(url => 
-            cache.add(url).catch(err => 
-              console.warn(`Failed to cache ${url}:`, err)
-            )
-          )
-        );
-      }),
+      // No external CDNs cached to comply with strict CSP
       
       // Initialize IndexedDB for offline queue if available
       'indexedDB' in self ? initializeOfflineDB() : Promise.resolve()
@@ -132,8 +116,6 @@ self.addEventListener("fetch", event => {
     event.respondWith(handleApiRequest(request));
   } else if (isStaticAsset(url)) {
     event.respondWith(handleStaticAsset(request));
-  } else if (isExternalAsset(url)) {
-    event.respondWith(handleExternalAsset(request));
   } else {
     event.respondWith(handleDynamicContent(request));
   }
@@ -211,37 +193,6 @@ async function handleStaticAsset(request) {
   }
 }
 
-// External asset handler with network-first strategy
-async function handleExternalAsset(request) {
-  try {
-    // Try network first for external assets
-    performanceMetrics.networkRequests++;
-    const networkResponse = await fetch(request, { 
-      mode: 'cors',
-      cache: 'force-cache' 
-    });
-    
-    if (networkResponse.ok) {
-      const cache = await caches.open(DYNAMIC_CACHE);
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-    
-  } catch (error) {
-    // Fallback to cache
-    const cache = await caches.open(DYNAMIC_CACHE);
-    const cachedResponse = await cache.match(request);
-    
-    if (cachedResponse) {
-      console.log("📱 Serving cached external asset offline");
-      performanceMetrics.cacheHits++;
-      return cachedResponse;
-    }
-    
-    return generateFallbackResponse(request);
-  }
-}
 
 // Dynamic content handler with network-first strategy
 async function handleDynamicContent(request) {
@@ -464,9 +415,7 @@ function isStaticAsset(url) {
          CACHE_CONFIG.STATIC_ASSETS.includes(url.pathname);
 }
 
-function isExternalAsset(url) {
-  return url.origin !== self.location.origin;
-}
+// External assets are not cached to comply with CSP
 
 async function cleanupExpiredCache() {
   const cacheNames = await caches.keys();

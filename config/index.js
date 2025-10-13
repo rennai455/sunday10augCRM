@@ -1,8 +1,26 @@
 import 'dotenv/config';
 import { cleanEnv, str, num, bool } from 'envalid';
 
+// Normalize commonly mis-set boolean envs (e.g., TRUE/False/1/0)
+const BOOL_KEYS = [
+  'PG_SSL',
+  'METRICS_INTERNAL_ONLY',
+  'RATE_LIMIT_TRUST_PROXY',
+  'PG_ENABLE_RLS',
+  'TWO_FA_REQUIRED_FOR_ADMIN',
+];
+
+const normalizedEnv = { ...process.env };
+for (const k of BOOL_KEYS) {
+  if (k in normalizedEnv && typeof normalizedEnv[k] === 'string') {
+    const v = normalizedEnv[k].trim().toLowerCase();
+    if (v === 'true' || v === '1' || v === 'yes') normalizedEnv[k] = 'true';
+    else if (v === 'false' || v === '0' || v === 'no') normalizedEnv[k] = 'false';
+  }
+}
+
 // Use a shallow, extensible wrapper around the frozen cleanEnv result
-const baseEnv = cleanEnv(process.env, {
+const baseEnv = cleanEnv(normalizedEnv, {
   NODE_ENV: str({
     choices: ['development', 'test', 'production'],
     default: 'development',
@@ -15,15 +33,12 @@ const baseEnv = cleanEnv(process.env, {
   WEBHOOK_SECRETS: str({ default: '' }),
   WEBHOOK_SECRET: str(),
   ADMIN_API_TOKEN: str({ default: '' }),
-  METRICS_INTERNAL_ONLY: bool({ default: process.env.NODE_ENV === 'production' }),
+  METRICS_INTERNAL_ONLY: bool({ default: normalizedEnv.NODE_ENV === 'production' }),
   METRICS_ALLOWED_HOST_SUFFIX: str({ default: 'railway.internal' }),
   METRICS_TOKEN: str({ default: '' }),
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
   REDIS_URL: str({ default: '' }),
-  // 2FA / reset (optional)
-  TOTP_ENCRYPTION_KEY: str({ default: '' }),
-  PASSWORD_RESET_TOKEN_TTL_MINUTES: num({ default: 30 }),
   // 2FA / reset (optional)
   TOTP_ENCRYPTION_KEY: str({ default: '' }),
   PASSWORD_RESET_TOKEN_TTL_MINUTES: num({ default: 30 }),

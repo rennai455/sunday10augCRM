@@ -3,19 +3,17 @@
 <head>
   <meta charset="utf-8"/>
   <title>API Docs</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui.css">
-</head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+  </style>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  </head>
 <body>
-<div id="swagger-ui"></div>
-<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js"></script>
-<script>
-  window.ui = SwaggerUIBundle({
-    url: '/docs/openapi.json',
-    dom_id: '#swagger-ui',
-    presets: [SwaggerUIBundle.presets.apis],
-    layout: 'BaseLayout'
-  });
-  </script>
+  <h1>API Documentation</h1>
+  <p>Download the OpenAPI spec at <a href="/docs/openapi.json"><code>/docs/openapi.json</code></a> and view locally with Swagger UI or Redoc.</p>
+  <p>This page avoids third-party CDNs to comply with strict CSP.</p>
 </body>
 </html>
-

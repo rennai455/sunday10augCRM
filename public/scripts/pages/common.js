@@ -4,7 +4,7 @@ const SIDEBAR_STATE_KEY = 'sidebarOpen';
 
 export async function checkAuth() {
   const path = window.location.pathname.toLowerCase();
-  if (path === '/login.html') return null;
+  if (path === '/Login.html') return null;
 
   try {
     const res = await fetch('/api/auth/me', { credentials: 'include' });
@@ -14,7 +14,7 @@ export async function checkAuth() {
     hydrateUser(data);
     return data;
   } catch (error) {
-    window.location.href = '/login.html';
+    window.location.href = '/Login.html';
     throw error;
   }
 }
@@ -98,7 +98,7 @@ function wireCommonActions() {
       try {
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       } finally {
-        window.location.href = '/login.html';
+        window.location.href = '/Login.html';
       }
     });
   }

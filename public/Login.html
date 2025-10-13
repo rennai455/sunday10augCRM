@@ -15,13 +15,20 @@
         <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email" />
         <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password" />
 
+        <div id="totpBlock" class="hidden">
+          <input type="text" id="totp" name="totp" inputmode="numeric" pattern="\\d{6}" placeholder="6-digit code" autocomplete="one-time-code" />
+          <div class="or">or</div>
+          <input type="text" id="recoveryCode" name="recoveryCode" placeholder="Recovery code" />
+        </div>
+
         <button type="submit" id="loginBtn" class="primary-button">Login</button>
 
         <p id="loginError" class="error hidden">Invalid credentials</p>
+        <p id="totpHint" class="hint hidden">Enter your 6-digit code or a recovery code.</p>
 
-        <a href="#" class="forgot-link">Forgot password?</a>
+        <a href="#" id="forgotLink" class="forgot-link">Forgot password?</a>
       </form>
       <p class="login-note">Tip: Safari may need <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> to clear cached styles.</p>
     </div>
   </body>
-</html>
+  </html>
