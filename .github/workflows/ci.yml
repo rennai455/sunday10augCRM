@@ -34,7 +34,7 @@ jobs:
       RATE_LIMIT_TRUST_PROXY: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
         uses: actions/setup-node@v4
