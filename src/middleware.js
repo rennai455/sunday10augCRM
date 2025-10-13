@@ -140,12 +140,13 @@ function applyPreMiddleware(app) {
       return next();
     });
   });
-  app.options('*', (req, res, next) => {
+  // Express 5 no longer supports bare "*" route patterns with path-to-regexp.
+  // Handle CORS preflight for all routes by intercepting OPTIONS requests.
+  app.use((req, res, next) => {
+    if (req.method !== 'OPTIONS') return next();
     corsMiddleware(req, res, (err) => {
       if (err) return handleCorsError(err, req, res);
-      if (!res.headersSent) {
-        return res.sendStatus(204);
-      }
+      if (!res.headersSent) return res.sendStatus(204);
       return next();
     });
   });
