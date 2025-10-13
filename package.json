@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "build": "echo 'no build step required'"
+    "build": "echo 'no build step required'",
+    "db:migrate": "node db/run-migrations.js",
+    "db:seed": "node db/seed.js",
+    "db:prepare": "npm run db:migrate && npm run db:seed"
   },
   "author": "rennai455",
   "license": "MIT",
