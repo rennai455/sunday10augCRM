@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import config from './config/index.js';
 import observability from './src/observability.js';
 import middleware from './src/middleware.js';
 import routes from './src/routes.js';
@@ -23,7 +22,6 @@ const __dirname = path.dirname(__filename);
 
 // Use dynamic port from env with 3000 fallback
 const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || (config?.NODE_ENV ?? undefined);
 
 initOtel?.();
 initSentry?.();

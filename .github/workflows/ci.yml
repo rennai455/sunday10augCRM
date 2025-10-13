@@ -62,8 +62,8 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: Security audit (non-blocking)
-        run: npm audit --omit=dev || true
+      - name: Security audit
+        run: npm audit --omit=dev
 
       - name: Smoke diagnostics
         run: node scripts/diagnostics.js --skip-api

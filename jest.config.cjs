@@ -1,6 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
   transform: {}, // no transpilation
-  testMatch: ['**/*.test.mjs'], // run ONLY .test.mjs for now
+  testMatch: ['**/*.test.mjs'],
   moduleFileExtensions: ['mjs', 'js', 'json'],
 };

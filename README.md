@@ -104,6 +104,12 @@ To deploy on [Railway](https://railway.app):
 
 Full deployment instructions are in [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
+### MFA & account recovery
+
+- Admins provision TOTP via `POST /api/admin/users/:id/totp/setup`. Secrets are encrypted at rest with `TOTP_ENCRYPTION_KEY`; recovery codes are hashed and only returned once.
+- When MFA is enabled, `/api/auth/login` will require a TOTP code.
+- Password resets are single‑use and time‑limited; all flows are audited in `audit_log`.
+
 ### Rate limiting metrics
 
 Prometheus counter `rate_limit_blocked_total{route,type}` increments on 429 responses from the rate limiter (types: `api`, `auth`). Use this for alerting on abuse or misconfiguration.

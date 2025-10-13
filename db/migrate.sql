@@ -123,3 +123,25 @@ CREATE INDEX IF NOT EXISTS idx_lead_events_lead_created ON lead_events (lead_id,
 
 -- Add score column for existing databases (idempotent)
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS score INTEGER;
+
+-- MFA encrypted secret columns (idempotent)
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS totp_secret_encrypted TEXT,
+  ADD COLUMN IF NOT EXISTS totp_secret_iv TEXT,
+  ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS totp_enrolled_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS totp_recovery_codes JSONB DEFAULT '[]'::jsonb;
+
+-- Password reset tokens
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  request_ip INET,
+  request_user_agent TEXT
+);
+CREATE INDEX IF NOT EXISTS password_reset_tokens_user_idx ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS password_reset_tokens_active_idx ON password_reset_tokens(token_hash, expires_at) WHERE used_at IS NULL;
