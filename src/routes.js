@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { authenticator } from 'otplib';
 import crypto from 'node:crypto';
 import metrics from '../metrics.js';
 import { checkAndSetReplay } from './replayStore.js';
@@ -300,7 +301,7 @@ function registerRoutes(app) {
     '/api/auth/login',
     validate({ body: schemas.loginBody }),
     async (req, res) => {
-      const { email, password } = req.body;
+      const { email, password, totp } = req.body;
       if (!email || !password) {
         return res
           .status(400)
@@ -311,7 +312,7 @@ function registerRoutes(app) {
 
       try {
         const result = await pool.query(
-          'SELECT id, password_hash, agency_id, is_admin FROM users WHERE email = $1',
+          'SELECT id, password_hash, agency_id, is_admin, two_factor_enabled, totp_secret FROM users WHERE email = $1',
           [email]
         );
         const user = result.rows[0];
@@ -319,6 +320,18 @@ function registerRoutes(app) {
           return res
             .status(401)
             .json({ success: false, message: 'Invalid credentials' });
+        }
+
+        // Enforce TOTP if required (admin policy or user enrollment)
+        const requireTotp =
+          (user.is_admin && config.TWO_FA_REQUIRED_FOR_ADMIN) ||
+          Boolean(user.two_factor_enabled && user.totp_secret);
+        if (requireTotp) {
+          if (!totp || !authenticator.check(String(totp), String(user.totp_secret))) {
+            return res
+              .status(401)
+              .json({ success: false, message: 'TOTP required or invalid', code: 'TOTP_REQUIRED' });
+          }
         }
 
         const token = jwt.sign(
@@ -347,6 +360,37 @@ function registerRoutes(app) {
       }
     }
   );
+
+  // 2FA setup (opt-in). Requires authenticated user. Returns secret + otpauth URL for enrollment.
+  app.post('/api/auth/2fa/setup', auth, async (req, res) => {
+    try {
+      const secret = authenticator.generateSecret();
+      const emailRes = await pool.query('SELECT email FROM users WHERE id = $1', [req.userId]);
+      const email = emailRes.rows[0]?.email || 'user@renn.ai';
+      const issuer = 'RENN.AI CRM';
+      const otpauthUrl = authenticator.keyuri(email, issuer, secret);
+      await pool.query('UPDATE users SET totp_secret = $1, two_factor_enabled = FALSE WHERE id = $2', [secret, req.userId]);
+      res.json({ secretBase32: secret, otpauthUrl });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to initiate 2FA' });
+    }
+  });
+
+  // 2FA verify to enable
+  app.post('/api/auth/2fa/verify', auth, async (req, res) => {
+    try {
+      const { code } = req.body || {};
+      const r = await pool.query('SELECT totp_secret FROM users WHERE id = $1', [req.userId]);
+      const secret = r.rows[0]?.totp_secret;
+      if (!secret || !code || !authenticator.check(String(code), String(secret))) {
+        return res.status(400).json({ error: 'Invalid code' });
+      }
+      await pool.query('UPDATE users SET two_factor_enabled = TRUE WHERE id = $1', [req.userId]);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to verify 2FA' });
+    }
+  });
 
   // Lead coaching suggestion
   app.get(

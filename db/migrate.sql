@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(256) NOT NULL,
     agency_id INTEGER REFERENCES agencies(id) ON DELETE CASCADE,
     is_admin BOOLEAN DEFAULT FALSE,
+    two_factor_enabled BOOLEAN DEFAULT FALSE,
+    totp_secret TEXT,
+    recovery_codes TEXT[],
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

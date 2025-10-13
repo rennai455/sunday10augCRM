@@ -29,6 +29,7 @@ const baseEnv = cleanEnv(process.env, {
   PG_POOL_MAX: num({ default: 10 }),
   PG_IDLE_TIMEOUT_MS: num({ default: 30000 }),
   PG_ENABLE_RLS: bool({ default: false }),
+  TWO_FA_REQUIRED_FOR_ADMIN: bool({ default: false }),
   // Rate limit configuration
   API_RATE_WINDOW_MS: num({ default: 900000 }), // 15 minutes
   API_RATE_MAX: num({ default: 1000 }),
