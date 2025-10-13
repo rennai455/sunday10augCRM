@@ -774,6 +774,8 @@ body.dark .login-form {
 .login-page {
   display: grid;
   place-items: center;
+  /* Override the dashboard body grid so login centers correctly */
+  grid-template-columns: 1fr;
   min-height: 100vh;
   margin: 0;
   background: #0d1117;
