@@ -2,13 +2,36 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ main ]
+    branches: [ "main" ]
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+      PG_SSL: "false"
+      JWT_SECRET: dummy
+      WEBHOOK_SECRET: dummy
+      SEED_ADMIN_EMAIL: ci@example.com
+      SEED_ADMIN_PASSWORD: dummy-password
+      RATE_LIMIT_TRUST_PROXY: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,15 +42,28 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Wait for Postgres
+        shell: bash
+        run: |
+          timeout 60 bash -c 'until echo > /dev/tcp/127.0.0.1/5432; do sleep 2; done'
+
       - name: Install dependencies
         run: npm ci
 
-      # Optional sanity; do not fail the build for lint/tests yet to avoid blocking
-      - name: Lint (non-blocking)
-        run: npm run -s lint || true
+      - name: Run DB migrations
+        run: node db/run-migrations.js
 
-      - name: Show package versions
-        run: |
-          node -v
-          npm -v
+      - name: Seed admin (optional)
+        run: node db/seed.js
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Security audit (non-blocking)
+        run: npm audit --omit=dev || true
+
+      - name: Smoke diagnostics
+        run: node scripts/diagnostics.js --skip-api
