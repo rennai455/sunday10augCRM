@@ -13,6 +13,10 @@
   - `ALLOWED_ORIGINS=https://<your-app>.up.railway.app,https://<custom-domain>`
   - `SEED_ADMIN_EMAIL=<admin@domain>`
   - `SEED_ADMIN_PASSWORD=<one-time strong password>`
+  - Optional (recommended): `ADMIN_API_TOKEN=<strong token>` (required for `/api/admin/*` if set)
+  - Optional (recommended): `METRICS_TOKEN=<strong token>` (required header `X-Metrics-Token`)
+  - Optional: `METRICS_INTERNAL_ONLY=true` (serve `/metrics` only to `*.railway.internal`)
+  - Optional: `METRICS_ALLOWED_HOST_SUFFIX=railway.internal` (override suffix for internal-only)
   - Optional: `REDIS_URL=<railway redis url>`
   - Optional: `API_RATE_WINDOW_MS, API_RATE_MAX, AUTH_RATE_WINDOW_MS, AUTH_RATE_MAX`
 
@@ -27,7 +31,7 @@
   - Alert on webhook_events_total outcomes: invalid_sig/replay/stale
 
 - Security
-  - Rotate secrets quarterly; scope ALLOWED_ORIGINS tightly
+  - Rotate secrets quarterly; scope ALLOWED_ORIGINS tightly (closed by default if unset)
   - HSTS enabled by default in production
   - Webhooks use HMAC + optional replay via Redis
-
+  - Demo auth paths are disabled; `/metrics` gated by token or admin, and can be internal-only

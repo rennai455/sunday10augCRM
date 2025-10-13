@@ -24,7 +24,7 @@ import { suggestNextStep } from './utils/dealCoach.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET } = config;
+const { JWT_SECRET, NODE_ENV, WEBHOOK_SECRET, METRICS_TOKEN, METRICS_INTERNAL_ONLY, METRICS_ALLOWED_HOST_SUFFIX, ADMIN_API_TOKEN } = config;
 
 // Replay TTL window
 const REPLAY_TTL_MS = 5 * 60 * 1000;
@@ -180,12 +180,18 @@ function registerRoutes(app) {
   app.get('/readyz', readinessHandler);
   app.get('/readiness', readinessHandler);
 
-  // Protect metrics: prefer header X-Metrics-Token (METRICS_TOKEN), else require admin
+  // Protect metrics: internal-only (optional) and token or admin
   app.get('/metrics', async (req, res) => {
-    const token = process.env.METRICS_TOKEN || '';
-    if (token) {
+    if (METRICS_INTERNAL_ONLY) {
+      const host = String(
+        req.headers['x-forwarded-host'] || req.hostname || req.headers.host || ''
+      ).toLowerCase();
+      const suffix = String(METRICS_ALLOWED_HOST_SUFFIX || 'railway.internal').toLowerCase();
+      if (!host.endsWith(suffix)) return res.status(404).end();
+    }
+    if (METRICS_TOKEN) {
       const provided = req.headers['x-metrics-token'] || req.query.token;
-      if (provided !== token) return res.status(401).send('Unauthorized');
+      if (provided !== METRICS_TOKEN) return res.status(401).send('Unauthorized');
       res.set('Content-Type', metrics.register.contentType);
       return res.end(await metrics.register.metrics());
     }
@@ -200,6 +206,16 @@ function registerRoutes(app) {
   const requireAdmin = (req, res, next) => {
     if (!req.isAdmin) return res.status(403).send('Forbidden');
     next();
+  };
+  // Optional admin API token guard: if ADMIN_API_TOKEN is set and provided, allow without cookie
+  const adminApiGuard = (req, res, next) => {
+    const expected = ADMIN_API_TOKEN;
+    if (expected) {
+      const provided = req.headers['x-admin-token'] || req.query.admin_token;
+      if (provided === expected) return next();
+    }
+    if (req.isAdmin) return next();
+    return res.status(403).json({ error: 'Forbidden' });
   };
   app.get('/docs', authenticateWeb, requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'docs', 'swagger.html'));
@@ -316,6 +332,7 @@ function registerRoutes(app) {
   app.post(
     '/api/admin/users',
     auth,
+    adminApiGuard,
     validate({ body: schemas.userCreateBody }),
     async (req, res) => {
       if (!req.isAdmin) {
