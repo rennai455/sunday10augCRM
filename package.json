@@ -20,7 +20,7 @@
   "dependencies": {
     "@opentelemetry/auto-instrumentations-node": "^0.55.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.55.0",
-    "@opentelemetry/sdk-node": "^0.55.0",
+    "@opentelemetry/sdk-node": "^0.206.0",
     "@sentry/node": "^8.28.0",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^2.4.3",
