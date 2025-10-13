@@ -16,6 +16,7 @@ const { registerWebhook, registerRoutes } = routes;
 const { auth } = authModule;
 const { pool } = db;
 const { getRedisClient } = redis;
+const { RATE_LIMIT_TRUST_PROXY } = config;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +30,11 @@ initSentry?.();
 
 const app = express();
 app.disable('x-powered-by');
-app.enable('trust proxy');
+if (RATE_LIMIT_TRUST_PROXY) {
+  app.set('trust proxy', 1);
+} else {
+  app.disable('trust proxy');
+}
 
 applyPreMiddleware?.(app);
 registerWebhook?.(app);

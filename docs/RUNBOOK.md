@@ -14,10 +14,12 @@ PG_SSL=true
 JWT_SECRET=<strong random 32B base64>
 WEBHOOK_SECRET=<strong random 32B base64>
 ALLOWED_ORIGINS=https://<your-subdomain>.up.railway.app,https://another-domain.com
+RATE_LIMIT_TRUST_PROXY=true
 # Optional hardening
 ADMIN_API_TOKEN=<strong token>          # header: X-Admin-Token (for /api/admin/*)
 METRICS_TOKEN=<strong token>            # header: X-Metrics-Token (for /metrics)
-METRICS_INTERNAL_ONLY=true              # restrict /metrics to *.railway.internal
+METRICS_INTERNAL_ONLY=false             # only disable internal-only metrics if required
+REDIS_URL=<Railway Redis URL>           # enables Redis-backed rate limiting
 ```
 
 (Generate secrets locally with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`)
@@ -38,3 +40,4 @@ node db/seed.js
 - `HEAD https://<app>/Login.html` → has `Content-Security-Policy`
 - `HEAD https://<app>/health` with `Origin: https://<app>` → `Access-Control-Allow-Origin` present.
 - `GET https://<app>/metrics` → 401 unless `X-Metrics-Token` valid (or 404 if internal-only)
+- `GET https://<app>/dashboard.html` (no session) → redirect to `Login.html`

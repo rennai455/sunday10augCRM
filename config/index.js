@@ -16,9 +16,8 @@ const baseEnv = cleanEnv(process.env, {
   WEBHOOK_SECRET: str(),
   ADMIN_API_TOKEN: str({ default: '' }),
   METRICS_TOKEN: str({ default: '' }),
-  METRICS_INTERNAL_ONLY: bool({ default: false }),
+  METRICS_INTERNAL_ONLY: bool({ default: true }),
   METRICS_ALLOWED_HOST_SUFFIX: str({ default: 'railway.internal' }),
-  METRICS_TOKEN: str({ default: '' }),
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
   REDIS_URL: str({ default: '' }),
@@ -39,6 +38,17 @@ const baseEnv = cleanEnv(process.env, {
 });
 
 const env = { ...baseEnv };
+
+const ensureStrongSecret = (value, name) => {
+  if (typeof value !== 'string' || value.trim().length < 32) {
+    throw new Error(`${name} must be at least 32 characters long in production.`);
+  }
+};
+
+if (env.NODE_ENV === 'production') {
+  ensureStrongSecret(env.JWT_SECRET, 'JWT_SECRET');
+  ensureStrongSecret(env.WEBHOOK_SECRET, 'WEBHOOK_SECRET');
+}
 
 // Helper: return array of webhook secrets (rotation-friendly)
 Object.defineProperty(env, 'WEBHOOK_SECRET_LIST', {

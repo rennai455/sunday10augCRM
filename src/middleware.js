@@ -26,20 +26,28 @@ const {
   API_RATE_MAX,
   AUTH_RATE_WINDOW_MS,
   AUTH_RATE_MAX,
+  RATE_LIMIT_TRUST_PROXY,
 } = config;
 
 let redisStore;
+let redisInitAttempted = false;
 function initRateLimitStore() {
   if (redisStore) return redisStore;
-  if (NODE_ENV === 'production' && REDIS_URL) {
+  if (redisInitAttempted) return undefined;
+  if (REDIS_URL) {
     try {
       const redisClient = getRedisClient();
+      if (!redisClient) {
+        throw new Error('Redis client unavailable');
+      }
       redisStore = new RedisStore({
         sendCommand: (...args) => redisClient.sendCommand(args),
       });
+      redisInitAttempted = true;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Failed to init Redis store (rate limit):', err);
+      redisInitAttempted = true;
       redisStore = undefined;
     }
   }
@@ -81,26 +89,64 @@ function applyPreMiddleware(app) {
     next();
   });
 
+  const normalizeOrigin = (input) => {
+    if (!input) return '';
+    try {
+      const asUrl = new URL(input);
+      return asUrl.origin.toLowerCase();
+    } catch {
+      return String(input).trim().replace(/\/$/, '').toLowerCase();
+    }
+  };
   const raw = ALLOWED_ORIGINS || '';
-  const ALLOWLIST = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  app.use(
-    cors({
-      origin: (origin, cb) => {
-        // Allow non-browser/server-to-server requests without CORS header
-        if (!origin) return cb(null, true);
-        if (ALLOWLIST.length === 0) {
-          // Default to strict when no allowlist configured
-          return cb(null, false);
-        }
-        cb(null, ALLOWLIST.includes(origin));
-      },
-      credentials: true,
-      optionsSuccessStatus: 200,
-    })
+  const allowlist = new Set(
+    raw
+      .split(',')
+      .map((s) => normalizeOrigin(s))
+      .filter(Boolean)
   );
+  const corsMiddleware = cors({
+    origin: (origin, cb) => {
+      // Allow non-browser/server-to-server requests without CORS header
+      if (!origin) return cb(null, true);
+      const normalizedOrigin = normalizeOrigin(origin);
+      if (allowlist.size === 0) {
+        const error = new Error('CORS origin blocked: allowlist empty');
+        error.statusCode = 403;
+        return cb(error);
+      }
+      if (!allowlist.has(normalizedOrigin)) {
+        const error = new Error(`CORS origin blocked: ${origin}`);
+        error.statusCode = 403;
+        return cb(error);
+      }
+      return cb(null, true);
+    },
+    credentials: true,
+    optionsSuccessStatus: 204,
+  });
+  const handleCorsError = (err, req, res) => {
+    req.log?.warn?.(
+      { origin: req.headers.origin, message: err.message },
+      'CORS request rejected'
+    );
+    res.status(err.statusCode || 403).json({ error: 'Origin not allowed' });
+  };
+  app.use((req, res, next) => {
+    corsMiddleware(req, res, (err) => {
+      if (err) return handleCorsError(err, req, res);
+      return next();
+    });
+  });
+  app.options('*', (req, res, next) => {
+    corsMiddleware(req, res, (err) => {
+      if (err) return handleCorsError(err, req, res);
+      if (!res.headersSent) {
+        return res.sendStatus(204);
+      }
+      return next();
+    });
+  });
 
   app.use((req, res, next) => {
     res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
@@ -249,7 +295,7 @@ function applyPostMiddleware(app) {
       message: { error: message },
       skip: () => NODE_ENV === 'development',
       store,
-      validate: { trustProxy: config.RATE_LIMIT_TRUST_PROXY },
+      validate: { trustProxy: RATE_LIMIT_TRUST_PROXY },
       handler: (req, res, _next, options) => {
         const labels = {
           route: req.path || req.baseUrl || 'unknown',
@@ -286,7 +332,7 @@ function applyPostMiddleware(app) {
     delayMs: () => 500,
     maxDelayMs: 20000,
     // Disable validation warnings for delayMs behavior
-    validate: { delayMs: false, trustProxy: NODE_ENV === 'production' },
+    validate: { delayMs: false, trustProxy: RATE_LIMIT_TRUST_PROXY },
   };
   app.use(slowDown(slowDownConfig));
 }
