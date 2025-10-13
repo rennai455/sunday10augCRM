@@ -9,7 +9,7 @@ import { checkAndSetReplay } from './replayStore.js';
 import { pool, withAgencyContext } from './db/pool.js';
 import config from '../config/index.js';
 import { getRedisClient } from './redis.js';
-import { auth, authenticateWeb, DEMO_SESSION_VALUE, DEMO_USER } from './auth.js';
+import { auth, authenticateWeb } from './auth.js';
 import { recordAudit } from './audit.js';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
 import { validate, schemas } from './validate.js';
@@ -180,9 +180,20 @@ function registerRoutes(app) {
   app.get('/readyz', readinessHandler);
   app.get('/readiness', readinessHandler);
 
-  app.get('/metrics', async (_req, res) => {
-    res.set('Content-Type', metrics.register.contentType);
-    res.end(await metrics.register.metrics());
+  // Protect metrics: prefer header X-Metrics-Token (METRICS_TOKEN), else require admin
+  app.get('/metrics', async (req, res) => {
+    const token = process.env.METRICS_TOKEN || '';
+    if (token) {
+      const provided = req.headers['x-metrics-token'] || req.query.token;
+      if (provided !== token) return res.status(401).send('Unauthorized');
+      res.set('Content-Type', metrics.register.contentType);
+      return res.end(await metrics.register.metrics());
+    }
+    return authenticateWeb(req, res, async () => {
+      if (!req.isAdmin) return res.status(403).send('Forbidden');
+      res.set('Content-Type', metrics.register.contentType);
+      res.end(await metrics.register.metrics());
+    });
   });
 
   // API Docs (admin-only)
@@ -213,21 +224,7 @@ function registerRoutes(app) {
           .json({ success: false, message: 'Email and password required' });
       }
 
-      if (email === 'admin@renn.ai' && password === 'secure123') {
-        res.cookie('auth', DEMO_SESSION_VALUE, {
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: NODE_ENV === 'production',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-        });
-        res.clearCookie('token', {
-          httpOnly: true,
-          secure: NODE_ENV === 'production',
-          sameSite: 'lax',
-        });
-        recordAudit(req, 'auth:login', { demo: true });
-        return res.json({ success: true });
-      }
+      // Demo login path removed in production build
 
       try {
         const result = await pool.query(

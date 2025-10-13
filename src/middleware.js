@@ -92,7 +92,8 @@ function applyPreMiddleware(app) {
         // Allow non-browser/server-to-server requests without CORS header
         if (!origin) return cb(null, true);
         if (ALLOWLIST.length === 0) {
-          return cb(null, true);
+          // Default to strict when no allowlist configured
+          return cb(null, false);
         }
         cb(null, ALLOWLIST.includes(origin));
       },
@@ -186,6 +187,20 @@ function applyPostMiddleware(app) {
       if (err) return res.status(403).json({ error: 'Invalid CSRF token' });
       next();
     });
+  });
+
+  // Protect HTML pages before mounting static. Only allow public pages without auth.
+  const publicHtml = new Set(['/Login.html', '/form.html', '/index.html']);
+  app.use((req, res, next) => {
+    if (req.method !== 'GET') return next();
+    if (!req.path || !req.path.toLowerCase().endsWith('.html')) return next();
+    if (publicHtml.has(req.path)) return next();
+    // Lazy import to avoid cycle
+    import('./auth.js').then(({ default: authMod }) => {
+      const guard = authMod?.authenticateWeb;
+      if (typeof guard === 'function') return guard(req, res, next);
+      next();
+    }).catch(() => next());
   });
 
   app.use(express.static(path.join(__dirname, '..', 'public')));

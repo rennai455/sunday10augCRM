@@ -14,6 +14,7 @@ const baseEnv = cleanEnv(process.env, {
   JWT_SECRET: str(),
   WEBHOOK_SECRETS: str({ default: '' }),
   WEBHOOK_SECRET: str(),
+  METRICS_TOKEN: str({ default: '' }),
   SEED_ADMIN_EMAIL: str(),
   SEED_ADMIN_PASSWORD: str(),
   REDIS_URL: str({ default: '' }),
