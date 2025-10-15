@@ -5,13 +5,21 @@ import { query } from '../src/db/pool.js';
 import { fileURLToPath } from 'node:url';
 
 async function seed() {
-  await query('INSERT INTO agencies (name) VALUES ($1) ON CONFLICT DO NOTHING', [
-    'Demo Agency',
+  const agencyName = 'Demo Agency';
+  // Ensure a single Demo Agency (idempotent without requiring a unique index)
+  let agencyId;
+  const existingAgency = await query('SELECT id FROM agencies WHERE name = $1 LIMIT 1', [
+    agencyName,
   ]);
-  const agencyRes = await query('SELECT id FROM agencies WHERE name = $1', [
-    'Demo Agency',
-  ]);
-  const agencyId = agencyRes.rows[0]?.id;
+  if (existingAgency.rows[0]?.id) {
+    agencyId = existingAgency.rows[0].id;
+  } else {
+    const inserted = await query(
+      'INSERT INTO agencies (name) VALUES ($1) RETURNING id',
+      [agencyName]
+    );
+    agencyId = inserted.rows[0]?.id;
+  }
 
   const adminEmail = config.SEED_ADMIN_EMAIL;
   const adminPassword = config.SEED_ADMIN_PASSWORD;
@@ -23,23 +31,34 @@ async function seed() {
     [adminEmail, passwordHash, agencyId]
   );
 
-  await query(
-    'INSERT INTO campaigns (agency_id, name, status) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-    [agencyId, 'Demo Campaign', 'active']
+  const campaignName = 'Demo Campaign';
+  let campaignId;
+  const existingCampaign = await query(
+    'SELECT id FROM campaigns WHERE name = $1 AND agency_id = $2 LIMIT 1',
+    [campaignName, agencyId]
   );
-
-  const campaignRes = await query('SELECT id FROM campaigns WHERE name = $1', [
-    'Demo Campaign',
-  ]);
-  const campaignId = campaignRes.rows[0]?.id;
+  if (existingCampaign.rows[0]?.id) {
+    campaignId = existingCampaign.rows[0].id;
+  } else {
+    const insertedCampaign = await query(
+      'INSERT INTO campaigns (agency_id, name, status) VALUES ($1, $2, $3) RETURNING id',
+      [agencyId, campaignName, 'active']
+    );
+    campaignId = insertedCampaign.rows[0]?.id;
+  }
 
   const statusHistory = JSON.stringify([
     { status: 'new', timestamp: new Date().toISOString() },
   ]);
-  await query(
-    'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1, $2, $3, $4, $5, $6)',
-    [campaignId, 'John Doe', 'john@example.com', '555-1234', 'new', statusHistory]
-  );
+  const anyLead = await query('SELECT 1 FROM leads WHERE campaign_id = $1 LIMIT 1', [
+    campaignId,
+  ]);
+  if (anyLead.rowCount === 0) {
+    await query(
+      'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1, $2, $3, $4, $5, $6)',
+      [campaignId, 'John Doe', 'john@example.com', '555-1234', 'new', statusHistory]
+    );
+  }
 
   console.log('Seed data inserted.');
 }
@@ -52,3 +71,6 @@ if (isPrimaryModule) {
     process.exit(1);
   });
 }
+
+export { seed };
+export default { seed };

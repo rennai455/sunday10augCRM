@@ -9,6 +9,7 @@ import authModule from './src/auth.js';
 import db from './src/db/pool.js';
 import redis from './src/redis.js';
 import config from './config/index.js';
+import dbInit from './src/utils/dbInit.js';
 
 const { initSentry, initOtel } = observability;
 const { applyPreMiddleware, applyPostMiddleware } = middleware;
@@ -55,8 +56,22 @@ let server;
 const isPrimaryModule = process.argv[1] === __filename;
 
 if (isPrimaryModule) {
-  // Bind explicitly to 0.0.0.0 to ensure PaaS environments (e.g., Railway) accept connections
-  server = app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+  const { initDatabase } = dbInit || {};
+  const start = async () => {
+    try {
+      if (typeof initDatabase === 'function') {
+        await initDatabase();
+      }
+    } catch (err) {
+      console.error('Startup aborted due to database init failure.');
+      process.exit(1);
+    }
+
+    // Bind explicitly to 0.0.0.0 to ensure PaaS environments (e.g., Railway) accept connections
+    server = app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+  };
+
+  start();
 
   const shutdown = async (signal, err) => {
     console.log(`🛑 ${signal} received, shutting down gracefully`);

@@ -21,3 +21,6 @@ if (isPrimaryModule) {
     process.exit(1);
   });
 }
+
+export { runMigrations };
+export default { runMigrations };
