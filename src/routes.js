@@ -14,6 +14,7 @@ import { auth, authenticateWeb } from './auth.js';
 import { recordAudit } from './audit.js';
 import rateLimit from 'express-rate-limit';
 import { ipKeyGenerator } from 'express-rate-limit/helpers.js';
+import limiterUtil from './utils/createLimiter.js';
 import { encryptAesGcm, decryptAesGcm, getKey } from './utils/crypto.js';
 import RedisStore from 'rate-limit-redis';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
@@ -180,39 +181,26 @@ function registerWebhook(app) {
 
 function registerRoutes(app) {
   // Strict limiter for TOTP + reset flows
-  const createRedisStore = () => {
-    try {
-      if (!config.REDIS_URL) return undefined;
-      const client = getRedisClient();
-      if (!client) return undefined;
-      return new RedisStore({ sendCommand: (...args) => client.sendCommand(args) });
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to init Redis store (routes limiters):', err);
-      return undefined;
-    }
-  };
+  const { createLimiter } = limiterUtil || {};
 
-  const totpLimiter = rateLimit({
+  const totpLimiter = createLimiter({
     windowMs: 5 * 60 * 1000,
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many verification attempts' },
-    store: createRedisStore(),
     keyGenerator: (req) => `${ipKeyGenerator(req)}:${req.body?.email || ''}`,
     validate: { trustProxy: true },
-  });
-  const resetLimiter = rateLimit({
+  }, { name: 'totp' });
+  const resetLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    store: createRedisStore(),
     keyGenerator: (req) => `${ipKeyGenerator(req)}:${req.body?.email || ''}`,
     message: { error: 'Too many reset requests' },
     validate: { trustProxy: true },
-  });
+  }, { name: 'reset' });
   const healthHandler = async (_req, res) => {
     try {
       await pool.query('select 1');

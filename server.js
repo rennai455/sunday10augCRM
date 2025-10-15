@@ -10,6 +10,7 @@ import db from './src/db/pool.js';
 import redis from './src/redis.js';
 import config from './config/index.js';
 import dbInit from './src/utils/dbInit.js';
+import limiterUtil from './src/utils/createLimiter.js';
 
 const { initSentry, initOtel } = observability;
 const { applyPreMiddleware, applyPostMiddleware } = middleware;
@@ -62,6 +63,14 @@ if (isPrimaryModule) {
       if (typeof initDatabase === 'function') {
         await initDatabase();
       }
+      // Print diagnostics for rate limiting stack
+      try {
+        const { printRateLimitDiagnostics, createLimiter } = limiterUtil || {};
+        printRateLimitDiagnostics?.();
+        // Construct a disposable limiter to surface any validation errors early
+        createLimiter?.({ windowMs: 1000, max: 1 }, { name: 'selftest' });
+        console.log('✅ Rate limiter self-test initialized');
+      } catch {}
     } catch (err) {
       console.error('Startup aborted due to database init failure.');
       process.exit(1);
@@ -98,6 +107,14 @@ if (isPrimaryModule) {
       }
     } catch (error) {
       console.error('Error closing Redis client', error);
+    }
+
+    try {
+      const { shutdownLimiterStores } = limiterUtil || {};
+      await shutdownLimiterStores?.();
+      console.log('✅ Rate limit Redis clients closed');
+    } catch (error) {
+      console.error('Error closing rate limit Redis clients', error);
     }
 
     process.exit(err ? 1 : 0);

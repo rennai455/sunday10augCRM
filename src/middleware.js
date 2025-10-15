@@ -5,10 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-// Use the library-provided IPv6‑safe key generator
-import { ipKeyGenerator } from 'express-rate-limit/helpers.js';
-import RedisStore from 'rate-limit-redis';
-import { getRedisClient } from './redis.js';
+import limiterUtil from './utils/createLimiter.js';
 import slowDown from 'express-slow-down';
 import pinoHttp from 'pino-http';
 import crypto from 'node:crypto';
@@ -25,7 +22,6 @@ const __dirname = path.dirname(__filename);
 const {
   NODE_ENV,
   ALLOWED_ORIGINS,
-  REDIS_URL,
   API_RATE_WINDOW_MS,
   API_RATE_MAX,
   AUTH_RATE_WINDOW_MS,
@@ -33,24 +29,7 @@ const {
   RATE_LIMIT_TRUST_PROXY,
 } = config;
 
-// Create a fresh RedisStore per limiter to avoid ERR_ERL_STORE_REUSE
-function initRateLimitStore() {
-  if (!REDIS_URL) return undefined;
-  try {
-    const redisClient = getRedisClient();
-    if (!redisClient) {
-      throw new Error('Redis client unavailable');
-    }
-    return new RedisStore({
-      // Keep sendCommand wrapper exactly as before
-      sendCommand: (...args) => redisClient.sendCommand(args),
-    });
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to init Redis store (rate limit):', err);
-    return undefined;
-  }
-}
+const { createLimiter } = limiterUtil || {};
 
 function applyPreMiddleware(app) {
   app.use((req, _res, next) => {
@@ -272,18 +251,14 @@ function applyPostMiddleware(app) {
     }
   });
 
-  const makeLimiter = (windowMs, max, message, typeLabel) => {
-    const store = initRateLimitStore(); // new store instance per limiter
-    return rateLimit({
+  const makeLimiter = (windowMs, max, message, typeLabel, name) => {
+    return createLimiter({
       windowMs,
       max,
       standardHeaders: true,
       legacyHeaders: false,
       message: { error: message },
       skip: () => NODE_ENV === 'development',
-      store,
-      // Use IPv6-safe generator to avoid ERR_ERL_KEY_GEN_IPV6
-      keyGenerator: ipKeyGenerator,
       validate: { trustProxy: RATE_LIMIT_TRUST_PROXY },
       handler: (req, res, _next, options) => {
         const labels = {
@@ -298,11 +273,11 @@ function applyPostMiddleware(app) {
         }
         res.status(options.statusCode || 429).json({ error: message });
       },
-    });
+    }, { name });
   };
   app.use(
     '/api/',
-    makeLimiter(API_RATE_WINDOW_MS, API_RATE_MAX, 'Too many requests', 'api')
+    makeLimiter(API_RATE_WINDOW_MS, API_RATE_MAX, 'Too many requests', 'api', 'api')
   );
   app.use(
     '/api/auth/',
@@ -310,9 +285,16 @@ function applyPostMiddleware(app) {
       AUTH_RATE_WINDOW_MS,
       AUTH_RATE_MAX,
       'Too many auth attempts',
+      'auth',
       'auth'
     )
   );
+
+  // Simple init log for observability
+  try {
+    // eslint-disable-next-line no-console
+    console.log('✅ Rate limiters initialized cleanly');
+  } catch {}
 
   // Central error handler to capture 5xx spikes and exceptions
   // Sentry is initialized in observability if DSN present; require dynamically here
