@@ -13,7 +13,7 @@ import { getRedisClient } from './redis.js';
 import { auth, authenticateWeb } from './auth.js';
 import { recordAudit } from './audit.js';
 import rateLimit from 'express-rate-limit';
-import { ipKeyGenerator } from 'express-rate-limit/helpers.js';
+import { ipKeyGenerator } from 'express-rate-limit';
 import limiterUtil from './utils/createLimiter.js';
 import { encryptAesGcm, decryptAesGcm, getKey } from './utils/crypto.js';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
@@ -188,7 +188,7 @@ function registerRoutes(app) {
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many verification attempts' },
-    keyGenerator: (req) => `${ipKeyGenerator(req)}:${req.body?.email || ''}`,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.body?.email || ''}`,
     validate: { trustProxy: true },
   }, { name: 'totp', ipv6Composite: true });
   const resetLimiter = createLimiter({
@@ -196,7 +196,7 @@ function registerRoutes(app) {
     max: 5,
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => `${ipKeyGenerator(req)}:${req.body?.email || ''}`,
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.body?.email || ''}`,
     message: { error: 'Too many reset requests' },
     validate: { trustProxy: true },
   }, { name: 'reset', ipv6Composite: true });

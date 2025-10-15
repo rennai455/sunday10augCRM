@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import { ipKeyGenerator } from 'express-rate-limit';
 import limiterUtil from './utils/createLimiter.js';
 import slowDown from 'express-slow-down';
 import pinoHttp from 'pino-http';
@@ -259,6 +260,8 @@ function applyPostMiddleware(app) {
       legacyHeaders: false,
       message: { error: message },
       skip: () => NODE_ENV === 'development',
+      // Explicitly set key generator to avoid any ambiguity
+      keyGenerator: (req) => ipKeyGenerator(req.ip),
       validate: { trustProxy: RATE_LIMIT_TRUST_PROXY },
       handler: (req, res, _next, options) => {
         const labels = {

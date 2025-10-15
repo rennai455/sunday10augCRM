@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { ipKeyGenerator } from 'express-rate-limit/helpers.js';
+import { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
 import config from '../../config/index.js';
@@ -49,11 +49,12 @@ function createLimiter(options = {}, meta = {}) {
   const limiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: ipKeyGenerator,
+    // Use the library helper on req.ip for IPv6 safety
+    keyGenerator: (req) => ipKeyGenerator(req.ip),
     ...options,
     // Ensure our store and keyGenerator defaults are applied after spread
     store: store ?? options.store,
-    keyGenerator: options.keyGenerator || ipKeyGenerator,
+    keyGenerator: options.keyGenerator || ((req) => ipKeyGenerator(req.ip)),
   });
 
   try {
