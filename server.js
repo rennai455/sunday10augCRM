@@ -63,13 +63,28 @@ if (isPrimaryModule) {
       if (typeof initDatabase === 'function') {
         await initDatabase();
       }
-      // Print diagnostics for rate limiting stack
+      // Print diagnostics for rate limiting stack + validate isolation
       try {
-        const { printRateLimitDiagnostics, createLimiter } = limiterUtil || {};
+        const { printRateLimitDiagnostics, createLimiter, getLimiterRegistry, validateLimiterIsolation } = limiterUtil || {};
         printRateLimitDiagnostics?.();
         // Construct a disposable limiter to surface any validation errors early
-        createLimiter?.({ windowMs: 1000, max: 1 }, { name: 'selftest' });
-        console.log('✅ Rate limiter self-test initialized');
+        createLimiter?.({ windowMs: 1000, max: 1 }, { name: 'selftest', ipv6Safe: true });
+        const summary = validateLimiterIsolation?.();
+        const registry = getLimiterRegistry?.() || [];
+        console.log('ℹ️ Rate limiter registry:', registry.map(r => ({ name: r.name, prefix: r.prefix, ipv6Safe: r.ipv6Safe, clientOpen: r.client?.isOpen })));
+        console.log('✅ Rate limiters initialized cleanly', summary);
+      } catch {}
+      // Log a sanitized DB URL for diagnostics
+      try {
+        const raw = process.env.DATABASE_URL || '';
+        const sanitize = (u) => {
+          try {
+            const parsed = new URL(u);
+            if (parsed.password) parsed.password = '****';
+            return parsed.toString();
+          } catch { return '[unparsable]'; }
+        };
+        console.log('ℹ️ DATABASE_URL:', sanitize(raw));
       } catch {}
     } catch (err) {
       console.error('Startup aborted due to database init failure.');

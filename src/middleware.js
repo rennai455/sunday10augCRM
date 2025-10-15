@@ -273,7 +273,7 @@ function applyPostMiddleware(app) {
         }
         res.status(options.statusCode || 429).json({ error: message });
       },
-    }, { name });
+    }, { name, ipv6Safe: true });
   };
   app.use(
     '/api/',

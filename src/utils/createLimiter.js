@@ -7,8 +7,9 @@ import { createRequire } from 'node:module';
 
 const reqr = createRequire(import.meta.url);
 
-// Keep a registry of per-limiter Redis clients for graceful shutdown
+// Keep a registry of created limiters for diagnostics + graceful shutdown
 const limiterClients = new Set();
+const limiterRegistry = [];
 
 function createRedisClient(url) {
   const client = createClient({ url });
@@ -30,9 +31,10 @@ function createLimiter(options = {}, meta = {}) {
   const name = meta.name || 'default';
 
   let store;
+  let client;
   if (REDIS_URL) {
     try {
-      const client = createRedisClient(REDIS_URL);
+      client = createRedisClient(REDIS_URL);
       store = new RedisStore({
         prefix: `rl:${name}:`,
         sendCommand: (...args) => client.sendCommand(args),
@@ -54,6 +56,17 @@ function createLimiter(options = {}, meta = {}) {
     keyGenerator: options.keyGenerator || ipKeyGenerator,
   });
 
+  try {
+    const ipv6Safe = Boolean(meta.ipv6Safe || meta.ipv6Composite || options.keyGenerator === ipKeyGenerator);
+    limiterRegistry.push({
+      name,
+      prefix: `rl:${name}:`,
+      client,
+      store,
+      ipv6Safe,
+    });
+  } catch {}
+
   return limiter;
 }
 
@@ -66,6 +79,26 @@ async function shutdownLimiterStores() {
     limiterClients.delete(client);
   }
   await Promise.allSettled(tasks);
+}
+
+function getLimiterRegistry() {
+  return [...limiterRegistry];
+}
+
+function validateLimiterIsolation() {
+  const stores = limiterRegistry.map((r) => r.store).filter(Boolean);
+  const unique = new Set(stores);
+  if (stores.length > 0 && unique.size !== stores.length) {
+    throw new Error('Rate limiter validation failed: a RedisStore instance is shared across limiters');
+  }
+  const unsafe = limiterRegistry.filter((r) => !r.ipv6Safe);
+  if (unsafe.length > 0) {
+    throw new Error('Rate limiter validation failed: some limiters do not use IPv6-safe keyGenerator');
+  }
+  return {
+    limiterCount: limiterRegistry.length,
+    uniqueStores: unique.size,
+  };
 }
 
 function printRateLimitDiagnostics(extra = {}) {
@@ -81,6 +114,5 @@ function printRateLimitDiagnostics(extra = {}) {
   } catch {}
 }
 
-export { createLimiter, shutdownLimiterStores, printRateLimitDiagnostics };
-export default { createLimiter, shutdownLimiterStores, printRateLimitDiagnostics };
-
+export { createLimiter, shutdownLimiterStores, printRateLimitDiagnostics, getLimiterRegistry, validateLimiterIsolation };
+export default { createLimiter, shutdownLimiterStores, printRateLimitDiagnostics, getLimiterRegistry, validateLimiterIsolation };

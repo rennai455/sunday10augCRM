@@ -190,7 +190,7 @@ function registerRoutes(app) {
     message: { error: 'Too many verification attempts' },
     keyGenerator: (req) => `${ipKeyGenerator(req)}:${req.body?.email || ''}`,
     validate: { trustProxy: true },
-  }, { name: 'totp' });
+  }, { name: 'totp', ipv6Composite: true });
   const resetLimiter = createLimiter({
     windowMs: 15 * 60 * 1000,
     max: 5,
@@ -199,7 +199,7 @@ function registerRoutes(app) {
     keyGenerator: (req) => `${ipKeyGenerator(req)}:${req.body?.email || ''}`,
     message: { error: 'Too many reset requests' },
     validate: { trustProxy: true },
-  }, { name: 'reset' });
+  }, { name: 'reset', ipv6Composite: true });
   const healthHandler = async (_req, res) => {
     try {
       await pool.query('select 1');
