@@ -5,6 +5,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+// Use the library-provided IPv6‑safe key generator
+import { ipKeyGenerator } from 'express-rate-limit/helpers.js';
 import RedisStore from 'rate-limit-redis';
 import { getRedisClient } from './redis.js';
 import slowDown from 'express-slow-down';
@@ -31,29 +33,23 @@ const {
   RATE_LIMIT_TRUST_PROXY,
 } = config;
 
-let redisStore;
-let redisInitAttempted = false;
+// Create a fresh RedisStore per limiter to avoid ERR_ERL_STORE_REUSE
 function initRateLimitStore() {
-  if (redisStore) return redisStore;
-  if (redisInitAttempted) return undefined;
-  if (REDIS_URL) {
-    try {
-      const redisClient = getRedisClient();
-      if (!redisClient) {
-        throw new Error('Redis client unavailable');
-      }
-      redisStore = new RedisStore({
-        sendCommand: (...args) => redisClient.sendCommand(args),
-      });
-      redisInitAttempted = true;
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to init Redis store (rate limit):', err);
-      redisInitAttempted = true;
-      redisStore = undefined;
+  if (!REDIS_URL) return undefined;
+  try {
+    const redisClient = getRedisClient();
+    if (!redisClient) {
+      throw new Error('Redis client unavailable');
     }
+    return new RedisStore({
+      // Keep sendCommand wrapper exactly as before
+      sendCommand: (...args) => redisClient.sendCommand(args),
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to init Redis store (rate limit):', err);
+    return undefined;
   }
-  return redisStore;
 }
 
 function applyPreMiddleware(app) {
@@ -277,7 +273,7 @@ function applyPostMiddleware(app) {
   });
 
   const makeLimiter = (windowMs, max, message, typeLabel) => {
-    const store = initRateLimitStore();
+    const store = initRateLimitStore(); // new store instance per limiter
     return rateLimit({
       windowMs,
       max,
@@ -286,6 +282,8 @@ function applyPostMiddleware(app) {
       message: { error: message },
       skip: () => NODE_ENV === 'development',
       store,
+      // Use IPv6-safe generator to avoid ERR_ERL_KEY_GEN_IPV6
+      keyGenerator: ipKeyGenerator,
       validate: { trustProxy: RATE_LIMIT_TRUST_PROXY },
       handler: (req, res, _next, options) => {
         const labels = {
