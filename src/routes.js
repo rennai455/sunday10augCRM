@@ -16,7 +16,6 @@ import rateLimit from 'express-rate-limit';
 import { ipKeyGenerator } from 'express-rate-limit/helpers.js';
 import limiterUtil from './utils/createLimiter.js';
 import { encryptAesGcm, decryptAesGcm, getKey } from './utils/crypto.js';
-import RedisStore from 'rate-limit-redis';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
 import { validate, schemas } from './validate.js';
 import { scoreLead } from './utils/leadScoring.js';
