@@ -16,6 +16,7 @@ import rateLimit from 'express-rate-limit';
 import { ipKeyGenerator } from 'express-rate-limit';
 import limiterUtil from './utils/createLimiter.js';
 import { encryptAesGcm, decryptAesGcm, getKey } from './utils/crypto.js';
+import { z } from 'zod';
 import { sendLeadToDrip } from './utils/dripIntegration.js';
 import { validate, schemas } from './validate.js';
 import { scoreLead } from './utils/leadScoring.js';
@@ -41,6 +42,19 @@ const {
 
 // Replay TTL window
 const REPLAY_TTL_MS = 5 * 60 * 1000;
+
+// Strict validation for public lead intake
+const leadFormSchema = z.object({
+  campaign_id: z.number(),
+  name: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  status: z.enum(['new', 'qualified', 'closed']).default('new'),
+  utm_source: z.string().optional(),
+  utm_medium: z.string().optional(),
+  utm_campaign: z.string().optional(),
+  variant: z.string().optional(),
+});
 
 function timingSafeEqHexHex(aHex, bHex) {
   const a = Buffer.from(aHex, 'hex');
@@ -1283,8 +1297,8 @@ function registerRoutes(app) {
         }
         if (!valid) return res.status(400).json({ error: 'Invalid signature' });
 
-        // Parse payload after HMAC verification
-        const parsed = JSON.parse(payload.toString('utf8')) || {};
+        // Parse + validate payload after HMAC verification
+        const parsed = leadFormSchema.parse(JSON.parse(payload.toString('utf8')) || {});
         const { campaign_id, name, email, phone, status } = parsed;
         if (!campaign_id) return res.status(400).json({ error: 'campaign_id required' });
 
@@ -1296,14 +1310,18 @@ function registerRoutes(app) {
         const created = await withAgencyContext(agencyId, async (client) => {
           const insert = await client.query(
             'INSERT INTO leads (campaign_id, name, email, phone, status, status_history) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
-            [campaign_id, name || null, email || null, phone || null, status || null, JSON.stringify([])]
+            [campaign_id, name, email, phone || null, status || 'new', JSON.stringify([])]
           );
-          return insert.rows[0];
+          const lead = insert.rows[0];
+          // Audit + timeline + event in the same transaction
+          await recordAudit(req, 'lead:intake:form', { id: lead.id, campaign_id }, client);
+          await recordTimelineEvent(client, lead.id, 'creation', { source: 'form' });
+          await client.query(
+            'INSERT INTO lead_events (lead_id, type, message, metadata) VALUES ($1,$2,$3,$4)',
+            [lead.id, 'created', 'Lead created from public form', {}]
+          );
+          return lead;
         });
-
-        recordAudit(req, 'lead:intake:form', { id: created.id, campaign_id });
-        // Timeline: form creation
-        await recordTimelineEvent(pool, created.id, 'creation', { source: 'form' });
         await sendLeadToDrip({
           name: created.name || name || null,
           email: created.email || email || null,

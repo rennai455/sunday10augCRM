@@ -11,7 +11,8 @@ function hashPayload(payload) {
   }
 }
 
-async function recordAudit(req, action, payload) {
+// Optionally accept a DB client/pool to participate in a transaction.
+async function recordAudit(req, action, payload, dbOverride) {
   try {
     const payloadHash = hashPayload(payload);
     const userId = req.userId || null;
@@ -20,7 +21,9 @@ async function recordAudit(req, action, payload) {
     const userAgent = req.get ? req.get('user-agent') : null;
     const reqId = req.id || null;
 
-    await pool.query(
+    const db = dbOverride && typeof dbOverride.query === 'function' ? dbOverride : pool;
+
+    await db.query(
       'INSERT INTO audit_log (req_id, user_id, agency_id, action, payload_hash, ip, user_agent) VALUES ($1, $2, $3, $4, $5, $6, $7)',
       [reqId, userId, agencyId, action, payloadHash, ip, userAgent]
     );
