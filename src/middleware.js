@@ -161,8 +161,18 @@ function applyPreMiddleware(app) {
 }
 
 function applyPostMiddleware(app) {
-  app.use(express.json({ limit: '100kb' }));
-  app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+  // Important: do not pre-parse JSON for endpoints that require raw body
+  // for HMAC verification (e.g., /api/leads/form). Bypass global parsers
+  // for those paths so route-level express.raw can read the exact bytes.
+  const rawBodyBypass = new Set(['/api/leads/form']);
+  app.use((req, res, next) => {
+    if (rawBodyBypass.has(req.path)) return next();
+    return express.json({ limit: '100kb' })(req, res, next);
+  });
+  app.use((req, res, next) => {
+    if (rawBodyBypass.has(req.path)) return next();
+    return express.urlencoded({ extended: false, limit: '100kb' })(req, res, next);
+  });
   app.use(cookieParser());
 
   // CSRF protection (double submit cookie). Exempt safe routes and webhooks.

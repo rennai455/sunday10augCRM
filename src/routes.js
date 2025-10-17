@@ -1265,21 +1265,26 @@ function registerRoutes(app) {
   // Lead intake: public form (no auth; HMAC protected)
   app.post(
     '/api/leads/form',
+    // Must run BEFORE any JSON parser; see middleware.js bypass
     express.raw({ type: 'application/json' }),
     async (req, res) => {
       try {
         const signature = req.get('x-signature');
         if (!signature) return res.status(401).json({ error: 'Missing signature' });
+        // Compute HMAC over the exact raw bytes
+        const payload = Buffer.isBuffer(req.body)
+          ? req.body
+          : Buffer.from(String(req.body || ''), 'utf8');
         const secrets = config.WEBHOOK_SECRET_LIST || [config.WEBHOOK_SECRET];
         let valid = false;
         for (const s of secrets) {
-          const expected = crypto.createHmac('sha256', s).update(req.body).digest('hex');
-          if (expected === signature) { valid = true; break; }
+          const expected = crypto.createHmac('sha256', s).update(payload).digest('hex');
+          if (timingSafeEqHexHex(signature, expected)) { valid = true; break; }
         }
         if (!valid) return res.status(400).json({ error: 'Invalid signature' });
 
         // Parse payload after HMAC verification
-        const parsed = JSON.parse(req.body.toString('utf8')) || {};
+        const parsed = JSON.parse(payload.toString('utf8')) || {};
         const { campaign_id, name, email, phone, status } = parsed;
         if (!campaign_id) return res.status(400).json({ error: 'campaign_id required' });
 
