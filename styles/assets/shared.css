@@ -552,7 +552,7 @@ th {
 
   /* === ANIMATIONS === */
   .fade-in {
-    animation: fade-in 0.3s ease-out;
+    animation: fade-in var(--transition-base) ease-out;
   }
 
   @keyframes fade-in {
